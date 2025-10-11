@@ -1,0 +1,159 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId       String         @unique
+  email         String         @unique
+  name          String?
+  avatarUrl     String?
+  boards        Board[]        @relation(fields: [], references: [])
+  activities    Activity[]
+  Member        Member[]
+  Comment       Comment[]
+  
+  // ✅ One-to-one relation (each user has at most one subscription)
+  subscription  Subscription?  @relation(name: "UserSubscription")
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Board {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  ownerId     String     @db.ObjectId
+  owner       User?      @relation(fields: [ownerId], references: [id])
+  members     Member[]   @relation(fields: [], references: [])
+  lists       List[]
+  activities  Activity[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Member {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User?    @relation(fields: [userId], references: [id])
+  boardId   String   @db.ObjectId
+  board     Board?   @relation(fields: [boardId], references: [id])
+  role      String   @default("member") // or "admin"
+  createdAt DateTime @default(now())
+}
+
+model List {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  boardId   String   @db.ObjectId
+  board     Board?   @relation(fields: [boardId], references: [id])
+  position  Int
+  cards     Card[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Card {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  listId      String      @db.ObjectId
+  list        List?       @relation(fields: [listId], references: [id])
+  position    Int
+  labels      Label[]
+  checklists  Checklist[]
+  attachments Attachment[]
+  comments    Comment[]
+  dueDate     DateTime?
+  assignedTo  String?     // userId reference (optional)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Label {
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  name    String
+  color   String
+  cardId  String  @db.ObjectId
+  card    Card?   @relation(fields: [cardId], references: [id])
+}
+
+model Checklist {
+  id      String         @id @default(auto()) @map("_id") @db.ObjectId
+  title   String
+  items   ChecklistItem[]
+  cardId  String         @db.ObjectId
+  card    Card?          @relation(fields: [cardId], references: [id])
+}
+
+model ChecklistItem {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  content      String
+  isCompleted  Boolean     @default(false)
+  checklistId  String      @db.ObjectId
+  checklist    Checklist?  @relation(fields: [checklistId], references: [id])
+}
+
+model Attachment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  url       String
+  type      String?
+  cardId    String   @db.ObjectId
+  card      Card?    @relation(fields: [cardId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  userId    String   @db.ObjectId
+  user      User?    @relation(fields: [userId], references: [id])
+  cardId    String   @db.ObjectId
+  card      Card?    @relation(fields: [cardId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Activity {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  type      String   // "created_card", "moved_card", etc.
+  message   String
+  boardId   String   @db.ObjectId
+  board     Board?   @relation(fields: [boardId], references: [id])
+  userId    String   @db.ObjectId
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+//
+// 💳 Billing Models
+//
+model Subscription {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String    @unique @db.ObjectId  // ✅ must be unique for 1:1
+  user                 User?     @relation(name: "UserSubscription", fields: [userId], references: [id])
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  plan                 Plan      @default(FREE)
+  status               String    @default("active")
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+enum Plan {
+  FREE
+  PRO
+  TEAM
+  ENTERPRISE
+}
