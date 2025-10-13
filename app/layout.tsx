@@ -4,6 +4,7 @@ import "./globals.css";
 import RootProviders from "@/components/providers/RootProviders";
 import { Toaster } from "@/components/ui/sonner";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Navbar } from "@/components/navbar/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +17,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zend Productivity",
-  description: "Productivity app",
+  title: "Zend Productivity - Organize Your Work Like Never Before",
+  description: "A powerful, intuitive productivity tool that helps you manage projects, track tasks, and collaborate with your team seamlessly. Built with modern technology for instant loading and smooth interactions.",
+  keywords: ["productivity", "project management", "task tracking", "collaboration", "kanban", "boards"],
+  authors: [{ name: "Zend Productivity Team" }],
+  openGraph: {
+    title: "Zend Productivity - Organize Your Work Like Never Before",
+    description: "A powerful, intuitive productivity tool that helps you manage projects, track tasks, and collaborate with your team seamlessly.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -43,9 +51,12 @@ export default function RootLayout({
             colorScheme: "dark",
           }}
         >
-          <body className={inter.className}>
+          <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
             <Toaster richColors position="bottom-right" />
-            <RootProviders>{children}</RootProviders>
+            <RootProviders>
+              <Navbar />
+              {children}
+            </RootProviders>
           </body>
         </html>
     </ClerkProvider>

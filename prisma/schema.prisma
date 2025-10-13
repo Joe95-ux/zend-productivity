@@ -15,10 +15,10 @@ model User {
   email         String         @unique
   name          String?
   avatarUrl     String?
-  boards        Board[]        @relation(fields: [], references: [])
+  boards        Board[]
   activities    Activity[]
-  Member        Member[]
-  Comment       Comment[]
+  members       Member[]
+  comments      Comment[]
   
   // ✅ One-to-one relation (each user has at most one subscription)
   subscription  Subscription?  @relation(name: "UserSubscription")
@@ -32,8 +32,8 @@ model Board {
   title       String
   description String?
   ownerId     String     @db.ObjectId
-  owner       User?      @relation(fields: [ownerId], references: [id])
-  members     Member[]   @relation(fields: [], references: [])
+  owner       User       @relation(fields: [ownerId], references: [id])
+  members     Member[]
   lists       List[]
   activities  Activity[]
   createdAt   DateTime   @default(now())
@@ -43,9 +43,9 @@ model Board {
 model Member {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   userId    String   @db.ObjectId
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
   boardId   String   @db.ObjectId
-  board     Board?   @relation(fields: [boardId], references: [id])
+  board     Board    @relation(fields: [boardId], references: [id])
   role      String   @default("member") // or "admin"
   createdAt DateTime @default(now())
 }

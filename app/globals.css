@@ -119,4 +119,22 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Global button animations */
+  button {
+    @apply cursor-pointer transition-all duration-200;
+  }
+  
+  button:hover {
+    @apply transform;
+  }
+  
+  /* Enhanced button hover effects */
+  .btn-primary:hover {
+    @apply scale-105 shadow-lg;
+  }
+  
+  .btn-secondary:hover {
+    @apply scale-105 shadow-md;
+  }
 }
