@@ -68,6 +68,7 @@ model Card {
   listId      String      @db.ObjectId
   list        List?       @relation(fields: [listId], references: [id])
   position    Int
+  isCompleted Boolean     @default(false)
   labels      Label[]
   checklists  Checklist[]
   attachments Attachment[]

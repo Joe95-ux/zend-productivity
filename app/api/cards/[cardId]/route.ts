@@ -14,7 +14,7 @@ export async function PUT(
 
     const { cardId } = await params;
     const body = await request.json();
-    const { title, description, position, listId } = body;
+    const { title, description, position, listId, isCompleted } = body;
 
     // Check if user has access to the card
     const card = await db.card.findFirst({
@@ -24,7 +24,11 @@ export async function PUT(
           include: {
             board: {
               include: {
-                members: true
+                members: {
+                  include: {
+                    user: true
+                  }
+                }
               }
             }
           }
@@ -34,6 +38,14 @@ export async function PUT(
 
     if (!card) {
       return NextResponse.json({ error: "Card not found" }, { status: 404 });
+    }
+
+    if (!card.list) {
+      return NextResponse.json({ error: "Card list not found" }, { status: 404 });
+    }
+
+    if (!card.list.board) {
+      return NextResponse.json({ error: "Board not found" }, { status: 404 });
     }
 
     const hasAccess = card.list.board.ownerId === user.id || 
@@ -48,6 +60,7 @@ export async function PUT(
     if (description !== undefined) updateData.description = description;
     if (position !== undefined) updateData.position = position;
     if (listId !== undefined) updateData.listId = listId;
+    if (isCompleted !== undefined) updateData.isCompleted = isCompleted;
 
     const updatedCard = await db.card.update({
       where: { id: cardId },
@@ -67,7 +80,7 @@ export async function PUT(
       data: {
         type: "updated_card",
         message: `Updated card "${updatedCard.title}"`,
-        boardId: card.list.boardId,
+        boardId: card.list?.boardId,
         userId: user.id
       }
     });
@@ -98,7 +111,11 @@ export async function DELETE(
           include: {
             board: {
               include: {
-                members: true
+                members: {
+                  include: {
+                    user: true
+                  }
+                }
               }
             }
           }
@@ -108,6 +125,14 @@ export async function DELETE(
 
     if (!card) {
       return NextResponse.json({ error: "Card not found" }, { status: 404 });
+    }
+
+    if (!card.list) {
+      return NextResponse.json({ error: "Card list not found" }, { status: 404 });
+    }
+
+    if (!card.list.board) {
+      return NextResponse.json({ error: "Board not found" }, { status: 404 });
     }
 
     const hasAccess = card.list.board.ownerId === user.id || 
@@ -126,7 +151,7 @@ export async function DELETE(
       data: {
         type: "deleted_card",
         message: `Deleted card "${card.title}"`,
-        boardId: card.list.boardId,
+        boardId: card.list?.boardId,
         userId: user.id
       }
     });

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateListForm } from "@/components/lists/CreateListForm";
@@ -10,6 +10,7 @@ import { ListContainer } from "@/components/lists/ListContainer";
 import { DndProvider } from "@/components/dnd/DndProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
+import Link from "next/link";
 
 interface Board {
   id: string;
@@ -34,6 +35,7 @@ interface Board {
       title: string;
       description?: string;
       position: number;
+      isCompleted: boolean;
       labels: Array<{
         id: string;
         name: string;
@@ -47,6 +49,15 @@ interface Board {
           email: string;
         };
         createdAt: string;
+      }>;
+      checklists: Array<{
+        id: string;
+        title: string;
+        items: Array<{
+          id: string;
+          content: string;
+          isCompleted: boolean;
+        }>;
       }>;
     }>;
   }>;
@@ -112,7 +123,7 @@ export default function BoardPage() {
   return (
     <>
       {/* Board Content */}
-      <div className="p-4">
+      <div className="p-4 min-h-screen">
         {board?.lists && board.lists.length > 0 ? (
           <DndProvider boardId={boardId}>
             <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)]">

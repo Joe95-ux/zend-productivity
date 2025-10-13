@@ -15,10 +15,11 @@ import {
 import { CreateCardForm } from "@/components/cards/CreateCardForm";
 import { CardItem } from "@/components/cards/CardItem";
 import { toast } from "sonner";
-import { DndContext, DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { cn } from "@/lib/utils";
 
 interface ListContainerProps {
   list: {
@@ -30,6 +31,7 @@ interface ListContainerProps {
       title: string;
       description?: string;
       position: number;
+      isCompleted: boolean;
       labels: Array<{
         id: string;
         name: string;
@@ -43,6 +45,15 @@ interface ListContainerProps {
           email: string;
         };
         createdAt: string;
+      }>;
+      checklists: Array<{
+        id: string;
+        title: string;
+        items: Array<{
+          id: string;
+          content: string;
+          isCompleted: boolean;
+        }>;
       }>;
     }>;
   };
@@ -62,6 +73,11 @@ function SortableListContainer({ list }: ListContainerProps) {
     transition,
     isDragging,
   } = useSortable({ id: list.id });
+
+  const {
+    setNodeRef: setDroppableRef,
+    isOver,
+  } = useDroppable({ id: list.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -128,13 +144,21 @@ function SortableListContainer({ list }: ListContainerProps) {
     }
   };
 
+  const combinedRef = (node: HTMLElement | null) => {
+    setNodeRef(node);
+    setDroppableRef(node);
+  };
+
   return (
     <div
-      ref={setNodeRef}
+      ref={combinedRef}
       style={style}
       className={`w-80 flex-shrink-0 ${isDragging ? "opacity-50" : ""}`}
     >
-      <Card className="h-fit bg-slate-800/90 border-slate-700/50 backdrop-blur-sm shadow-lg">
+      <Card className={cn(
+        "h-fit bg-slate-800/90 border-slate-700/50 backdrop-blur-sm shadow-lg transition-all duration-200",
+        isOver && "ring-2 ring-blue-400 ring-opacity-50 bg-slate-700/90"
+      )}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             {isEditing ? (

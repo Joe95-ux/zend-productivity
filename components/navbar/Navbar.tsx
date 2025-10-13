@@ -32,12 +32,10 @@ export function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-8">
+      <div className="max-w-[calc(100vw-6rem)] mx-auto px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <Logo fontSize="xl" iconSize={24} />
-          </Link>
+          <Logo fontSize="xl" iconSize={24} />
 
           {/* Search Bar - Center */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">

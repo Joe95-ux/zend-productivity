@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { MessageSquare, Send, Trash2, Edit } from "lucide-react";
+import { MessageSquare, Send, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -99,28 +99,6 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
     },
   });
 
-  const deleteCardMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/cards/${card.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete card");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
-      toast.success("Card deleted successfully!");
-      onClose();
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
 
   const addCommentMutation = useMutation({
     mutationFn: async (data: CommentFormData) => {
@@ -160,11 +138,6 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
     addCommentMutation.mutate(data);
   };
 
-  const handleDelete = () => {
-    if (confirm("Are you sure you want to delete this card? This action cannot be undone.")) {
-      deleteCardMutation.mutate();
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -202,13 +175,6 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
                 </div>
               )}
             </DialogTitle>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
           </div>
         </DialogHeader>
 

@@ -22,7 +22,11 @@ export async function PUT(
       include: {
         board: {
           include: {
-            members: true
+            members: {
+              include: {
+                user: true
+              }
+            }
           }
         }
       }
@@ -30,6 +34,10 @@ export async function PUT(
 
     if (!list) {
       return NextResponse.json({ error: "List not found" }, { status: 404 });
+    }
+
+    if (!list.board) {
+      return NextResponse.json({ error: "Board not found" }, { status: 404 });
     }
 
     const hasAccess = list.board.ownerId === user.id || 
@@ -68,7 +76,11 @@ export async function DELETE(
       include: {
         board: {
           include: {
-            members: true
+            members: {
+              include: {
+                user: true
+              }
+            }
           }
         }
       }
@@ -76,6 +88,10 @@ export async function DELETE(
 
     if (!list) {
       return NextResponse.json({ error: "List not found" }, { status: 404 });
+    }
+
+    if (!list.board) {
+      return NextResponse.json({ error: "Board not found" }, { status: 404 });
     }
 
     const hasAccess = list.board.ownerId === user.id || 

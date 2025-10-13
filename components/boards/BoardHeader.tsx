@@ -64,9 +64,9 @@ export function BoardHeader({ boardId, boardTitle, membersCount }: BoardHeaderPr
 
   return (
     <>
-      {/* Board Header Navbar - Second Navbar */}
-      <div className="w-full bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-        <div className="container mx-auto px-8">
+          {/* Board Header Navbar - Second Navbar */}
+          <div className="w-full bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+            <div className="max-w-[calc(100vw-6rem)] mx-auto px-8">
           <div className="flex items-center justify-between h-12">
             {/* Left side - Board title only */}
             <div className="flex items-center gap-4">
@@ -102,43 +102,44 @@ export function BoardHeader({ boardId, boardTitle, membersCount }: BoardHeaderPr
               )}
             </div>
 
-          {/* Right side - All clickable actions */}
-          <div className="flex items-center gap-2">
-            {/* Members count - Clickable */}
-            <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
-              <Users className="h-4 w-4 mr-1" />
-              <span className="text-sm">{membersCount}</span>
-            </Button>
+            {/* Right side - All clickable actions */}
+            <div className="flex items-center gap-2">
+              {/* Members count - Clickable */}
+              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
+                <Users className="h-4 w-4 mr-1" />
+                <span className="text-sm">{membersCount}</span>
+              </Button>
 
-            {/* Favorite button - Clickable */}
-            <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
-              <Star className="h-4 w-4" />
-            </Button>
+              {/* Favorite button - Clickable */}
+              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
+                <Star className="h-4 w-4" />
+              </Button>
 
-            {/* Share button - Clickable */}
-            <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
-              <Share2 className="h-4 w-4" />
-            </Button>
+              {/* Share button - Clickable */}
+              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
+                <Share2 className="h-4 w-4" />
+              </Button>
 
-            {/* User Profile - Same as main navbar */}
-            <UserButton 
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "w-8 h-8"
-                }
-              }}
-            />
+              {/* User Profile - Same as main navbar */}
+              <UserButton 
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "w-8 h-8"
+                  }
+                }}
+              />
 
-            {/* Menu - Clickable */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="cursor-pointer transition-all duration-200 hover:scale-105"
-              onClick={() => setIsMenuOpen(true)}
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+              {/* Menu - Clickable */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="cursor-pointer transition-all duration-200 hover:scale-105"
+                onClick={() => setIsMenuOpen(true)}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

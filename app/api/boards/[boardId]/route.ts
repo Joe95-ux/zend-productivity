@@ -39,6 +39,11 @@ export async function GET(
                   include: {
                     user: true
                   }
+                },
+                checklists: {
+                  include: {
+                    items: true
+                  }
                 }
               }
             }

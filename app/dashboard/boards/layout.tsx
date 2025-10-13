@@ -2,9 +2,6 @@
 
 import { useUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { usePathname } from "next/navigation";
-import { BoardHeader } from "@/components/boards/BoardHeader";
-import { useQuery } from "@tanstack/react-query";
 
 export default function BoardLayout({
   children,
@@ -12,19 +9,6 @@ export default function BoardLayout({
   children: React.ReactNode;
 }) {
   const { isLoaded, isSignedIn } = useUser();
-  const pathname = usePathname();
-  const boardId = pathname.split('/').pop();
-
-  const { data: board } = useQuery({
-    queryKey: ["board", boardId],
-    queryFn: async () => {
-      if (!boardId) return null;
-      const response = await fetch(`/api/boards/${boardId}`);
-      if (!response.ok) return null;
-      return response.json();
-    },
-    enabled: !!boardId && isSignedIn,
-  });
 
   if (!isLoaded) {
     return (
@@ -48,21 +32,5 @@ export default function BoardLayout({
     );
   }
 
-  return (
-    <>
-      {/* Board Header - Second Navbar */}
-      {board && (
-        <BoardHeader 
-          boardId={boardId || ""} 
-          boardTitle={board.title} 
-          membersCount={board.members ? board.members.length + 1 : 1}
-        />
-      )}
-      
-      {/* Board Content */}
-      <main className="min-h-screen bg-slate-100 dark:bg-slate-900">
-        {children}
-      </main>
-    </>
-  );
+  return <>{children}</>;
 }

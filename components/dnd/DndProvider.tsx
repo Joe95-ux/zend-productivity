@@ -1,7 +1,7 @@
 "use client";
 
-import { DndContext, DragEndEvent, DragOverEvent, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { DndContext, DragEndEvent, DragOverEvent, DragStartEvent, PointerSensor, useSensor, useSensors, closestCenter, rectIntersection } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -40,6 +40,9 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
       return response.json();
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+    },
     onError: (error: Error) => {
       toast.error(error.message);
     },
@@ -62,6 +65,9 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
       return response.json();
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+    },
     onError: (error: Error) => {
       toast.error(error.message);
     },
@@ -71,23 +77,19 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     setActiveId(event.active.id as string);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
-    setActiveId(null);
-
+    
     if (!over) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Handle card movement within the same list
-    if (activeId === overId) return;
-
-    // Get current board data to determine positions
+    // Get current board data
     const boardData = queryClient.getQueryData(["board", boardId]) as any;
     if (!boardData) return;
 
-    // Find the active card
+    // Find the active card and its current list
     let activeCard = null;
     let activeListId = null;
     
@@ -104,6 +106,80 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
     // Find the target list
     let targetListId = null;
+
+    // Check if dropping on a list
+    const targetList = boardData.lists.find((l: any) => l.id === overId);
+    if (targetList) {
+      targetListId = overId;
+    } else {
+      // Check if dropping on a card
+      for (const list of boardData.lists) {
+        const card = list.cards.find((c: any) => c.id === overId);
+        if (card) {
+          targetListId = list.id;
+          break;
+        }
+      }
+    }
+
+    // If we're moving to a different list, update the cache optimistically
+    if (targetListId && targetListId !== activeListId) {
+      queryClient.setQueryData(["board", boardId], (oldData: any) => {
+        if (!oldData) return oldData;
+
+        const newLists = oldData.lists.map((list: any) => {
+          if (list.id === activeListId) {
+            // Remove card from source list
+            return {
+              ...list,
+              cards: list.cards.filter((card: any) => card.id !== activeId)
+            };
+          }
+          if (list.id === targetListId) {
+            // Add card to target list at the end
+            return {
+              ...list,
+              cards: [...list.cards, { ...activeCard, listId: targetListId, position: list.cards.length }]
+            };
+          }
+          return list;
+        });
+
+        return { ...oldData, lists: newLists };
+      });
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Get current board data
+    const boardData = queryClient.getQueryData(["board", boardId]) as any;
+    if (!boardData) return;
+
+    // Find the active card and its current list
+    let activeCard = null;
+    let activeListId = null;
+    
+    for (const list of boardData.lists) {
+      const card = list.cards.find((c: any) => c.id === activeId);
+      if (card) {
+        activeCard = card;
+        activeListId = list.id;
+        break;
+      }
+    }
+
+    if (!activeCard) return;
+
+    // Find the target list and position
+    let targetListId = null;
     let targetPosition = 0;
 
     // Check if dropping on a list
@@ -117,7 +193,9 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         const card = list.cards.find((c: any) => c.id === overId);
         if (card) {
           targetListId = list.id;
-          targetPosition = card.position;
+          // Find the position of the card we're dropping on
+          const cardIndex = list.cards.findIndex((c: any) => c.id === overId);
+          targetPosition = cardIndex;
           break;
         }
       }
@@ -125,7 +203,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
     if (!targetListId) return;
 
-    // Move the card
+    // Only move if it's actually a different position
     if (activeListId !== targetListId || activeCard.position !== targetPosition) {
       moveCardMutation.mutate({
         cardId: activeId,
@@ -135,18 +213,21 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     }
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    // Handle drag over logic if needed
-  };
+  // Get all card IDs for SortableContext
+  const boardData = queryClient.getQueryData(["board", boardId]) as any;
+  const allCardIds = boardData?.lists?.flatMap((list: any) => list.cards.map((card: any) => card.id)) || [];
 
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={closestCenter}
       onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
     >
-      {children}
+      <SortableContext items={allCardIds} strategy={verticalListSortingStrategy}>
+        {children}
+      </SortableContext>
     </DndContext>
   );
 }

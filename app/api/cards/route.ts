@@ -22,7 +22,11 @@ export async function POST(request: NextRequest) {
       include: {
         board: {
           include: {
-            members: true
+            members: {
+              include: {
+                user: true
+              }
+            }
           }
         }
       }
@@ -32,8 +36,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "List not found" }, { status: 404 });
     }
 
-    const hasAccess = list.board.ownerId === user.id || 
-      list.board.members.some(member => member.userId === user.id);
+    const hasAccess = list.board &&
+      (list.board.ownerId === user.id ||
+      list.board.members.some(member => member.user.id === user.id));
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
