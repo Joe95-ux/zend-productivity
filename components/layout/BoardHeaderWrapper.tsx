@@ -34,9 +34,9 @@ export function BoardHeaderWrapper() {
               <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
             </div>
             <div className="flex items-center gap-1 min-[320px]:gap-2">
-              <div className="h-8 w-12 bg-slate-200 dark:bg-slate-700 rounded animate-pulse hidden sm:block" />
-              <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse hidden sm:block" />
-              <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse hidden sm:block" />
+              <div className="h-8 w-12 bg-slate-200 dark:bg-slate-700 rounded animate-pulse hidden lg:block" />
+              <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse hidden lg:block" />
+              <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse hidden lg:block" />
               <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
               <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
             </div>

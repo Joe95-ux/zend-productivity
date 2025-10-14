@@ -9,10 +9,16 @@ export async function GET(
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      console.log("GET /api/boards/[boardId]: No user found");
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
     const { boardId } = await params;
+    
+    if (!boardId) {
+      return NextResponse.json({ error: "Board ID is required" }, { status: 400 });
+    }
+
     const board = await db.board.findFirst({
       where: {
         id: boardId,
@@ -59,7 +65,18 @@ export async function GET(
     return NextResponse.json(board);
   } catch (error) {
     console.error("Error fetching board:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message.includes("Invalid ObjectId")) {
+        return NextResponse.json({ error: "Invalid board ID format" }, { status: 400 });
+      }
+      if (error.message.includes("connection")) {
+        return NextResponse.json({ error: "Database connection error" }, { status: 503 });
+      }
+    }
+    
+    return NextResponse.json({ error: "Failed to fetch board" }, { status: 500 });
   }
 }
 

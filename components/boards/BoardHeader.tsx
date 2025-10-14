@@ -147,6 +147,22 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
 
             {/* Right side - All clickable actions */}
             <div className="flex items-center gap-1 min-[320px]:gap-2">
+              {/* Members count - Clickable */}
+              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden lg:flex">
+                <Users className="h-4 w-4 mr-1" />
+                <span className="text-sm">{membersCount}</span>
+              </Button>
+
+              {/* Favorite button - Clickable */}
+              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden lg:flex">
+                <Star className="h-4 w-4" />
+              </Button>
+
+              {/* Share button - Clickable */}
+              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden lg:flex">
+                <Share2 className="h-4 w-4" />
+              </Button>
+
               {/* User Profile - Same as main navbar */}
               <UserButton 
                 afterSignOutUrl="/"
@@ -281,8 +297,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
 
                     <Separator />
 
-                    {/* Board Features */}
-                    <div className="space-y-0">
+                    {/* Board Features - Only on smaller screens */}
+                    <div className="space-y-0 lg:hidden">
                       <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
                         <Users className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-normal">Members ({membersCount})</span>
@@ -293,7 +309,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       </div>
                     </div>
 
-                    <Separator />
+                    <Separator className="lg:hidden" />
 
                     {/* Actions */}
                     <div className="space-y-0">

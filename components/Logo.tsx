@@ -1,16 +1,16 @@
 "use client";
-import { Zap } from "lucide-react";
+import { Kanban } from "lucide-react";
 import {cn} from "@/lib/utils";
 import React from "react";
 import Link from "next/link";
 
-export default function Logo({fontSize= "2xl", iconSize=20}:{fontSize?: string, iconSize?: number}){
+export default function Logo({fontSize= "2xl", iconSize=18}:{fontSize?: string, iconSize?: number}){
  return(
   <Link href="/">
-    <div className={cn("text-xl font-extrabold flex items-center gap-2", fontSize)}>
+    <div className={cn("text-lg font-extrabold flex items-center gap-2", fontSize)}>
       
-      <div className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 p-2">
-        <Zap size={iconSize} className="stroke-white" />
+      <div className="rounded bg-gradient-to-r from-blue-500 to-blue-600 p-2">
+        <Kanban size={iconSize} className="stroke-white" />
       </div>
       <div>
         <span className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
