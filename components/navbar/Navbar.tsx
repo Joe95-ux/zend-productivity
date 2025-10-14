@@ -32,18 +32,18 @@ export function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-[calc(100vw-6rem)] mx-auto px-8">
+      <div className="w-full px-[18px] lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Logo fontSize="xl" iconSize={24} />
 
-          {/* Search Bar - Center */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
+          {/* Search Bar - Responsive */}
+          <div className="hidden sm:flex flex-1 max-w-md mx-4 lg:mx-8">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search boards, cards, or members..."
-                className="pl-10 pr-4 py-2 w-full bg-muted/50 border-muted-foreground/20 focus:bg-background transition-all duration-200"
+                placeholder="Search..."
+                className="pl-10 pr-4 py-2 w-full bg-muted/50 border-muted-foreground/20 focus:bg-background transition-all duration-200 text-sm"
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -66,7 +66,7 @@ export function Navbar() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-2 xl:space-x-4">
             {isLoaded && (
               <>
                 {isSignedIn ? (
@@ -107,7 +107,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile Navigation */}
-          <div className="flex md:hidden items-center space-x-2">
+          <div className="flex lg:hidden items-center space-x-2">
             <ThemeSwitcherBtn />
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>

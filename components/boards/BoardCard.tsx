@@ -79,7 +79,7 @@ export function BoardCard({ board }: BoardCardProps) {
 
   return (
     <>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
+      <Card className="hover:shadow-lg transition-shadow cursor-pointer group py-6">
         <Link href={`/dashboard/boards/${board.id}`} className="block">
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">

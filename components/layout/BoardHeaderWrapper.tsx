@@ -27,15 +27,16 @@ export function BoardHeaderWrapper() {
   if (isLoading || !board) {
     return (
       <div className="w-full bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-        <div className="max-w-[calc(100vw-6rem)] mx-auto px-8">
+        <div className="w-full px-[18px] lg:px-8">
           <div className="flex items-center justify-between h-12">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <div className="h-8 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
               <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-12 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
-              <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="h-8 w-12 bg-slate-200 dark:bg-slate-700 rounded animate-pulse hidden sm:block" />
+              <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse hidden sm:block" />
+              <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse hidden sm:block" />
               <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
               <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
             </div>
@@ -49,6 +50,7 @@ export function BoardHeaderWrapper() {
     <BoardHeader 
       boardId={boardId || ""} 
       boardTitle={board.title} 
+      boardDescription={board.description}
       membersCount={board.members ? board.members.length + 1 : 1}
     />
   );

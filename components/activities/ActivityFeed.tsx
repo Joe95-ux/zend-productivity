@@ -35,7 +35,7 @@ export function ActivityFeed({ boardId }: ActivityFeedProps) {
 
   if (error) {
     return (
-      <Card>
+      <Card className="py-6">
         <CardHeader>
           <CardTitle>Activity</CardTitle>
         </CardHeader>
@@ -47,7 +47,7 @@ export function ActivityFeed({ boardId }: ActivityFeedProps) {
   }
 
   return (
-    <Card>
+    <Card className="py-6">
       <CardHeader>
         <CardTitle>Activity</CardTitle>
       </CardHeader>

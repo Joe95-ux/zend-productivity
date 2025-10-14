@@ -153,11 +153,11 @@ function SortableListContainer({ list }: ListContainerProps) {
     <div
       ref={combinedRef}
       style={style}
-      className={`w-80 flex-shrink-0 ${isDragging ? "opacity-50" : ""}`}
+      className={`w-72 sm:w-80 flex-shrink-0 ${isDragging ? "opacity-50" : ""}`}
     >
       <Card className={cn(
-        "h-fit bg-slate-800/90 border-slate-700/50 backdrop-blur-sm shadow-lg transition-all duration-200",
-        isOver && "ring-2 ring-blue-400 ring-opacity-50 bg-slate-700/90"
+        "h-fit bg-slate-50 dark:bg-black border-slate-200 dark:border-slate-800 shadow-lg gap-2 transition-all duration-200 py-6",
+        isOver && "ring-2 ring-blue-400 ring-opacity-50 bg-slate-100 dark:bg-slate-900"
       )}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -174,12 +174,12 @@ function SortableListContainer({ list }: ListContainerProps) {
                     setIsEditing(false);
                   }
                 }}
-                className="h-8 text-base font-semibold bg-slate-700/80 border-slate-600 text-white focus:bg-slate-600 focus:border-blue-400 transition-all duration-200"
+                className="h-8 text-base font-semibold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-slate-50 dark:focus:bg-slate-800 focus:border-blue-400 transition-all duration-200"
                 autoFocus
               />
             ) : (
               <CardTitle 
-                className="text-base cursor-pointer hover:bg-slate-700/50 px-2 py-1 rounded transition-all duration-200 text-white hover:text-blue-100"
+                className="text-base cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded transition-all duration-200 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-100"
                 onClick={() => setIsEditing(true)}
               >
                 {list.title}
@@ -190,15 +190,15 @@ function SortableListContainer({ list }: ListContainerProps) {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all duration-200 hover:scale-105"
+                  className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 hover:scale-105"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-slate-800/95 border-slate-700 backdrop-blur-sm">
+              <DropdownMenuContent align="end" className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                 <DropdownMenuItem 
                   onClick={() => setIsEditing(true)} 
-                  className="text-white hover:bg-slate-700/80 transition-colors duration-200"
+                  className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200"
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
@@ -230,7 +230,7 @@ function SortableListContainer({ list }: ListContainerProps) {
           ) : (
             <Button
               variant="ghost"
-              className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700/50 transition-all duration-200 hover:scale-[1.02] group"
+              className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 hover:scale-[1.02] group"
               onClick={() => setIsCreateCardOpen(true)}
             >
               <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />

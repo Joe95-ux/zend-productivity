@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Paperclip, CheckSquare, Circle, Edit, Trash2, Check } from "lucide-react";
+import { Edit, Trash2, Check } from "lucide-react";
 import { CardModal } from "./CardModal";
-import { Checklist } from "./Checklist";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
@@ -136,11 +134,11 @@ export function CardItem({ card }: CardItemProps) {
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group cursor-pointer transition-all duration-200 bg-slate-700 border-slate-600",
-          "hover:shadow-lg hover:shadow-slate-900/20 hover:border-slate-500",
-          "hover:scale-[1.02] hover:bg-slate-650",
+          "group cursor-pointer transition-all duration-200 bg-slate-900 border-slate-800 shadow-sm",
+          "hover:shadow-lg hover:shadow-slate-900/30 hover:border-slate-600",
+          "hover:scale-[1.02] hover:bg-slate-800",
           isDragging && "opacity-50",
-          isCompleted && "opacity-60 bg-slate-600"
+          isCompleted && "opacity-60 bg-slate-800"
         )}
         onClick={() => setIsModalOpen(true)}
         onMouseEnter={() => setIsHovered(true)}
@@ -148,23 +146,23 @@ export function CardItem({ card }: CardItemProps) {
         {...attributes}
         {...listeners}
       >
-        <CardContent className="p-3">
-          <div className="flex items-center gap-3">
-            {/* Radio Button - Always visible */}
-            <div 
-              className="flex-shrink-0 w-5 h-5 flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110"
-              onClick={handleToggleComplete}
-            >
-              {isCompleted ? (
-                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center transition-all duration-200 animate-in zoom-in">
-                  <Check className="w-3 h-3 text-white" />
-                </div>
-              ) : (
-                <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-blue-400 transition-all duration-200">
-                  <Circle className="w-3 h-3 text-slate-400" />
-                </div>
-              )}
-            </div>
+        <CardContent className="p-0">
+          <div className="flex items-center gap-3 h-12 px-3">
+            {/* Radio Button - Always visible when completed, hover-only when not completed */}
+            {(isCompleted || isHovered) && (
+              <div 
+                className="hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110"
+                onClick={handleToggleComplete}
+              >
+                {isCompleted ? (
+                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center transition-all duration-200 animate-in zoom-in">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-blue-400 transition-all duration-200"></div>
+                )}
+              </div>
+            )}
 
             {/* Card Title */}
             <h4 className={cn(

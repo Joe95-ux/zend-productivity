@@ -62,7 +62,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6 px-[18px] lg:px-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -90,7 +90,7 @@ export default function DashboardPage() {
 
       {/* Boards Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
               <CardHeader>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
           ))}
         </div>
       ) : boards && boards.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {boards.map((board) => (
             <BoardCard key={board.id} board={board} />
           ))}
