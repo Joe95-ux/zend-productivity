@@ -153,7 +153,7 @@ function SortableListContainer({ list }: ListContainerProps) {
     <div
       ref={combinedRef}
       style={style}
-      className={`w-72 sm:w-80 flex-shrink-0 ${isDragging ? "opacity-50" : ""}`}
+      className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 ${isDragging ? "opacity-50" : ""}`}
     >
       <Card className={cn(
         "h-fit bg-slate-50 dark:bg-black border-slate-200 dark:border-slate-800 shadow-lg gap-2 transition-all duration-200 py-6",

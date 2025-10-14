@@ -25,20 +25,55 @@ import Link from "next/link";
 export function Navbar() {
   const { isLoaded, isSignedIn } = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="w-full px-[18px] lg:px-8">
+    <>
+      {/* Animated Search Bar */}
+      {isSearchOpen && (
+        <div className="fixed top-16 left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b animate-in slide-in-from-top-2 duration-200">
+          <div className="w-full px-[18px] lg:px-8 py-4">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search boards, cards, or members..."
+                className="pl-10 pr-4 py-2 w-full bg-muted/50 border-muted-foreground/20 focus:bg-background transition-all duration-200 text-sm"
+                autoFocus
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/80"
+                  >
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem>All Boards</DropdownMenuItem>
+                  <DropdownMenuItem>My Boards</DropdownMenuItem>
+                  <DropdownMenuItem>Shared Boards</DropdownMenuItem>
+                  <DropdownMenuItem>Recent</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="w-full px-[18px] lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Logo fontSize="xl" iconSize={24} />
 
           {/* Search Bar - Responsive */}
-          <div className="hidden sm:flex flex-1 max-w-md mx-4 lg:mx-8">
+          <div className="hidden min-[320px]:flex flex-1 max-w-md mx-2 sm:mx-4 lg:mx-8">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -63,6 +98,18 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+          </div>
+
+          {/* Mobile Search Icon */}
+          <div className="flex min-[320px]:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className="h-8 w-8 p-0 hover:bg-muted/80"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
           </div>
 
           {/* Desktop Navigation */}
@@ -108,7 +155,6 @@ export function Navbar() {
 
           {/* Mobile Navigation */}
           <div className="flex lg:hidden items-center space-x-2">
-            <ThemeSwitcherBtn />
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
@@ -122,13 +168,10 @@ export function Navbar() {
                   </SheetTitle>
                 </SheetHeader>
                 <div className="mt-6 space-y-4">
-                  {/* Mobile Search */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search..."
-                      className="pl-10 pr-4 py-2 w-full bg-muted/50 border-muted-foreground/20"
-                    />
+                  {/* Theme Toggle */}
+                  <div className="flex items-center justify-between p-2">
+                    <span className="text-sm font-medium">Theme</span>
+                    <ThemeSwitcherBtn />
                   </div>
                   
                   {isLoaded && (
@@ -178,5 +221,6 @@ export function Navbar() {
         </div>
       </div>
     </nav>
+    </>
   );
 }

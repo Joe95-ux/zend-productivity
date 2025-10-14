@@ -99,9 +99,9 @@ export default function BoardPage() {
   if (isLoading) {
     return (
       <div className="w-full">
-        <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-4 px-[18px] lg:px-8">
+        <div className="flex gap-1 min-[320px]:gap-2 sm:gap-4 overflow-x-auto pb-4 px-[18px] lg:px-8">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="w-64 sm:w-72 flex-shrink-0">
+            <div key={i} className="w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0">
               <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <Skeleton className="h-6 w-24 mb-4 bg-slate-700" />
                 <div className="space-y-3">
@@ -126,7 +126,7 @@ export default function BoardPage() {
       <div className="w-full min-h-screen">
         {board?.lists && board.lists.length > 0 ? (
           <DndProvider boardId={boardId}>
-            <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-8">
+            <div className="flex gap-1 min-[320px]:gap-2 sm:gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-8">
               {board.lists.map((list) => (
                 <ListContainer key={list.id} list={list} />
               ))}

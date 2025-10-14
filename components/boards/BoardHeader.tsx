@@ -112,7 +112,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
         <div className="w-full px-[18px] lg:px-8">
           <div className="flex items-center justify-between h-12">
             {/* Left side - Board title only */}
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <div className="flex items-center gap-1 min-[320px]:gap-2 sm:gap-4 min-w-0 flex-1">
               <Button variant="ghost" size="sm" asChild className="cursor-pointer transition-all duration-200 hover:bg-muted/80 hover:scale-105">
                 <Link href="/dashboard">
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -146,23 +146,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
             </div>
 
             {/* Right side - All clickable actions */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              {/* Members count - Clickable */}
-              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden sm:flex">
-                <Users className="h-4 w-4 mr-1" />
-                <span className="text-sm">{membersCount}</span>
-              </Button>
-
-              {/* Favorite button - Clickable */}
-              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden sm:flex">
-                <Star className="h-4 w-4" />
-              </Button>
-
-              {/* Share button - Clickable */}
-              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden sm:flex">
-                <Share2 className="h-4 w-4" />
-              </Button>
-
+            <div className="flex items-center gap-1 min-[320px]:gap-2">
               {/* User Profile - Same as main navbar */}
               <UserButton 
                 afterSignOutUrl="/"
@@ -294,6 +278,20 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                         </Button>
                       </CardContent>
                     </Card>
+
+                    <Separator />
+
+                    {/* Board Features */}
+                    <div className="space-y-0">
+                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                        <Users className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm font-normal">Members ({membersCount})</span>
+                      </div>
+                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                        <Star className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm font-normal">Add to favorites</span>
+                      </div>
+                    </div>
 
                     <Separator />
 
