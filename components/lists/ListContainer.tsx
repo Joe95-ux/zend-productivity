@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, GripVertical } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -156,35 +156,47 @@ function SortableListContainer({ list }: ListContainerProps) {
       className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 ${isDragging ? "opacity-50" : ""}`}
     >
       <Card className={cn(
-        "h-fit bg-slate-50 dark:bg-slate-800 border-slate-200 border-3 dark:border-slate-700 shadow-lg gap-2 transition-all duration-200 py-6",
-        isOver && "ring-2 ring-blue-400 ring-opacity-50 bg-slate-100 dark:bg-slate-700"
+        "h-fit bg-slate-50 dark:bg-black border-slate-200 border-3 dark:border-slate-800 shadow-lg gap-2 transition-all duration-200 py-6",
+        isOver && "ring-2 ring-blue-400 ring-opacity-50 bg-slate-100 dark:bg-slate-900",
+        isDragging && "opacity-50 scale-105 shadow-2xl"
       )}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            {isEditing ? (
-              <Input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                onBlur={handleEdit}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleEdit();
-                  } else if (e.key === "Escape") {
-                    setEditTitle(list.title);
-                    setIsEditing(false);
-                  }
-                }}
-                className="h-8 text-base font-semibold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-slate-50 dark:focus:bg-slate-800 focus:border-blue-400 transition-all duration-200"
-                autoFocus
-              />
-            ) : (
-              <CardTitle 
-                className="text-base cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded transition-all duration-200 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-100"
-                onClick={() => setIsEditing(true)}
+            <div className="flex items-center gap-2 flex-1">
+              {/* Drag Handle */}
+              <div 
+                className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors duration-200"
+                {...attributes}
+                {...listeners}
               >
-                {list.title}
-              </CardTitle>
-            )}
+                <GripVertical className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+              </div>
+              
+              {isEditing ? (
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={handleEdit}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleEdit();
+                    } else if (e.key === "Escape") {
+                      setEditTitle(list.title);
+                      setIsEditing(false);
+                    }
+                  }}
+                  className="h-8 text-base font-semibold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-slate-50 dark:focus:bg-slate-800 focus:border-blue-400 transition-all duration-200 flex-1"
+                  autoFocus
+                />
+              ) : (
+                <CardTitle 
+                  className="text-base cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded transition-all duration-200 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-100 flex-1"
+                  onClick={() => setIsEditing(true)}
+                >
+                  {list.title}
+                </CardTitle>
+              )}
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 

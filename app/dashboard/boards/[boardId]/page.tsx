@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CreateListForm } from "@/components/lists/CreateListForm";
 import { ListContainer } from "@/components/lists/ListContainer";
 import { DndProvider } from "@/components/dnd/DndProvider";
+import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import Link from "next/link";
@@ -126,23 +127,25 @@ export default function BoardPage() {
       <div className="w-full min-h-screen">
         {board?.lists && board.lists.length > 0 ? (
           <DndProvider boardId={boardId}>
-            <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-8">
-              {board.lists.map((list) => (
-                <ListContainer key={list.id} list={list} />
-              ))}
-              
-              {/* Add List Button */}
-              <div className="flex-shrink-0 w-72">
-                <Button
-                  onClick={() => setIsCreateListOpen(true)}
-                  variant="outline"
-                  className="w-full h-12 border-dashed border-2 hover:border-solid cursor-pointer transition-all duration-200 hover:scale-105"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add another list
-                </Button>
+            <SortableContext items={board.lists.map(list => list.id)} strategy={horizontalListSortingStrategy}>
+              <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-8">
+                {board.lists.map((list) => (
+                  <ListContainer key={list.id} list={list} />
+                ))}
+                
+                {/* Add List Button */}
+                <div className="flex-shrink-0 w-72">
+                  <Button
+                    onClick={() => setIsCreateListOpen(true)}
+                    variant="outline"
+                    className="w-full h-12 border-dashed border-2 hover:border-solid cursor-pointer transition-all duration-200 hover:scale-105"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add another list
+                  </Button>
+                </div>
               </div>
-            </div>
+            </SortableContext>
           </DndProvider>
         ) : (
           <div className="text-center py-12">

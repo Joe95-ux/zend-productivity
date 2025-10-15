@@ -94,18 +94,13 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <DialogTitle className="text-xl font-semibold text-slate-900 dark:text-white">
-                Send Feedback
-              </DialogTitle>
-              <DialogDescription className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                Help us improve by sharing your thoughts, questions, or suggestions
-              </DialogDescription>
-            </div>
+          <div>
+            <DialogTitle className="text-xl font-semibold text-slate-900 dark:text-white">
+              Send Feedback
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              Help us improve by sharing your thoughts, questions, or suggestions
+            </DialogDescription>
           </div>
         </DialogHeader>
 
@@ -118,16 +113,15 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
             <Select value={feedbackType} onValueChange={(value: FeedbackType) => setFeedbackType(value)}>
               <SelectTrigger 
                 id="feedback-type"
-                className="w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
+                className="w-full"
               >
                 <SelectValue placeholder="Select feedback type" />
               </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600">
+              <SelectContent>
                 {feedbackOptions.map((option) => (
                   <SelectItem 
                     key={option.value} 
                     value={option.value}
-                    className="text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 focus:bg-slate-100 dark:focus:bg-slate-700"
                   >
                     {option.label}
                   </SelectItem>
@@ -146,7 +140,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={getMessagePlaceholder(feedbackType)}
-              className="min-h-[120px] resize-none bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
+              className="min-h-[120px] resize-none"
               required
             />
             <p className="text-xs text-slate-500 dark:text-slate-400">
