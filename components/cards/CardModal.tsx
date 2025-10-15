@@ -145,37 +145,36 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl">
-              {isEditing ? (
-                <Form {...cardForm}>
-                  <form onSubmit={cardForm.handleSubmit(handleUpdateCard)} className="space-y-2">
-                    <FormField
-                      control={cardForm.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input {...field} className="text-xl font-semibold" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </form>
-                </Form>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span>{card.title}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
+              {card.title}
             </DialogTitle>
+            {!isEditing && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+            )}
           </div>
+          {isEditing && (
+            <Form {...cardForm}>
+              <form onSubmit={cardForm.handleSubmit(handleUpdateCard)} className="space-y-2">
+                <FormField
+                  control={cardForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input {...field} className="text-xl font-semibold" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          )}
         </DialogHeader>
 
         <div className="space-y-6">

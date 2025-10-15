@@ -134,7 +134,7 @@ export function CardItem({ card }: CardItemProps) {
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group cursor-pointer transition-all duration-200 bg-slate-900 border-slate-800 shadow-sm",
+          "group cursor-pointer transition-all duration-200 bg-slate-900 border-slate-800 shadow-sm border-3",
           "hover:shadow-lg hover:shadow-slate-900/30 hover:border-slate-600",
           "hover:scale-[1.02] hover:bg-slate-800",
           isDragging && "opacity-50",

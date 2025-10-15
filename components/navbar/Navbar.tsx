@@ -6,12 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeSwitcherBtn } from "@/components/ThemeSwitcherBtn";
 import Logo from "@/components/Logo";
-import { Menu, User, LogIn, UserPlus, Search, Filter, X, MessageSquare, Bell, Info, Palette, LogOut, Plus, Kanban, Layout } from "lucide-react";
+import { Menu, User, LogIn, UserPlus, Search, Filter, MessageSquare, Bell, Info, Palette, LogOut, Plus, Kanban, Layout } from "lucide-react";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CreateBoardForm } from "@/components/boards/CreateBoardForm";
+import { FeedbackModal } from "@/components/FeedbackModal";
 import Link from "next/link";
 
 export function Navbar() {
@@ -30,6 +29,7 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
@@ -76,8 +76,8 @@ export function Navbar() {
           {/* Logo */}
           <Logo fontSize="xl" iconSize={24} />
 
-          {/* Search Bar - Responsive */}
-          <div className="hidden min-[320px]:flex flex-1 max-w-md mx-2 sm:mx-4 lg:mx-8">
+          {/* Search Bar and Create CTA Group - Desktop */}
+          <div className="hidden min-[422px]:flex items-center gap-4 flex-1 max-w-lg mx-2 sm:mx-4 lg:mx-8">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -102,29 +102,15 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>
-
-          {/* Mobile Search Icon */}
-          <div className="flex min-[320px]:hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="h-8 w-8 p-0 hover:bg-muted/80"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Create CTA - Desktop */}
-          {isSignedIn && (
-            <div className="hidden min-[320px]:flex">
+            
+            {/* Create CTA */}
+            {isSignedIn && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="default" 
                     size="sm" 
-                    className="cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
+                    className="bg-primary hover:bg-primary/90 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Create</span>
@@ -163,11 +149,70 @@ export function Navbar() {
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Mobile Search Icon, Create CTA, and Menu Icon */}
+          <div className="flex min-[422px]:hidden items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className="h-8 w-8 p-0 hover:bg-muted/80"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            
+            {/* Create CTA - Mobile */}
+            {isSignedIn && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="bg-primary hover:bg-primary/90 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 p-0">
+                  <div className="p-4 space-y-3">
+                    {/* Create Board */}
+                    <div 
+                      className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors"
+                      onClick={() => setIsCreateBoardOpen(true)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Kanban className="h-5 w-5 text-slate-400 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="text-[15px] font-medium text-slate-900 dark:text-white">Create board</div>
+                          <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
+                            A board is made up of cards ordered on lists. Use it to manage projects, track information or organize anything.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Start with Template */}
+                    <div className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors">
+                      <div className="flex items-start gap-3">
+                        <Layout className="h-5 w-5 text-slate-400 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="text-[15px] font-medium text-slate-900 dark:text-white">Start with a template</div>
+                          <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
+                            Get started faster with a board template.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-2 xl:space-x-4">
+          <div className="hidden lg:flex items-center space-x-1 xl:space-x-2">
             {isLoaded && (
               <>
                 {isSignedIn ? (
@@ -177,6 +222,23 @@ export function Navbar() {
                         Dashboard
                       </Link>
                     </Button>
+                    
+                    {/* Feedback, Notifications, Information Icons */}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="cursor-pointer transition-all duration-200 hover:scale-105"
+                      onClick={() => setIsFeedbackOpen(true)}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
+                      <Bell className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                    
                     <UserButton 
                       afterSignOutUrl="/"
                       appearance={{
@@ -215,21 +277,11 @@ export function Navbar() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80 sm:w-96 p-0">
+              <SheetContent side="right" className="w-[280px] min-[320px]:w-80 sm:w-96 p-0">
                 <div className="flex flex-col h-full">
                   {/* Header */}
-                  <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between border-b">
-                    <div className="flex items-center space-x-2">
-                      <Logo fontSize="lg" iconSize={20} />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={closeMobileMenu}
-                      className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                  <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-center border-b">
+                    <h3 className="text-[17px] font-bold">Menu</h3>
                   </div>
                   
                   {/* Content */}
@@ -258,7 +310,14 @@ export function Navbar() {
                               {/* Account Section */}
                               <div className="space-y-0">
                                 <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                  <User className="h-4 w-4 text-slate-400" />
+                                  <UserButton 
+                                    afterSignOutUrl="/"
+                                    appearance={{
+                                      elements: {
+                                        avatarBox: "w-4 h-4"
+                                      }
+                                    }}
+                                  />
                                   <span className="text-sm font-normal">Account</span>
                                 </div>
                                 <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors" onClick={closeMobileMenu}>
@@ -292,9 +351,9 @@ export function Navbar() {
 
                               {/* Logout Section */}
                               <div className="space-y-0">
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-md transition-colors text-red-500">
-                                  <LogOut className="h-4 w-4" />
-                                  <span className="text-sm font-normal">Logout</span>
+                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                                  <LogOut className="h-4 w-4 text-slate-400" />
+                                  <span className="text-sm font-normal text-slate-900 dark:text-white">Logout</span>
                                 </div>
                               </div>
                             </>
@@ -349,6 +408,11 @@ export function Navbar() {
         <CreateBoardForm onSuccess={() => setIsCreateBoardOpen(false)} />
       </DialogContent>
     </Dialog>
+
+    <FeedbackModal 
+      isOpen={isFeedbackOpen} 
+      onClose={() => setIsFeedbackOpen(false)} 
+    />
     </>
   );
 }

@@ -156,8 +156,8 @@ function SortableListContainer({ list }: ListContainerProps) {
       className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 ${isDragging ? "opacity-50" : ""}`}
     >
       <Card className={cn(
-        "h-fit bg-slate-50 dark:bg-black border-slate-200 dark:border-slate-800 shadow-lg gap-2 transition-all duration-200 py-6",
-        isOver && "ring-2 ring-blue-400 ring-opacity-50 bg-slate-100 dark:bg-slate-900"
+        "h-fit bg-slate-50 dark:bg-slate-800 border-slate-200 border-3 dark:border-slate-700 shadow-lg gap-2 transition-all duration-200 py-6",
+        isOver && "ring-2 ring-blue-400 ring-opacity-50 bg-slate-100 dark:bg-slate-700"
       )}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
