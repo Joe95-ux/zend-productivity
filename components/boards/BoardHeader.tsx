@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserButton } from "@clerk/nextjs";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
 
 interface BoardHeaderProps {
@@ -177,18 +178,24 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
             <div className="flex items-center gap-1 min-[320px]:gap-2">
               {/* Members count - Clickable */}
               <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden lg:flex">
-                <Users className="h-4 w-4 mr-1" />
+                <HoverHint label={`${membersCount} members`} side="bottom">
+                  <Users className="h-4 w-4 mr-1" />
+                </HoverHint>
                 <span className="text-sm">{membersCount}</span>
               </Button>
 
               {/* Favorite button - Clickable */}
               <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden lg:flex">
-                <Star className="h-4 w-4" />
+                <HoverHint label="Add to favorites" side="bottom">
+                  <Star className="h-4 w-4" />
+                </HoverHint>
               </Button>
 
               {/* Share button - Clickable */}
               <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden lg:flex">
-                <Share2 className="h-4 w-4" />
+                <HoverHint label="Share board" side="bottom">
+                  <Share2 className="h-4 w-4" />
+                </HoverHint>
               </Button>
 
               {/* User Profile - Same as main navbar */}
@@ -209,7 +216,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     size="sm" 
                     className="cursor-pointer transition-all duration-200 hover:scale-105"
                   >
-                    <MoreHorizontal className="h-4 w-4" />
+                    <HoverHint label="Board menu" side="bottom">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </HoverHint>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
@@ -227,7 +236,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       onClick={() => setIsMenuOpen(false)}
                       className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
-                      <X className="h-4 w-4" />
+                      <HoverHint label="Close menu" side="bottom">
+                        <X className="h-4 w-4" />
+                      </HoverHint>
                     </Button>
                   </div>
                   
@@ -391,7 +402,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                 onClick={handleActivityBack}
                 className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <HoverHint label="Back to menu" side="bottom">
+                  <ArrowLeft className="h-4 w-4" />
+                </HoverHint>
               </Button>
               <h3 className="text-[17px] font-bold">Activity</h3>
             </div>
@@ -401,7 +414,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               onClick={handleActivityClose}
               className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
             >
-              <X className="h-4 w-4" />
+              <HoverHint label="Close activity" side="bottom">
+                <X className="h-4 w-4" />
+              </HoverHint>
             </Button>
           </div>
           

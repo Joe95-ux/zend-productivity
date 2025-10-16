@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
         type: "created_card",
         message: `Created card "${title}"`,
         boardId: list.boardId,
+        cardId: card.id,
         userId: user.id
       }
     });

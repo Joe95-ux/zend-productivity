@@ -71,6 +71,7 @@ export async function PUT(
         type: "updated_comment",
         message: `Updated a comment on card "${updatedComment.card?.title}"`,
         boardId: updatedComment.card?.list?.boardId,
+        cardId: updatedComment.cardId,
         userId: user.id
       }
     });
@@ -124,6 +125,7 @@ export async function DELETE(
         type: "deleted_comment",
         message: `Deleted a comment from card "${existingComment.card?.title}"`,
         boardId: existingComment.card?.list?.boardId,
+        cardId: existingComment.cardId,
         userId: user.id
       }
     });

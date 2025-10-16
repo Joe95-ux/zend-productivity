@@ -73,6 +73,7 @@ model Card {
   checklists  Checklist[]
   attachments Attachment[]
   comments    Comment[]
+  activities  Activity[]
   dueDate     DateTime?
   assignedTo  String?     // userId reference (optional)
   createdAt   DateTime    @default(now())
@@ -128,6 +129,8 @@ model Activity {
   message   String
   boardId   String   @db.ObjectId
   board     Board?   @relation(fields: [boardId], references: [id])
+  cardId    String?  @db.ObjectId  // Optional card reference for card-specific activities
+  card      Card?    @relation(fields: [cardId], references: [id])
   userId    String   @db.ObjectId
   user      User?    @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())

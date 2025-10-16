@@ -75,12 +75,38 @@ export async function PUT(
       }
     });
 
-    // Create activity log
+    // Create activity log with specific details
+    let activityMessage = `Updated card "${updatedCard.title}"`;
+    let activityType = "updated_card";
+    
+    // Determine specific activity type and message
+    if (title !== undefined && title !== card.title) {
+      activityMessage = `Renamed card from "${card.title}" to "${title}"`;
+      activityType = "renamed_card";
+    } else if (description !== undefined && description !== card.description) {
+      if (description && !card.description) {
+        activityMessage = `Added description to card "${updatedCard.title}"`;
+        activityType = "added_description";
+      } else if (!description && card.description) {
+        activityMessage = `Removed description from card "${updatedCard.title}"`;
+        activityType = "removed_description";
+      } else if (description && card.description) {
+        activityMessage = `Updated description of card "${updatedCard.title}"`;
+        activityType = "updated_description";
+      }
+    } else if (isCompleted !== undefined && isCompleted !== card.isCompleted) {
+      activityMessage = isCompleted 
+        ? `Marked card "${updatedCard.title}" as complete`
+        : `Marked card "${updatedCard.title}" as incomplete`;
+      activityType = isCompleted ? "completed_card" : "uncompleted_card";
+    }
+
     await db.activity.create({
       data: {
-        type: "updated_card",
-        message: `Updated card "${updatedCard.title}"`,
+        type: activityType,
+        message: activityMessage,
         boardId: card.list?.boardId,
+        cardId: cardId,
         userId: user.id
       }
     });
@@ -152,6 +178,7 @@ export async function DELETE(
         type: "deleted_card",
         message: `Deleted card "${card.title}"`,
         boardId: card.list?.boardId,
+        cardId: cardId,
         userId: user.id
       }
     });

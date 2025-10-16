@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
         type: "added_comment",
         message: `Added a comment to card "${card.title}"`,
         boardId: card.list?.boardId,
+        cardId: cardId,
         userId: user.id
       }
     });

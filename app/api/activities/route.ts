@@ -34,20 +34,9 @@ export async function GET(request: NextRequest) {
 
     let whereClause: any = { boardId };
     
-    // If cardId is provided, we need to get the card title to filter activities
+    // If cardId is provided, filter activities for that specific card
     if (cardId) {
-      const card = await db.card.findUnique({
-        where: { id: cardId },
-        select: { title: true }
-      });
-      
-      if (card) {
-        // Filter activities that mention this card's title
-        whereClause.message = {
-          contains: card.title,
-          mode: 'insensitive'
-        };
-      }
+      whereClause.cardId = cardId;
     }
 
     const activities = await db.activity.findMany({

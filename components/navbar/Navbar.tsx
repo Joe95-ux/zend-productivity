@@ -22,6 +22,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CreateBoardForm } from "@/components/boards/CreateBoardForm";
 import { FeedbackModal } from "@/components/FeedbackModal";
+import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
 
 export function Navbar() {
@@ -55,7 +56,9 @@ export function Navbar() {
                     size="sm" 
                     className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/80"
                   >
-                    <Filter className="h-4 w-4" />
+                    <HoverHint label="Filter search" side="bottom">
+                      <Filter className="h-4 w-4" />
+                    </HoverHint>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -91,7 +94,9 @@ export function Navbar() {
                     size="sm" 
                     className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/80"
                   >
-                    <Filter className="h-4 w-4" />
+                    <HoverHint label="Filter search" side="bottom">
+                      <Filter className="h-4 w-4" />
+                    </HoverHint>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -160,7 +165,9 @@ export function Navbar() {
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className="h-8 w-8 p-0 hover:bg-muted/80"
             >
-              <Search className="h-4 w-4" />
+              <HoverHint label="Search" side="bottom">
+                <Search className="h-4 w-4" />
+              </HoverHint>
             </Button>
             
             {/* Create CTA - Mobile */}
@@ -230,13 +237,19 @@ export function Navbar() {
                       className="cursor-pointer transition-all duration-200 hover:scale-105"
                       onClick={() => setIsFeedbackOpen(true)}
                     >
-                      <MessageSquare className="h-4 w-4" />
+                      <HoverHint label="Feedback" side="bottom">
+                        <MessageSquare className="h-4 w-4" />
+                      </HoverHint>
                     </Button>
                     <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
-                      <Bell className="h-4 w-4" />
+                      <HoverHint label="Notifications" side="bottom">
+                        <Bell className="h-4 w-4" />
+                      </HoverHint>
                     </Button>
                     <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
-                      <Info className="h-4 w-4" />
+                      <HoverHint label="Information" side="bottom">
+                        <Info className="h-4 w-4" />
+                      </HoverHint>
                     </Button>
                     
                     <UserButton 
@@ -274,7 +287,9 @@ export function Navbar() {
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
-                  <Menu className="h-5 w-5" />
+                  <HoverHint label="Menu" side="bottom">
+                    <Menu className="h-5 w-5" />
+                  </HoverHint>
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] min-[320px]:w-80 sm:w-96 p-0">

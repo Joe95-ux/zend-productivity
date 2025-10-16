@@ -19,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { HoverHint } from "@/components/HoverHint";
 
 const updateCardSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -306,7 +307,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                 onClick={() => setIsFeedbackOpen(true)}
                 className="h-7 w-7 md:h-8 md:w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors flex items-center justify-center"
               >
+                <HoverHint label="Share feedback" side="top">
                 <Megaphone className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
+                </HoverHint>
+                
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -315,7 +319,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     size="sm"
                     className="h-7 w-7 md:h-8 md:w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
                   >
+                    <HoverHint label="Actions" side="top">
                     <MoreHorizontal className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
+                    </HoverHint>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -342,7 +348,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                 onClick={onClose}
                 className="h-7 w-7 md:h-8 md:w-8 p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
               >
+                <HoverHint label="Close" side="top">
                 <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
+                </HoverHint>
               </div></DialogClose>
             </div>
             </div>
