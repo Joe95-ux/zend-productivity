@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
@@ -13,6 +13,7 @@ interface Activity {
   user: {
     name?: string;
     email: string;
+    avatarUrl?: string;
   };
   createdAt: string;
 }
@@ -68,12 +69,7 @@ export function ActivityFeed({ boardId }: ActivityFeedProps) {
           <div className="space-y-3">
             {activities.map((activity) => (
               <div key={activity.id} className="flex gap-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src="" />
-                  <AvatarFallback>
-                    {activity.user.name?.charAt(0) || activity.user.email.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <ConditionalUserProfile user={activity.user} size="md" />
                 <div className="flex-1 space-y-1">
                   <p className="text-sm">
                     <span className="font-medium">

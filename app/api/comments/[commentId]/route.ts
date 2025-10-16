@@ -65,16 +65,21 @@ export async function PUT(
       }
     });
 
-    // Create activity log
-    await db.activity.create({
-      data: {
-        type: "updated_comment",
-        message: `Updated a comment on card "${updatedComment.card?.title}"`,
-        boardId: updatedComment.card?.list?.boardId,
-        cardId: updatedComment.cardId,
-        userId: user.id
-      }
-    });
+    // Create activity log (with error handling)
+    try {
+      await db.activity.create({
+        data: {
+          type: "updated_comment",
+          message: `Updated a comment on card "${updatedComment.card?.title}"`,
+          boardId: updatedComment.card?.list?.boardId,
+          cardId: updatedComment.cardId,
+          userId: user.id
+        }
+      });
+    } catch (activityError) {
+      console.error("Error creating activity for comment update:", activityError);
+      // Don't fail the comment update if activity creation fails
+    }
 
     return NextResponse.json(updatedComment);
   } catch (error) {
@@ -119,16 +124,21 @@ export async function DELETE(
       where: { id: commentId }
     });
 
-    // Create activity log
-    await db.activity.create({
-      data: {
-        type: "deleted_comment",
-        message: `Deleted a comment from card "${existingComment.card?.title}"`,
-        boardId: existingComment.card?.list?.boardId,
-        cardId: existingComment.cardId,
-        userId: user.id
-      }
-    });
+    // Create activity log (with error handling)
+    try {
+      await db.activity.create({
+        data: {
+          type: "deleted_comment",
+          message: `Deleted a comment from card "${existingComment.card?.title}"`,
+          boardId: existingComment.card?.list?.boardId,
+          cardId: existingComment.cardId,
+          userId: user.id
+        }
+      });
+    } catch (activityError) {
+      console.error("Error creating activity for comment deletion:", activityError);
+      // Don't fail the comment deletion if activity creation fails
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

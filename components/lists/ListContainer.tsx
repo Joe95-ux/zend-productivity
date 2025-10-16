@@ -206,7 +206,7 @@ function SortableListContainer({ list, boardId }: ListContainerProps) {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 hover:scale-105"
+                  className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 hover:scale-105"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
@@ -255,7 +255,7 @@ function SortableListContainer({ list, boardId }: ListContainerProps) {
            ) : (
              <Button
                variant="ghost"
-               className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all duration-200 hover:scale-[1.02] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
+               className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white transition-all duration-200 hover:scale-[1.02] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
                onClick={() => setIsCreateCardOpen(true)}
              >
                <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />

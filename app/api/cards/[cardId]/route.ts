@@ -101,15 +101,21 @@ export async function PUT(
       activityType = isCompleted ? "completed_card" : "uncompleted_card";
     }
 
-    await db.activity.create({
-      data: {
-        type: activityType,
-        message: activityMessage,
-        boardId: card.list?.boardId,
-        cardId: cardId,
-        userId: user.id
-      }
-    });
+    // Create activity log (with error handling)
+    try {
+      await db.activity.create({
+        data: {
+          type: activityType,
+          message: activityMessage,
+          boardId: card.list?.boardId,
+          cardId: cardId,
+          userId: user.id
+        }
+      });
+    } catch (activityError) {
+      console.error("Error creating activity for card update:", activityError);
+      // Don't fail the card update if activity creation fails
+    }
 
     return NextResponse.json(updatedCard);
   } catch (error) {
@@ -172,16 +178,21 @@ export async function DELETE(
       where: { id: cardId }
     });
 
-    // Create activity log
-    await db.activity.create({
-      data: {
-        type: "deleted_card",
-        message: `Deleted card "${card.title}"`,
-        boardId: card.list?.boardId,
-        cardId: cardId,
-        userId: user.id
-      }
-    });
+    // Create activity log (with error handling)
+    try {
+      await db.activity.create({
+        data: {
+          type: "deleted_card",
+          message: `Deleted card "${card.title}"`,
+          boardId: card.list?.boardId,
+          cardId: cardId,
+          userId: user.id
+        }
+      });
+    } catch (activityError) {
+      console.error("Error creating activity for card deletion:", activityError);
+      // Don't fail the card deletion if activity creation fails
+    }
 
     return NextResponse.json({ message: "Card deleted successfully" });
   } catch (error) {

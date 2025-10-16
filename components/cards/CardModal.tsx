@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +32,12 @@ const commentSchema = z.object({
 
 type UpdateCardFormData = z.infer<typeof updateCardSchema>;
 type CommentFormData = z.infer<typeof commentSchema>;
+
+type UserWithAvatar = {
+  name?: string;
+  email: string;
+  avatarUrl?: string;
+};
 
 interface CardModalProps {
   card: {
@@ -51,6 +57,7 @@ interface CardModalProps {
       user: {
         name?: string;
         email: string;
+        avatarUrl?: string;
       };
       createdAt: string;
     }>;
@@ -298,7 +305,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
             <DialogTitle>
             <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-t-lg">
             <div className="flex items-center gap-2 md:gap-3">
-              <Badge variant="secondary" className="text-xs md:text-sm font-medium px-2 md:px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600">
+              <Badge variant="secondary" className="text-xs md:text-sm font-medium px-2 md:px-3 py-1 bg-slate-100 dark:bg-slate-700 text-strong dark:text-slate-300 border-slate-200 dark:border-slate-600">
                 {list.title}
               </Badge>
             </div>
@@ -492,7 +499,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     onClick={handleDescriptionEdit}
                   >
                     {card.description ? (
-                      <p className="text-sm whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed">{card.description}</p>
+                      <p className="text-sm whitespace-pre-wrap text-strong dark:text-slate-300 leading-relaxed">{card.description}</p>
                     ) : (
                       <p className="text-sm text-slate-500 dark:text-slate-400 italic">Click to add a description...</p>
                     )}
@@ -591,17 +598,12 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     {card.comments.length > 0 && (
                       <div className="space-y-2">
                         {card.comments.map((comment) => (
-                          <div key={comment.id} className="flex gap-2 p-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
-                            <Avatar className="w-6 h-6 ring-1 ring-slate-200 dark:ring-slate-600">
-                              <AvatarImage src="" />
-                              <AvatarFallback className="bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium text-xs">
-                                {comment.user.name?.charAt(0) || comment.user.email.charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 space-y-1">
+                          <div key={comment.id} className="flex gap-3 p-3 items-start border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800">
+                            <ConditionalUserProfile user={comment.user as UserWithAvatar} size="sm" />
+                            <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1">
-                                  <span className="font-medium text-xs text-slate-900 dark:text-white">
+                                  <span className="font-medium text-sm text-slate-900 dark:text-white">
                                     {comment.user.name || comment.user.email}
                                   </span>
                                   <span className="text-xs text-slate-500 dark:text-slate-400">
@@ -621,7 +623,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                   <DropdownMenuContent align="end" className="w-28">
                                     <DropdownMenuItem 
                                       onClick={() => handleEditComment(comment.id, comment.content)}
-                                      className="text-slate-700 dark:text-slate-300 text-xs"
+                                      className="text-strong dark:text-slate-300 text-xs"
                                     >
                                       <Edit className="w-2.5 h-2.5 mr-1" />
                                       Edit
@@ -664,7 +666,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                   </div>
                                 </div>
                               ) : (
-                                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                                <p className="text-sm text-strong dark:text-slate-300 leading-relaxed">
                                   {comment.content}
                                 </p>
                               )}
@@ -676,7 +678,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
 
                     {/* Activities Section */}
                     <div className="space-y-2">
-                      <div className="flex items-center gap-1 text-xs font-medium text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-1 text-xs font-medium text-strong dark:text-slate-300">
                         <Clock className="w-3 h-3" />
                         Recent Activity
                       </div>
@@ -684,17 +686,12 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                         {activitiesLoading ? (
                           <div className="text-xs text-slate-500 dark:text-slate-400">Loading activities...</div>
                         ) : activities && activities.length > 0 ? (
-                          activities.map((activity: { id: string; message: string; user: { name?: string; email: string }; createdAt: string }) => (
-                            <div key={activity.id} className="flex gap-2">
-                              <Avatar className="w-6 h-6">
-                                <AvatarImage src="" />
-                                <AvatarFallback className="text-xs">
-                                  {activity.user.name?.charAt(0) || activity.user.email.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
+                          activities.map((activity: { id: string; message: string; user: { name?: string; email: string; avatarUrl?: string }; createdAt: string }) => (
+                            <div key={activity.id} className="flex items-start gap-2">
+                              <ConditionalUserProfile user={activity.user} size="sm" />
                               <div className="flex-1 space-y-1">
                                 <p className="text-xs">
-                                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                                  <span className="font-medium text-strong dark:text-slate-300">
                                     {activity.user.name || activity.user.email}
                                   </span>{" "}
                                   {activity.message}
@@ -852,7 +849,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                       onClick={handleDescriptionEdit}
                     >
                       {card.description ? (
-                        <p className="text-sm whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed">{card.description}</p>
+                        <p className="text-sm whitespace-pre-wrap text-strong dark:text-slate-300 leading-relaxed">{card.description}</p>
                       ) : (
                         <p className="text-sm text-slate-500 dark:text-slate-400 italic">Click to add a description...</p>
                       )}
@@ -966,13 +963,8 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   {card.comments.length > 0 && (
                     <div className="space-y-3">
                       {card.comments.map((comment) => (
-                        <div key={comment.id} className="flex gap-3 p-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
-                          <Avatar className="w-8 h-8 ring-1 ring-slate-200 dark:ring-slate-600">
-                            <AvatarImage src="" />
-                            <AvatarFallback className="bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium text-xs">
-                              {comment.user.name?.charAt(0) || comment.user.email.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                        <div key={comment.id} className="flex gap-3 p-3 border items-start border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+                          <ConditionalUserProfile user={comment.user as UserWithAvatar} size="md" />
                           <div className="flex-1 space-y-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -996,7 +988,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                 <DropdownMenuContent align="end" className="w-32">
                                   <DropdownMenuItem 
                                     onClick={() => handleEditComment(comment.id, comment.content)}
-                                    className="text-slate-700 dark:text-slate-300"
+                                    className="text-strong dark:text-slate-300"
                                   >
                                     <Edit className="w-3 h-3 mr-2" />
                                     Edit
@@ -1039,7 +1031,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                              <p className="text-sm text-strong dark:text-slate-300 leading-relaxed">
                                 {comment.content}
                               </p>
                             )}
@@ -1051,7 +1043,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
 
                   {/* Activities Section */}
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <div className="flex items-center gap-2 text-sm font-medium text-strong dark:text-slate-300">
                       <Clock className="w-4 h-4" />
                       Recent Activity
                     </div>
@@ -1059,17 +1051,12 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                       {activitiesLoading ? (
                         <div className="text-sm text-slate-500 dark:text-slate-400">Loading activities...</div>
                       ) : activities && activities.length > 0 ? (
-                        activities.map((activity: { id: string; message: string; user: { name?: string; email: string }; createdAt: string }) => (
-                          <div key={activity.id} className="flex gap-3">
-                            <Avatar className="w-8 h-8">
-                              <AvatarImage src="" />
-                              <AvatarFallback>
-                                {activity.user.name?.charAt(0) || activity.user.email.charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
+                        activities.map((activity: { id: string; message: string; user: { name?: string; email: string; avatarUrl?: string }; createdAt: string }) => (
+                          <div key={activity.id} className="flex gap-3 items-center">
+                            <ConditionalUserProfile user={activity.user} size="md" />
                             <div className="flex-1 space-y-1">
                               <p className="text-sm">
-                                <span className="font-medium text-slate-700 dark:text-slate-300">
+                                <span className="font-medium text-strong dark:text-slate-300">
                                   {activity.user.name || activity.user.email}
                                 </span>{" "}
                                 {activity.message}

@@ -69,16 +69,21 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create activity log
-    await db.activity.create({
-      data: {
-        type: "created_card",
-        message: `Created card "${title}"`,
-        boardId: list.boardId,
-        cardId: card.id,
-        userId: user.id
-      }
-    });
+    // Create activity log (with error handling)
+    try {
+      await db.activity.create({
+        data: {
+          type: "created_card",
+          message: `Created card "${title}"`,
+          boardId: list.boardId,
+          cardId: card.id,
+          userId: user.id
+        }
+      });
+    } catch (activityError) {
+      console.error("Error creating activity for card creation:", activityError);
+      // Don't fail the card creation if activity creation fails
+    }
 
     return NextResponse.json(card, { status: 201 });
   } catch (error) {

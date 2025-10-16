@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { UserButton } from "@clerk/nextjs";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ interface Activity {
   user: {
     name?: string;
     email: string;
+    avatarUrl?: string;
   };
 }
 
@@ -39,6 +41,7 @@ interface Comment {
   user: {
     name?: string;
     email: string;
+    avatarUrl?: string;
   };
   card: {
     id: string;
@@ -442,9 +445,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   ) : activities && activities.length > 0 ? (
                     activities.map((activity: Activity) => (
                       <div key={activity.id} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-xs font-semibold">
-                          {activity.user.name?.charAt(0) || activity.user.email.charAt(0).toUpperCase()}
-                        </div>
+                        <ConditionalUserProfile user={activity.user} size="md" />
                         <div className="flex-1">
                           <p className="text-sm text-slate-900 dark:text-white">{activity.message}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -477,9 +478,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   ) : comments && comments.length > 0 ? (
                     comments.map((comment: Comment) => (
                       <div key={comment.id} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-xs font-semibold">
-                          {comment.user.name?.charAt(0) || comment.user.email.charAt(0).toUpperCase()}
-                        </div>
+                        <ConditionalUserProfile user={comment.user} size="md" />
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium text-slate-900 dark:text-white">

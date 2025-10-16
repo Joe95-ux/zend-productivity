@@ -107,7 +107,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         <form onSubmit={handleSubmit} className="space-y-6 mt-6">
           {/* Feedback Type Selection */}
           <div className="space-y-2">
-            <Label htmlFor="feedback-type" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <Label htmlFor="feedback-type" className="text-sm font-medium text-strong dark:text-slate-300">
               Type of feedback
             </Label>
             <Select value={feedbackType} onValueChange={(value: FeedbackType) => setFeedbackType(value)}>
@@ -132,7 +132,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 
           {/* Message Field */}
           <div className="space-y-2">
-            <Label htmlFor="message" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <Label htmlFor="message" className="text-sm font-medium text-strong dark:text-slate-300">
               {getMessageLabel(feedbackType)}
             </Label>
             <Textarea
@@ -154,7 +154,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
               type="button"
               variant="outline"
               onClick={handleClose}
-              className="flex-1 sm:flex-none sm:w-auto order-2 sm:order-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200"
+              className="flex-1 sm:flex-none sm:w-auto order-2 sm:order-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-strong dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200"
             >
               <X className="h-4 w-4 mr-2" />
               Cancel

@@ -218,7 +218,7 @@ export function CardItem({ card, list, boardId }: CardItemProps) {
                     {updateCardMutation.isPending ? (
                       <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <Edit className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white" />
+                      <Edit className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
                     )}
                   </button>
                 </div>
