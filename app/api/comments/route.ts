@@ -2,6 +2,69 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
+export async function GET(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const boardId = searchParams.get("boardId");
+
+    if (!boardId) {
+      return NextResponse.json({ error: "BoardId is required" }, { status: 400 });
+    }
+
+    // Check if user has access to the board
+    const board = await db.board.findFirst({
+      where: {
+        id: boardId,
+        OR: [
+          { ownerId: user.id },
+          { members: { some: { userId: user.id } } }
+        ]
+      }
+    });
+
+    if (!board) {
+      return NextResponse.json({ error: "Board not found or unauthorized" }, { status: 404 });
+    }
+
+    // Fetch all comments from cards in this board
+    const comments = await db.comment.findMany({
+      where: {
+        card: {
+          list: {
+            boardId: boardId
+          }
+        }
+      },
+      include: {
+        user: true,
+        card: {
+          select: {
+            id: true,
+            title: true,
+            list: {
+              select: {
+                title: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    });
+
+    return NextResponse.json(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();

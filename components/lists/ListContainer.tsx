@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreateCardForm } from "@/components/cards/CreateCardForm";
 import { CardItem } from "@/components/cards/CardItem";
+import { DragPlaceholder } from "@/components/dnd/DragPlaceholder";
+import { useDragPlaceholder } from "@/components/dnd/DndProvider";
 import { toast } from "sonner";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -64,6 +66,7 @@ function SortableListContainer({ list }: ListContainerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
   const queryClient = useQueryClient();
+  const { activeId } = useDragPlaceholder();
 
   const {
     attributes,
@@ -81,7 +84,7 @@ function SortableListContainer({ list }: ListContainerProps) {
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? 'none' : transition,
   };
 
   const updateListMutation = useMutation({
@@ -156,11 +159,11 @@ function SortableListContainer({ list }: ListContainerProps) {
       className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 ${isDragging ? "opacity-50" : ""}`}
     >
       <Card className={cn(
-        "h-fit bg-slate-50 dark:bg-black border-slate-200 border-3 dark:border-slate-800 shadow-lg gap-2 transition-all duration-200 py-6",
+        "h-fit bg-slate-50 dark:bg-black border-slate-200 border-2 dark:border-slate-800 py-0 shadow-lg gap-2 transition-all duration-200 rounded-md",
         isOver && "ring-2 ring-blue-400 ring-opacity-50 bg-slate-100 dark:bg-slate-900",
         isDragging && "opacity-50 scale-105 shadow-2xl"
       )}>
-        <CardHeader className="pb-3">
+        <CardHeader className="p-3 m-1 rounded-md rounded-b-none bg-slate-100 dark:bg-slate-900">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-1">
               {/* Drag Handle */}
@@ -227,29 +230,38 @@ function SortableListContainer({ list }: ListContainerProps) {
           </div>
         </CardHeader>
         
-        <CardContent className="space-y-2">
-          <SortableContext items={list.cards.map(card => card.id)} strategy={verticalListSortingStrategy}>
-            {list.cards.map((card) => (
-              <CardItem key={card.id} card={card} />
-            ))}
-          </SortableContext>
-          
-          {isCreateCardOpen ? (
-            <CreateCardForm 
-              listId={list.id} 
-              onSuccess={() => setIsCreateCardOpen(false)} 
-            />
-          ) : (
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 hover:scale-[1.02] group"
-              onClick={() => setIsCreateCardOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
-              Add a card
-            </Button>
-          )}
-        </CardContent>
+         <CardContent className="space-y-2 p-3 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
+           <SortableContext items={list.cards.map(card => card.id)} strategy={verticalListSortingStrategy}>
+             {list.cards.map((card, index) => (
+               <div key={card.id}>
+                 <DragPlaceholder listId={list.id} position={index} />
+                 {activeId !== card.id && (
+                   <CardItem card={card} list={{ id: list.id, title: list.title }} />
+                 )}
+               </div>
+             ))}
+             <DragPlaceholder listId={list.id} position={list.cards.length} />
+           </SortableContext>
+         </CardContent>
+         
+         {/* Fixed Card Footer */}
+         <div className="flex items-center m-1 px-3 py-4 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-all duration-200">
+           {isCreateCardOpen ? (
+             <CreateCardForm 
+               listId={list.id} 
+               onSuccess={() => setIsCreateCardOpen(false)} 
+             />
+           ) : (
+             <Button
+               variant="ghost"
+               className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all duration-200 hover:scale-[1.02] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
+               onClick={() => setIsCreateCardOpen(true)}
+             >
+               <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+               Add a card
+             </Button>
+           )}
+         </div>
       </Card>
     </div>
   );

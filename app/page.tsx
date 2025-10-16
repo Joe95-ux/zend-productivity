@@ -24,13 +24,13 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="container mx-auto px-4 py-20">
-          <div className="text-center space-y-8">
+          <div className="text-center py-6 space-y-8">
             <div className="space-y-4">
               <Badge variant="secondary" className="text-sm">
                 <Sparkles className="w-4 h-4 mr-2" />
                 New & Improved
               </Badge>
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+              <h1 className="text-[3.2rem] md:text-6xl font-bold tracking-tight">
                 Organize Your
                 <span className="bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
                   {" "}Work{" "}
@@ -62,7 +62,7 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto py-6 px-4">
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-3xl md:text-4xl font-bold">
               Everything You Need to Stay Productive
@@ -73,7 +73,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg py-6">
               <CardHeader>
                 <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center mb-4">
                   <Zap className="w-6 h-6 text-emerald-600" />
@@ -85,7 +85,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg py-6">
               <CardHeader>
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mb-4">
                   <Users className="w-6 h-6 text-blue-600" />
@@ -97,7 +97,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg py-6">
               <CardHeader>
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center mb-4">
                   <Shield className="w-6 h-6 text-purple-600" />
@@ -114,7 +114,7 @@ export default function LandingPage() {
 
       {/* How It Works Section */}
       <section className="py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 py-6">
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-3xl md:text-4xl font-bold">
               Simple. Powerful. Effective.
@@ -160,7 +160,7 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <section className="py-20 bg-emerald-50 dark:bg-emerald-950/20">
-        <div className="container mx-auto px-4 text-center">
+        <div className="container mx-auto py-6 px-4 text-center">
           <div className="space-y-8">
             <div className="space-y-4">
               <h2 className="text-3xl md:text-4xl font-bold">

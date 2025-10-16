@@ -1,10 +1,25 @@
 "use client";
 
-import { DndContext, DragEndEvent, DragOverEvent, DragStartEvent, PointerSensor, useSensor, useSensors, closestCenter, rectIntersection } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
-import { useState } from "react";
+import { DndContext, DragEndEvent, DragOverEvent, DragStartEvent, PointerSensor, useSensor, useSensors, closestCorners, DragOverlay } from "@dnd-kit/core";
+import { useState, createContext, useContext } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
+interface DragPlaceholderContextType {
+  placeholderPosition: {
+    listId: string;
+    position: number;
+    cardHeight: number;
+  } | null;
+  activeId: string | null;
+}
+
+const DragPlaceholderContext = createContext<DragPlaceholderContextType>({
+  placeholderPosition: null,
+  activeId: null,
+});
+
+export const useDragPlaceholder = () => useContext(DragPlaceholderContext);
 
 interface DndProviderProps {
   children: React.ReactNode;
@@ -13,12 +28,20 @@ interface DndProviderProps {
 
 export function DndProvider({ children, boardId }: DndProviderProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [placeholderPosition, setPlaceholderPosition] = useState<{
+    listId: string;
+    position: number;
+    cardHeight: number;
+  } | null>(null);
+  const [lastOverId, setLastOverId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 20,
+        delay: 200,
+        tolerance: 10,
       },
     })
   );
@@ -76,7 +99,26 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
   });
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+    const activeId = event.active.id as string;
+    setActiveId(activeId);
+
+    // Get current board data to find the card and its position
+    const boardData = queryClient.getQueryData(["board", boardId]) as any;
+    if (!boardData) return;
+
+    // Find the active card and its current list
+    for (const list of boardData.lists) {
+      const cardIndex = list.cards.findIndex((c: any) => c.id === activeId);
+      if (cardIndex !== -1) {
+        // Set initial placeholder position
+        setPlaceholderPosition({
+          listId: list.id,
+          position: cardIndex,
+          cardHeight: 48, // Standard card height
+        });
+        break;
+      }
+    }
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -87,6 +129,10 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     const activeId = active.id as string;
     const overId = over.id as string;
 
+    // Only update if the target has actually changed
+    if (lastOverId === overId) return;
+    setLastOverId(overId);
+
     // Get current board data
     const boardData = queryClient.getQueryData(["board", boardId]) as any;
     if (!boardData) return;
@@ -94,37 +140,49 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     // Find the active card and its current list
     let activeCard = null;
     let activeListId = null;
+    let activeCardIndex = -1;
     
     for (const list of boardData.lists) {
-      const card = list.cards.find((c: any) => c.id === activeId);
-      if (card) {
-        activeCard = card;
+      const cardIndex = list.cards.findIndex((c: any) => c.id === activeId);
+      if (cardIndex !== -1) {
+        activeCard = list.cards[cardIndex];
         activeListId = list.id;
+        activeCardIndex = cardIndex;
         break;
       }
     }
 
     if (!activeCard) return;
 
-    // Find the target list
+    // Find the target list and position
     let targetListId = null;
+    let targetPosition = 0;
 
     // Check if dropping on a list
     const targetList = boardData.lists.find((l: any) => l.id === overId);
     if (targetList) {
       targetListId = overId;
+      targetPosition = targetList.cards.length;
     } else {
       // Check if dropping on a card
       for (const list of boardData.lists) {
-        const card = list.cards.find((c: any) => c.id === overId);
-        if (card) {
+        const cardIndex = list.cards.findIndex((c: any) => c.id === overId);
+        if (cardIndex !== -1) {
           targetListId = list.id;
+          targetPosition = cardIndex;
           break;
         }
       }
     }
 
-    // If we're moving to a different list, update the cache optimistically
+    // Update placeholder position
+    setPlaceholderPosition({
+      listId: targetListId,
+      position: targetPosition,
+      cardHeight: 48,
+    });
+
+    // Only update cache for cross-list movements to reduce shaking
     if (targetListId && targetListId !== activeListId) {
       queryClient.setQueryData(["board", boardId], (oldData: any) => {
         if (!oldData) return oldData;
@@ -138,10 +196,12 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
             };
           }
           if (list.id === targetListId) {
-            // Add card to target list at the end
+            // Add card to target list at the correct position
+            const newCards = [...list.cards];
+            newCards.splice(targetPosition, 0, { ...activeCard, listId: targetListId, position: targetPosition });
             return {
               ...list,
-              cards: [...list.cards, { ...activeCard, listId: targetListId, position: list.cards.length }]
+              cards: newCards
             };
           }
           return list;
@@ -155,6 +215,8 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
+    setPlaceholderPosition(null);
+    setLastOverId(null);
 
     if (!over) return;
 
@@ -175,6 +237,17 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         const overIndex = boardData.lists.findIndex((l: any) => l.id === overId);
         
         if (activeIndex !== overIndex) {
+          // Optimistic update for list reordering
+          queryClient.setQueryData(["board", boardId], (oldData: any) => {
+            if (!oldData) return oldData;
+
+            const newLists = [...oldData.lists];
+            const [movedList] = newLists.splice(activeIndex, 1);
+            newLists.splice(overIndex, 0, movedList);
+
+            return { ...oldData, lists: newLists };
+          });
+
           moveListMutation.mutate({
             listId: activeId,
             position: overIndex,
@@ -187,12 +260,14 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     // Handle card reordering
     let activeCard = null;
     let activeListId = null;
+    let activeCardIndex = -1;
     
     for (const list of boardData.lists) {
-      const card = list.cards.find((c: any) => c.id === activeId);
-      if (card) {
-        activeCard = card;
+      const cardIndex = list.cards.findIndex((c: any) => c.id === activeId);
+      if (cardIndex !== -1) {
+        activeCard = list.cards[cardIndex];
         activeListId = list.id;
+        activeCardIndex = cardIndex;
         break;
       }
     }
@@ -211,11 +286,9 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     } else {
       // Check if dropping on a card
       for (const list of boardData.lists) {
-        const card = list.cards.find((c: any) => c.id === overId);
-        if (card) {
+        const cardIndex = list.cards.findIndex((c: any) => c.id === overId);
+        if (cardIndex !== -1) {
           targetListId = list.id;
-          // Find the position of the card we're dropping on
-          const cardIndex = list.cards.findIndex((c: any) => c.id === overId);
           targetPosition = cardIndex;
           break;
         }
@@ -226,17 +299,41 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
     // Calculate if this is actually a different position
     const isDifferentList = activeListId !== targetListId;
-    const isDifferentPosition = activeCard.position !== targetPosition;
     
-    // For same list, check if the position actually changed
-    if (!isDifferentList && isDifferentPosition) {
-      const currentList = boardData.lists.find((l: any) => l.id === activeListId);
-      const currentIndex = currentList.cards.findIndex((c: any) => c.id === activeId);
-      if (currentIndex === targetPosition) return; // No actual change
+    // For same list, adjust position if dragging down
+    if (!isDifferentList && activeCardIndex < targetPosition) {
+      targetPosition -= 1;
+    }
+
+    // Check if position actually changed
+    if (!isDifferentList && activeCardIndex === targetPosition) {
+      return; // No actual change
     }
 
     // Only move if it's actually a different position
-    if (isDifferentList || isDifferentPosition) {
+    if (isDifferentList || activeCardIndex !== targetPosition) {
+      // Optimistic update
+      queryClient.setQueryData(["board", boardId], (oldData: any) => {
+        if (!oldData) return oldData;
+
+        const newLists = oldData.lists.map((list: any) => {
+          if (list.id === activeListId) {
+            // Remove card from source list
+            const newCards = list.cards.filter((card: any) => card.id !== activeId);
+            return { ...list, cards: newCards };
+          }
+          if (list.id === targetListId) {
+            // Add card to target list at the correct position
+            const newCards = [...list.cards];
+            newCards.splice(targetPosition, 0, { ...activeCard, listId: targetListId, position: targetPosition });
+            return { ...list, cards: newCards };
+          }
+          return list;
+        });
+
+        return { ...oldData, lists: newLists };
+      });
+
       moveCardMutation.mutate({
         cardId: activeId,
         listId: targetListId,
@@ -245,23 +342,26 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     }
   };
 
-  // Get all card and list IDs for SortableContext
-  const boardData = queryClient.getQueryData(["board", boardId]) as any;
-  const allCardIds = boardData?.lists?.flatMap((list: any) => list.cards.map((card: any) => card.id)) || [];
-  const allListIds = boardData?.lists?.map((list: any) => list.id) || [];
-  const allSortableIds = [...allListIds, ...allCardIds];
-
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext items={allSortableIds} strategy={verticalListSortingStrategy}>
+    <DragPlaceholderContext.Provider value={{ placeholderPosition, activeId }}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
         {children}
-      </SortableContext>
-    </DndContext>
+        <DragOverlay>
+          {activeId ? (
+            <div className="opacity-50 rotate-3 scale-105 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg p-3">
+              <div className="text-sm font-medium text-slate-900 dark:text-white">
+                Dragging...
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </DragPlaceholderContext.Provider>
   );
 }

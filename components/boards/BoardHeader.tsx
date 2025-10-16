@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, Printer, Download, Settings, Palette, Crown, Activity, Copy, Watch, Mail, Trash2, X } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +31,23 @@ interface Activity {
   };
 }
 
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: {
+    name?: string;
+    email: string;
+  };
+  card: {
+    id: string;
+    title: string;
+    list: {
+      title: string;
+    };
+  };
+}
+
 export function BoardHeader({ boardId, boardTitle, boardDescription, membersCount }: BoardHeaderProps) {
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -47,6 +64,17 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     queryFn: async () => {
       const response = await fetch(`/api/activities?boardId=${boardId}`);
       if (!response.ok) throw new Error("Failed to fetch activities");
+      return response.json();
+    },
+    enabled: isActivityOpen,
+  });
+
+  // Fetch comments
+  const { data: comments, isLoading: commentsLoading } = useQuery({
+    queryKey: ["comments", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/comments?boardId=${boardId}`);
+      if (!response.ok) throw new Error("Failed to fetch comments");
       return response.json();
     },
     enabled: isActivityOpen,
@@ -419,10 +447,51 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                 </TabsContent>
                 
                 <TabsContent value="comments" className="space-y-3">
-                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                    <Mail className="h-8 w-8 mx-auto mb-2" />
-                    <p className="text-sm">No comments yet</p>
-                  </div>
+                  {commentsLoading ? (
+                    // Loading skeleton for comments
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                          <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4 animate-pulse" />
+                          <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2 animate-pulse" />
+                        </div>
+                      </div>
+                    ))
+                  ) : comments && comments.length > 0 ? (
+                    comments.map((comment: Comment) => (
+                      <div key={comment.id} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-xs font-semibold">
+                          {comment.user.name?.charAt(0) || comment.user.email.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-slate-900 dark:text-white">
+                              {comment.user.name || comment.user.email}
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">on</span>
+                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                              {comment.card.title}
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">in</span>
+                            <span className="text-xs text-slate-600 dark:text-slate-300">
+                              {comment.card.list.title}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-900 dark:text-white mb-2">{comment.content}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                      <Mail className="h-8 w-8 mx-auto mb-2" />
+                      <p className="text-sm">No comments yet</p>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </div>

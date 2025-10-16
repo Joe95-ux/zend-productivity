@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, Trash2, Check } from "lucide-react";
+import { Edit, Trash2, Check, GripVertical } from "lucide-react";
 import { CardModal } from "./CardModal";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -41,9 +41,13 @@ interface CardItemProps {
       }>;
     }>;
   };
+  list: {
+    id: string;
+    title: string;
+  };
 }
 
-export function CardItem({ card }: CardItemProps) {
+export function CardItem({ card, list }: CardItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
@@ -60,7 +64,7 @@ export function CardItem({ card }: CardItemProps) {
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? 'none' : transition,
   };
 
   const updateCardMutation = useMutation({
@@ -112,12 +116,16 @@ export function CardItem({ card }: CardItemProps) {
 
   const handleToggleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (updateCardMutation.isPending) return; // Prevent multiple clicks during update
+    
     setIsCompleted(!isCompleted);
     updateCardMutation.mutate({ isCompleted: !isCompleted });
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (deleteCardMutation.isPending) return; // Prevent multiple clicks during deletion
+    
     if (confirm("Are you sure you want to delete this card?")) {
       deleteCardMutation.mutate();
     }
@@ -134,27 +142,47 @@ export function CardItem({ card }: CardItemProps) {
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group cursor-pointer transition-all duration-200 bg-slate-900 border-slate-800 shadow-sm border-3",
-          "hover:shadow-lg hover:shadow-slate-900/30 hover:border-slate-600",
-          "hover:scale-[1.02] hover:bg-slate-800",
+          "group cursor-pointer transition-all duration-200 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm border rounded-md",
+          "hover:shadow-lg hover:shadow-slate-900/30 hover:border-slate-300 dark:hover:border-slate-600",
+          "hover:scale-[1.02] hover:bg-slate-50 dark:hover:bg-slate-700",
           isDragging && "opacity-50",
-          isCompleted && "opacity-60 bg-slate-800"
+          isCompleted && "opacity-60 bg-slate-100 dark:bg-slate-700",
+          updateCardMutation.isPending && "opacity-75 pointer-events-none"
         )}
-        onClick={() => setIsModalOpen(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!updateCardMutation.isPending && !isDragging) {
+            setIsModalOpen(true);
+          }
+        }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        {...attributes}
-        {...listeners}
       >
         <CardContent className="p-0">
           <div className="flex items-center gap-3 h-12 px-3">
+            {/* Drag Handle - Only visible on hover */}
+            {isHovered && (
+              <div 
+                className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors duration-200 flex-shrink-0"
+                {...attributes}
+                {...listeners}
+              >
+                <GripVertical className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+              </div>
+            )}
+            
             {/* Radio Button - Always visible when completed, hover-only when not completed */}
             {(isCompleted || isHovered) && (
               <div 
-                className="hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110"
+                className={cn(
+                  "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-200",
+                  updateCardMutation.isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:scale-110"
+                )}
                 onClick={handleToggleComplete}
               >
-                {isCompleted ? (
+                {updateCardMutation.isPending ? (
+                  <div className="w-5 h-5 border-2 border-slate-400 rounded-full animate-pulse"></div>
+                ) : isCompleted ? (
                   <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center transition-all duration-200 animate-in zoom-in">
                     <Check className="w-3 h-3 text-white" />
                   </div>
@@ -166,8 +194,8 @@ export function CardItem({ card }: CardItemProps) {
 
             {/* Card Title */}
             <h4 className={cn(
-              "flex-1 font-medium text-sm text-white transition-all duration-200",
-              isCompleted && "line-through text-slate-400"
+              "flex-1 font-medium text-sm text-slate-900 dark:text-white transition-all duration-200",
+              isCompleted && "line-through text-slate-500 dark:text-slate-400"
             )}>
               {card.title}
             </h4>
@@ -178,9 +206,19 @@ export function CardItem({ card }: CardItemProps) {
                 <div className="hidden lg:block">
                   <button
                     onClick={handleEdit}
-                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-600 transition-all duration-200 hover:scale-110"
+                    disabled={updateCardMutation.isPending}
+                    className={cn(
+                      "w-6 h-6 flex items-center justify-center rounded transition-all duration-200",
+                      updateCardMutation.isPending 
+                        ? "cursor-not-allowed opacity-50" 
+                        : "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-110"
+                    )}
                   >
-                    <Edit className="w-4 h-4 text-slate-400 hover:text-white" />
+                    {updateCardMutation.isPending ? (
+                      <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Edit className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white" />
+                    )}
                   </button>
                 </div>
               )}
@@ -191,9 +229,19 @@ export function CardItem({ card }: CardItemProps) {
               <div className="flex-shrink-0">
                 <button
                   onClick={handleDelete}
-                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/20 transition-all duration-200 hover:scale-110"
+                  disabled={deleteCardMutation.isPending}
+                  className={cn(
+                    "w-6 h-6 flex items-center justify-center rounded transition-all duration-200",
+                    deleteCardMutation.isPending 
+                      ? "cursor-not-allowed opacity-50" 
+                      : "hover:bg-red-100 dark:hover:bg-red-500/20 hover:scale-110"
+                  )}
                 >
-                  <Trash2 className="w-4 h-4 text-red-400 hover:text-red-300" />
+                  {deleteCardMutation.isPending ? (
+                    <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300" />
+                  )}
                 </button>
               </div>
             )}
@@ -203,6 +251,7 @@ export function CardItem({ card }: CardItemProps) {
 
       <CardModal 
         card={card} 
+        list={list}
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
       />
