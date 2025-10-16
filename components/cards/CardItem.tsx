@@ -45,9 +45,10 @@ interface CardItemProps {
     id: string;
     title: string;
   };
+  boardId: string;
 }
 
-export function CardItem({ card, list }: CardItemProps) {
+export function CardItem({ card, list, boardId }: CardItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
@@ -252,6 +253,7 @@ export function CardItem({ card, list }: CardItemProps) {
       <CardModal 
         card={card} 
         list={list}
+        boardId={boardId}
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
       />

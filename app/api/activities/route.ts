@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const boardId = searchParams.get("boardId");
+    const cardId = searchParams.get("cardId");
 
     if (!boardId) {
       return NextResponse.json({ error: "BoardId is required" }, { status: 400 });
@@ -31,8 +32,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Board not found or unauthorized" }, { status: 404 });
     }
 
+    let whereClause: any = { boardId };
+    
+    // If cardId is provided, we need to get the card title to filter activities
+    if (cardId) {
+      const card = await db.card.findUnique({
+        where: { id: cardId },
+        select: { title: true }
+      });
+      
+      if (card) {
+        // Filter activities that mention this card's title
+        whereClause.message = {
+          contains: card.title,
+          mode: 'insensitive'
+        };
+      }
+    }
+
     const activities = await db.activity.findMany({
-      where: { boardId },
+      where: whereClause,
       include: {
         user: true
       },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -58,11 +58,12 @@ interface CardModalProps {
     id: string;
     title: string;
   };
+  boardId: string;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function CardModal({ card, list, isOpen, onClose }: CardModalProps) {
+export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [isCommentFormExpanded, setIsCommentFormExpanded] = useState(false);
@@ -72,6 +73,17 @@ export function CardModal({ card, list, isOpen, onClose }: CardModalProps) {
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [activeTab, setActiveTab] = useState("details");
   const queryClient = useQueryClient();
+
+  // Fetch activities for this card
+  const { data: activities, isLoading: activitiesLoading } = useQuery({
+    queryKey: ["activities", boardId, card.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/activities?boardId=${boardId}&cardId=${card.id}`);
+      if (!response.ok) throw new Error("Failed to fetch activities");
+      return response.json();
+    },
+    enabled: isOpen,
+  });
 
 
   const cardForm = useForm<UpdateCardFormData>({
@@ -279,7 +291,7 @@ export function CardModal({ card, list, isOpen, onClose }: CardModalProps) {
   return (
     <>
       <Dialog open={isOpen}>
-        <DialogContent showCloseButton={false} className="w-[calc(100vw-1rem)] sm:max-w-[65rem] max-h-[90vh] overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900">
+        <DialogContent showCloseButton={false} className="w-[calc(100vw-8px)] sm:max-w-[65rem] max-h-[90vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900">
           {/* Header */}
           <DialogHeader>
             <DialogTitle>
@@ -661,23 +673,33 @@ export function CardModal({ card, list, isOpen, onClose }: CardModalProps) {
                         Recent Activity
                       </div>
                       <div className="space-y-1">
-                        <div className="flex gap-2">
-                          <Avatar className="w-6 h-6">
-                            <AvatarImage src="" />
-                            <AvatarFallback className="text-xs">
-                              U
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 space-y-1">
-                            <p className="text-xs">
-                              <span className="font-medium text-slate-700 dark:text-slate-300">User</span>{" "}
-                              created this card
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {formatDistanceToNow(new Date(), { addSuffix: true })}
-                            </p>
-                          </div>
-                        </div>
+                        {activitiesLoading ? (
+                          <div className="text-xs text-slate-500 dark:text-slate-400">Loading activities...</div>
+                        ) : activities && activities.length > 0 ? (
+                          activities.map((activity: { id: string; message: string; user: { name?: string; email: string }; createdAt: string }) => (
+                            <div key={activity.id} className="flex gap-2">
+                              <Avatar className="w-6 h-6">
+                                <AvatarImage src="" />
+                                <AvatarFallback className="text-xs">
+                                  {activity.user.name?.charAt(0) || activity.user.email.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 space-y-1">
+                                <p className="text-xs">
+                                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                                    {activity.user.name || activity.user.email}
+                                  </span>{" "}
+                                  {activity.message}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-xs text-slate-500 dark:text-slate-400">No recent activity</div>
+                        )}
                         {card.comments.length === 0 && (
                           <div className="text-center py-6 text-slate-500 dark:text-slate-400">
                             <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-full w-fit mx-auto mb-2">
@@ -1026,23 +1048,33 @@ export function CardModal({ card, list, isOpen, onClose }: CardModalProps) {
                       Recent Activity
                     </div>
                     <div className="space-y-2">
-                      <div className="flex gap-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src="" />
-                          <AvatarFallback>
-                            U
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm">
-                            <span className="font-medium text-slate-700 dark:text-slate-300">User</span>{" "}
-                            created this card
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatDistanceToNow(new Date(), { addSuffix: true })}
-                          </p>
-                        </div>
-                      </div>
+                      {activitiesLoading ? (
+                        <div className="text-sm text-slate-500 dark:text-slate-400">Loading activities...</div>
+                      ) : activities && activities.length > 0 ? (
+                        activities.map((activity: { id: string; message: string; user: { name?: string; email: string }; createdAt: string }) => (
+                          <div key={activity.id} className="flex gap-3">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src="" />
+                              <AvatarFallback>
+                                {activity.user.name?.charAt(0) || activity.user.email.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm">
+                                <span className="font-medium text-slate-700 dark:text-slate-300">
+                                  {activity.user.name || activity.user.email}
+                                </span>{" "}
+                                {activity.message}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-slate-500 dark:text-slate-400">No recent activity</div>
+                      )}
                       {card.comments.length === 0 && (
                         <div className="text-center py-8 text-slate-500 dark:text-slate-400">
                           <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-full w-fit mx-auto mb-3">

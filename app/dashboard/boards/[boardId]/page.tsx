@@ -130,7 +130,7 @@ export default function BoardPage() {
             <SortableContext items={board.lists.map(list => list.id)} strategy={horizontalListSortingStrategy}>
               <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-8">
                 {board.lists.map((list) => (
-                  <ListContainer key={list.id} list={list} />
+                  <ListContainer key={list.id} list={list} boardId={boardId} />
                 ))}
                 
                 {/* Add List Button */}

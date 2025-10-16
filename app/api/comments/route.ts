@@ -125,6 +125,16 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Create activity log
+    await db.activity.create({
+      data: {
+        type: "added_comment",
+        message: `Added a comment to card "${card.title}"`,
+        boardId: card.list?.boardId,
+        userId: user.id
+      }
+    });
+
     return NextResponse.json(comment, { status: 201 });
   } catch (error) {
     console.error("Error creating comment:", error);

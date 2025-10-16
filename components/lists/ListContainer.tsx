@@ -59,9 +59,10 @@ interface ListContainerProps {
       }>;
     }>;
   };
+  boardId: string;
 }
 
-function SortableListContainer({ list }: ListContainerProps) {
+function SortableListContainer({ list, boardId }: ListContainerProps) {
   const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
@@ -236,7 +237,7 @@ function SortableListContainer({ list }: ListContainerProps) {
                <div key={card.id}>
                  <DragPlaceholder listId={list.id} position={index} />
                  {activeId !== card.id && (
-                   <CardItem card={card} list={{ id: list.id, title: list.title }} />
+                   <CardItem card={card} list={{ id: list.id, title: list.title }} boardId={boardId} />
                  )}
                </div>
              ))}
@@ -267,6 +268,6 @@ function SortableListContainer({ list }: ListContainerProps) {
   );
 }
 
-export function ListContainer({ list }: ListContainerProps) {
-  return <SortableListContainer list={list} />;
+export function ListContainer({ list, boardId }: ListContainerProps) {
+  return <SortableListContainer list={list} boardId={boardId} />;
 }

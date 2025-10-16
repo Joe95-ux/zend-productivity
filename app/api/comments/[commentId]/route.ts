@@ -56,7 +56,22 @@ export async function PUT(
       where: { id: commentId },
       data: { content },
       include: {
-        user: true
+        user: true,
+        card: {
+          include: {
+            list: true
+          }
+        }
+      }
+    });
+
+    // Create activity log
+    await db.activity.create({
+      data: {
+        type: "updated_comment",
+        message: `Updated a comment on card "${updatedComment.card?.title}"`,
+        boardId: updatedComment.card?.list?.boardId,
+        userId: user.id
       }
     });
 
@@ -84,6 +99,13 @@ export async function DELETE(
       where: { 
         id: commentId,
         userId: user.id 
+      },
+      include: {
+        card: {
+          include: {
+            list: true
+          }
+        }
       }
     });
 
@@ -94,6 +116,16 @@ export async function DELETE(
     // Delete the comment
     await db.comment.delete({
       where: { id: commentId }
+    });
+
+    // Create activity log
+    await db.activity.create({
+      data: {
+        type: "deleted_comment",
+        message: `Deleted a comment from card "${existingComment.card?.title}"`,
+        boardId: existingComment.card?.list?.boardId,
+        userId: user.id
+      }
     });
 
     return NextResponse.json({ success: true });
