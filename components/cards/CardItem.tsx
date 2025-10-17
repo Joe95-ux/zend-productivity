@@ -3,73 +3,31 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, Trash2, Check, GripVertical } from "lucide-react";
+import { Edit, Trash2, Check } from "lucide-react";
 import { CardModal } from "./CardModal";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Card as CardType, UpdateCardParams } from "@/lib/types";
 
 interface CardItemProps {
-  card: {
-    id: string;
-    title: string;
-    description?: string;
-    position: number;
-    isCompleted: boolean;
-    labels: Array<{
-      id: string;
-      name: string;
-      color: string;
-    }>;
-    comments: Array<{
-      id: string;
-      content: string;
-      user: {
-        name?: string;
-        email: string;
-      };
-      createdAt: string;
-    }>;
-    checklists: Array<{
-      id: string;
-      title: string;
-      items: Array<{
-        id: string;
-        content: string;
-        isCompleted: boolean;
-      }>;
-    }>;
-  };
+  card: CardType;
   list: {
     id: string;
     title: string;
   };
   boardId: string;
+  index: number;
 }
 
-export function CardItem({ card, list, boardId }: CardItemProps) {
+export function CardItem({ card, list, boardId, index }: CardItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
   const queryClient = useQueryClient();
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: card.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition: isDragging ? 'none' : transition,
-  };
-
   const updateCardMutation = useMutation({
-    mutationFn: async ({ title, description, position, isCompleted }: { title?: string; description?: string; position?: number; isCompleted?: boolean }) => {
+    mutationFn: async ({ title, description, position, isCompleted }: UpdateCardParams) => {
       const response = await fetch(`/api/cards/${card.id}`, {
         method: "PUT",
         headers: {
@@ -90,6 +48,9 @@ export function CardItem({ card, list, boardId }: CardItemProps) {
     },
     onError: (error: Error) => {
       console.error("Error updating card:", error);
+      // Revert the local state change on error
+      setIsCompleted(card.isCompleted);
+      toast.error(error.message);
     },
   });
 
@@ -119,8 +80,13 @@ export function CardItem({ card, list, boardId }: CardItemProps) {
     e.stopPropagation();
     if (updateCardMutation.isPending) return; // Prevent multiple clicks during update
     
-    setIsCompleted(!isCompleted);
-    updateCardMutation.mutate({ isCompleted: !isCompleted });
+    const newCompletedState = !isCompleted;
+    setIsCompleted(newCompletedState);
+    updateCardMutation.mutate({ 
+      title: card.title,
+      description: card.description,
+      isCompleted: newCompletedState 
+    });
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -139,80 +105,85 @@ export function CardItem({ card, list, boardId }: CardItemProps) {
 
   return (
     <>
-      <Card
-        ref={setNodeRef}
-        style={style}
-        className={cn(
-          "group cursor-pointer transition-all duration-200 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm border rounded-md",
-          "hover:shadow-lg hover:shadow-slate-900/30 hover:border-slate-300 dark:hover:border-slate-600",
-          "hover:scale-[1.02] hover:bg-slate-50 dark:hover:bg-slate-700",
-          isDragging && "opacity-50",
-          isCompleted && "opacity-60 bg-slate-100 dark:bg-slate-700",
-          updateCardMutation.isPending && "opacity-75 pointer-events-none"
-        )}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!updateCardMutation.isPending && !isDragging) {
-            setIsModalOpen(true);
-          }
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <CardContent className="p-0">
-          <div className="flex items-center gap-3 h-12 px-3">
-            {/* Drag Handle - Only visible on hover */}
-            {isHovered && (
-              <div 
-                className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors duration-200 flex-shrink-0"
-                {...attributes}
-                {...listeners}
-              >
-                <GripVertical className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-              </div>
+      <Draggable draggableId={card.id} index={index}>
+        {(provided, snapshot) => (
+          <Card
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            className={cn(
+              "group cursor-grab active:cursor-grabbing bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm border rounded-md",
+              "transition-all duration-300 ease-out",
+              "hover:shadow-md hover:shadow-slate-900/20 hover:border-slate-300 dark:hover:border-slate-600",
+              "hover:scale-[1.005] hover:bg-slate-50/50 dark:hover:bg-slate-700/50",
+              "hover:-translate-y-0.5",
+              snapshot.isDragging && "opacity-50 scale-105 rotate-2 shadow-xl",
+              isCompleted && "opacity-60 bg-slate-100 dark:bg-slate-700",
+              updateCardMutation.isPending && "opacity-75 pointer-events-none"
             )}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!updateCardMutation.isPending && !snapshot.isDragging) {
+                setIsModalOpen(true);
+              }
+            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+        <CardContent className="p-0 relative">
+          <div className="flex items-center h-12 px-3 relative overflow-hidden">
             
-            {/* Radio Button - Always visible when completed, hover-only when not completed */}
-            {(isCompleted || isHovered) && (
-              <div 
-                className={cn(
-                  "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-200",
-                  updateCardMutation.isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:scale-110"
-                )}
-                onClick={handleToggleComplete}
-              >
-                {updateCardMutation.isPending ? (
-                  <div className="w-5 h-5 border-2 border-slate-400 rounded-full animate-pulse"></div>
-                ) : isCompleted ? (
-                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center transition-all duration-200 animate-in zoom-in">
-                    <Check className="w-3 h-3 text-white" />
-                  </div>
-                ) : (
-                  <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-blue-400 transition-all duration-200"></div>
-                )}
-              </div>
-            )}
+            {/* Radio Button - Always present, hidden behind title by default */}
+            <div 
+              className={cn(
+                "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-300 ease-out absolute left-3 z-10",
+                updateCardMutation.isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:scale-105",
+                // Always visible but opacity changes based on state
+                (isCompleted || isHovered) 
+                  ? "opacity-100" 
+                  : "opacity-0"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleComplete(e);
+              }}
+            >
+              {updateCardMutation.isPending ? (
+                <div className="w-5 h-5 border-2 border-slate-400 rounded-full animate-pulse"></div>
+              ) : isCompleted ? (
+                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center transition-all duration-200 animate-in zoom-in">
+                  <Check className="w-3 h-3 text-white" />
+                </div>
+              ) : (
+                <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-blue-400 transition-all duration-200"></div>
+              )}
+            </div>
 
-            {/* Card Title */}
+            {/* Card Title - Slides right on hover to reveal radio icon underneath */}
             <h4 className={cn(
-              "flex-1 font-medium text-sm text-slate-900 dark:text-white transition-all duration-200",
-              isCompleted && "line-through text-slate-500 dark:text-slate-400"
+              "font-medium text-sm text-slate-900 dark:text-white transition-all duration-300 ease-out relative z-20",
+              isCompleted && "line-through text-slate-500 dark:text-slate-400",
+              // Slide right on hover to reveal radio icon underneath
+              (isCompleted || isHovered) 
+                ? "translate-x-8" // Move right to reveal radio icon
+                : "translate-x-0" // Normal position, covering radio icon
             )}>
               {card.title}
             </h4>
 
-            {/* Edit Icon - Show on hover for large devices */}
-            <div className="flex-shrink-0">
+            {/* Action Buttons - Positioned absolutely on the right */}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {/* Edit Icon - Show on hover for large devices */}
               {isHovered && (
                 <div className="hidden lg:block">
                   <button
                     onClick={handleEdit}
                     disabled={updateCardMutation.isPending}
                     className={cn(
-                      "w-6 h-6 flex items-center justify-center rounded transition-all duration-200",
+                      "w-6 h-6 flex items-center justify-center rounded transition-all duration-300 ease-out",
                       updateCardMutation.isPending 
                         ? "cursor-not-allowed opacity-50" 
-                        : "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-110"
+                        : "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
                     )}
                   >
                     {updateCardMutation.isPending ? (
@@ -223,19 +194,17 @@ export function CardItem({ card, list, boardId }: CardItemProps) {
                   </button>
                 </div>
               )}
-            </div>
 
-            {/* Delete Icon - Only show when completed */}
-            {isCompleted && (
-              <div className="flex-shrink-0">
+              {/* Delete Icon - Only show when completed */}
+              {isCompleted && (
                 <button
                   onClick={handleDelete}
                   disabled={deleteCardMutation.isPending}
                   className={cn(
-                    "w-6 h-6 flex items-center justify-center rounded transition-all duration-200",
+                    "w-6 h-6 flex items-center justify-center rounded transition-all duration-300 ease-out",
                     deleteCardMutation.isPending 
                       ? "cursor-not-allowed opacity-50" 
-                      : "hover:bg-red-100 dark:hover:bg-red-500/20 hover:scale-110"
+                      : "hover:bg-red-100 dark:hover:bg-red-500/20 hover:scale-105"
                   )}
                 >
                   {deleteCardMutation.isPending ? (
@@ -244,18 +213,20 @@ export function CardItem({ card, list, boardId }: CardItemProps) {
                     <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300" />
                   )}
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        )}
+      </Draggable>
 
       <CardModal 
-        card={card} 
+        card={card}
         list={list}
         boardId={boardId}
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
     </>
   );

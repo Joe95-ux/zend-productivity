@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, MoreHorizontal, Edit, Trash2, GripVertical } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,82 +14,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreateCardForm } from "@/components/cards/CreateCardForm";
 import { CardItem } from "@/components/cards/CardItem";
-import { DragPlaceholder } from "@/components/dnd/DragPlaceholder";
-import { useDragPlaceholder } from "@/components/dnd/DndProvider";
 import { toast } from "sonner";
-import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
+import { List as ListType, UpdateListParams } from "@/lib/types";
 
 interface ListContainerProps {
-  list: {
-    id: string;
-    title: string;
-    position: number;
-    cards: Array<{
-      id: string;
-      title: string;
-      description?: string;
-      position: number;
-      isCompleted: boolean;
-      labels: Array<{
-        id: string;
-        name: string;
-        color: string;
-      }>;
-      comments: Array<{
-        id: string;
-        content: string;
-        user: {
-          name?: string;
-          email: string;
-        };
-        createdAt: string;
-      }>;
-      checklists: Array<{
-        id: string;
-        title: string;
-        items: Array<{
-          id: string;
-          content: string;
-          isCompleted: boolean;
-        }>;
-      }>;
-    }>;
-  };
+  list: ListType;
   boardId: string;
+  index: number;
 }
 
-function SortableListContainer({ list, boardId }: ListContainerProps) {
+function SortableListContainer({ list, boardId, index: _index }: ListContainerProps) {
   const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
   const queryClient = useQueryClient();
-  const { activeId } = useDragPlaceholder();
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: list.id });
-
-  const {
-    setNodeRef: setDroppableRef,
-    isOver,
-  } = useDroppable({ id: list.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition: isDragging ? 'none' : transition,
-  };
 
   const updateListMutation = useMutation({
-    mutationFn: async ({ title, position }: { title?: string; position?: number }) => {
+    mutationFn: async ({ title, position }: UpdateListParams) => {
       const response = await fetch(`/api/lists/${list.id}`, {
         method: "PUT",
         headers: {
@@ -148,33 +91,23 @@ function SortableListContainer({ list, boardId }: ListContainerProps) {
     }
   };
 
-  const combinedRef = (node: HTMLElement | null) => {
-    setNodeRef(node);
-    setDroppableRef(node);
-  };
 
   return (
-    <div
-      ref={combinedRef}
-      style={style}
-      className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 ${isDragging ? "opacity-50" : ""}`}
-    >
+    <Draggable draggableId={list.id} index={list.position}>
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 cursor-grab active:cursor-grabbing ${snapshot.isDragging ? "opacity-50" : ""}`}
+        >
       <Card className={cn(
         "h-fit bg-slate-50 dark:bg-black border-slate-200 border-2 dark:border-slate-800 py-0 shadow-lg gap-2 transition-all duration-200 rounded-md",
-        isOver && "ring-2 ring-blue-400 ring-opacity-50 bg-slate-100 dark:bg-slate-900",
-        isDragging && "opacity-50 scale-105 shadow-2xl"
+        snapshot.isDragging && "opacity-50 scale-105 shadow-2xl"
       )}>
         <CardHeader className="p-3 m-1 rounded-md rounded-b-none bg-slate-100 dark:bg-slate-900">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-1">
-              {/* Drag Handle */}
-              <div 
-                className="cursor-grab active:cursor-grabbing p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors duration-200"
-                {...attributes}
-                {...listeners}
-              >
-                <GripVertical className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-              </div>
               
               {isEditing ? (
                 <Input
@@ -232,17 +165,29 @@ function SortableListContainer({ list, boardId }: ListContainerProps) {
         </CardHeader>
         
          <CardContent className="space-y-2 p-3 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
-           <SortableContext items={list.cards.map(card => card.id)} strategy={verticalListSortingStrategy}>
-             {list.cards.map((card, index) => (
-               <div key={card.id}>
-                 <DragPlaceholder listId={list.id} position={index} />
-                 {activeId !== card.id && (
-                   <CardItem card={card} list={{ id: list.id, title: list.title }} boardId={boardId} />
+           <Droppable droppableId={list.id} type="card">
+             {(provided, snapshot) => (
+               <div
+                 ref={provided.innerRef}
+                 {...provided.droppableProps}
+                 className={cn(
+                   "space-y-2 min-h-[20px]",
+                   snapshot.isDraggingOver && "bg-blue-50 dark:bg-blue-900/20 rounded-md"
                  )}
+               >
+                 {list.cards.map((card, index) => (
+                   <CardItem 
+                     key={card.id} 
+                     card={card} 
+                     list={{ id: list.id, title: list.title }} 
+                     boardId={boardId}
+                     index={index}
+                   />
+                 ))}
+                 {provided.placeholder}
                </div>
-             ))}
-             <DragPlaceholder listId={list.id} position={list.cards.length} />
-           </SortableContext>
+             )}
+           </Droppable>
          </CardContent>
          
          {/* Fixed Card Footer */}
@@ -255,19 +200,21 @@ function SortableListContainer({ list, boardId }: ListContainerProps) {
            ) : (
              <Button
                variant="ghost"
-               className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white transition-all duration-200 hover:scale-[1.02] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
+               className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white transition-all duration-300 ease-out hover:scale-[1.005] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
                onClick={() => setIsCreateCardOpen(true)}
              >
-               <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+               <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300 ease-out" />
                Add a card
              </Button>
            )}
          </div>
       </Card>
-    </div>
+        </div>
+      )}
+    </Draggable>
   );
 }
 
-export function ListContainer({ list, boardId }: ListContainerProps) {
-  return <SortableListContainer list={list} boardId={boardId} />;
+export function ListContainer({ list, boardId, index }: ListContainerProps) {
+  return <SortableListContainer list={list} boardId={boardId} index={index} />;
 }

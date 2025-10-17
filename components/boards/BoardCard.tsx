@@ -99,7 +99,7 @@ export function BoardCard({ board }: BoardCardProps) {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 w-8 p-0 hover:bg-background cursor-pointer transition-all duration-200 hover:scale-110"
+                      className="h-8 w-8 p-0 hover:bg-background cursor-pointer transition-all duration-300 ease-out hover:scale-105"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <MoreHorizontal className="h-4 w-4" />

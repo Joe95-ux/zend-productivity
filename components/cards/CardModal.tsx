@@ -965,7 +965,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                       {card.comments.map((comment) => (
                         <div key={comment.id} className="flex gap-3 p-3 border items-start border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
                           <ConditionalUserProfile user={comment.user as UserWithAvatar} size="md" />
-                          <div className="flex-1 space-y-2">
+                          <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-sm text-slate-900 dark:text-white">

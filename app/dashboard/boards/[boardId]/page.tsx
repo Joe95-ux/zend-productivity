@@ -8,61 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CreateListForm } from "@/components/lists/CreateListForm";
 import { ListContainer } from "@/components/lists/ListContainer";
 import { DndProvider } from "@/components/dnd/DndProvider";
-import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
+import { Droppable } from "@hello-pangea/dnd";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import Link from "next/link";
+import { Board } from "@/lib/types";
 
-interface Board {
-  id: string;
-  title: string;
-  description?: string;
-  owner: {
-    name?: string;
-    email: string;
-  };
-  members: Array<{
-    user: {
-      name?: string;
-      email: string;
-    };
-  }>;
-  lists: Array<{
-    id: string;
-    title: string;
-    position: number;
-    cards: Array<{
-      id: string;
-      title: string;
-      description?: string;
-      position: number;
-      isCompleted: boolean;
-      labels: Array<{
-        id: string;
-        name: string;
-        color: string;
-      }>;
-      comments: Array<{
-        id: string;
-        content: string;
-        user: {
-          name?: string;
-          email: string;
-        };
-        createdAt: string;
-      }>;
-      checklists: Array<{
-        id: string;
-        title: string;
-        items: Array<{
-          id: string;
-          content: string;
-          isCompleted: boolean;
-        }>;
-      }>;
-    }>;
-  }>;
-}
 
 export default function BoardPage() {
   const params = useParams();
@@ -127,25 +78,32 @@ export default function BoardPage() {
       <div className="w-full min-h-screen">
         {board?.lists && board.lists.length > 0 ? (
           <DndProvider boardId={boardId}>
-            <SortableContext items={board.lists.map(list => list.id)} strategy={horizontalListSortingStrategy}>
-              <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-8">
-                {board.lists.map((list) => (
-                  <ListContainer key={list.id} list={list} boardId={boardId} />
-                ))}
-                
-                {/* Add List Button */}
-                <div className="flex-shrink-0 w-72">
-                  <Button
-                    onClick={() => setIsCreateListOpen(true)}
-                    variant="outline"
-                    className="w-full h-12 border-dashed border-2 hover:border-solid cursor-pointer transition-all duration-200 hover:scale-105"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add another list
-                  </Button>
+            <Droppable droppableId="board" type="list" direction="horizontal">
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-8"
+                >
+                  {board.lists.map((list, index) => (
+                    <ListContainer key={list.id} list={list} boardId={boardId} index={index} />
+                  ))}
+                  
+                  {/* Add List Button */}
+                  <div className="flex-shrink-0 w-72">
+                    <Button
+                      onClick={() => setIsCreateListOpen(true)}
+                      variant="outline"
+                      className="w-full h-12 border-dashed border-2 hover:border-solid cursor-pointer transition-all duration-200 hover:scale-105"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add another list
+                    </Button>
+                  </div>
+                  {provided.placeholder}
                 </div>
-              </div>
-            </SortableContext>
+              )}
+            </Droppable>
           </DndProvider>
         ) : (
           <div className="text-center py-12">

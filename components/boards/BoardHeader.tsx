@@ -145,7 +145,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           <div className="flex items-center justify-between h-12">
             {/* Left side - Board title only */}
             <div className="flex items-center gap-1 min-[320px]:gap-2 sm:gap-4 min-w-0 flex-1">
-              <Button variant="ghost" size="sm" asChild className="cursor-pointer transition-all duration-200 hover:bg-muted/80 hover:scale-105">
+              <Button variant="ghost" size="sm" asChild className="cursor-pointer transition-all duration-300 ease-out hover:bg-muted/80 hover:scale-105">
                 <Link href="/dashboard">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
@@ -164,12 +164,12 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       setIsEditingTitle(false);
                     }
                   }}
-                  className="h-8 text-[17px] font-bold bg-transparent border-none p-0 text-slate-900 dark:text-white focus:bg-slate-100 dark:focus:bg-slate-700 focus:border-blue-400 transition-all duration-200"
+                  className="h-8 text-[17px] font-bold bg-transparent border-none p-0 text-slate-900 dark:text-white focus:bg-slate-100 dark:focus:bg-slate-700 focus:border-blue-400 transition-all duration-300 ease-out"
                   autoFocus
                 />
               ) : (
                 <h1 
-                  className="text-sm sm:text-[17px] font-bold text-slate-900 dark:text-white cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 px-2 py-1 rounded transition-all duration-200 truncate"
+                  className="text-sm sm:text-[17px] font-bold text-slate-900 dark:text-white cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 px-2 py-1 rounded transition-all duration-300 ease-out truncate"
                   onClick={() => setIsEditingTitle(true)}
                 >
                   {boardTitle}
@@ -180,7 +180,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
             {/* Right side - All clickable actions */}
             <div className="flex items-center gap-1 min-[320px]:gap-2">
               {/* Members count - Clickable */}
-              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden lg:flex">
+              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
                 <HoverHint label={`${membersCount} members`} side="bottom">
                   <Users className="h-4 w-4 mr-1" />
                 </HoverHint>
@@ -188,14 +188,14 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </Button>
 
               {/* Favorite button - Clickable */}
-              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden lg:flex">
+              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
                 <HoverHint label="Add to favorites" side="bottom">
                   <Star className="h-4 w-4" />
                 </HoverHint>
               </Button>
 
               {/* Share button - Clickable */}
-              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105 hidden lg:flex">
+              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
                 <HoverHint label="Share board" side="bottom">
                   <Share2 className="h-4 w-4" />
                 </HoverHint>
@@ -217,7 +217,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="cursor-pointer transition-all duration-200 hover:scale-105"
+                    className="cursor-pointer transition-all duration-300 ease-out hover:scale-105"
                   >
                     <HoverHint label="Board menu" side="bottom">
                       <MoreHorizontal className="h-4 w-4" />
@@ -267,13 +267,13 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                               setIsEditingDescription(false);
                             }
                           }}
-                          className="text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-slate-100 dark:focus:bg-slate-700 focus:border-blue-400 transition-all duration-200 resize-none"
+                          className="text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-slate-100 dark:focus:bg-slate-700 focus:border-blue-400 transition-all duration-300 ease-out resize-none"
                           placeholder="Add a description..."
                           autoFocus
                         />
                       ) : (
                         <div 
-                          className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded transition-all duration-200 min-h-[40px] flex items-center"
+                          className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded transition-all duration-300 ease-out min-h-[40px] flex items-center"
                           onClick={() => setIsEditingDescription(true)}
                         >
                           {boardDescription || "Add a description..."}

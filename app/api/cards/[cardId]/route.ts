@@ -9,10 +9,13 @@ export async function PUT(
   try {
     const user = await getCurrentUser();
     if (!user) {
+      console.log("PUT /api/cards/[cardId] - No user found");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { cardId } = await params;
+    console.log(`PUT /api/cards/${cardId} - User: ${user.id}, Request started`);
+    
     const body = await request.json();
     const { title, description, position, listId, isCompleted } = body;
 

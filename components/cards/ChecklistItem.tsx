@@ -48,7 +48,7 @@ export function ChecklistItem({ item, cardId }: ChecklistItemProps) {
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 p-2 rounded-md transition-all duration-200 cursor-pointer",
+        "group flex items-center gap-3 p-2 rounded-md transition-all duration-300 ease-out cursor-pointer",
         "hover:bg-slate-600/50",
         item.completed && "opacity-60"
       )}
@@ -59,12 +59,12 @@ export function ChecklistItem({ item, cardId }: ChecklistItemProps) {
       {/* Radio Button */}
       <div className="flex-shrink-0">
         {item.completed ? (
-          <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110">
+          <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-105">
             <Check className="w-3 h-3 text-white" />
           </div>
         ) : (
           <div className={cn(
-            "w-5 h-5 border-2 rounded-full transition-all duration-200",
+            "w-5 h-5 border-2 rounded-full transition-all duration-300 ease-out",
             isHovered 
               ? "border-blue-400 bg-blue-400/10" 
               : "border-slate-400 group-hover:border-blue-300"
@@ -78,7 +78,7 @@ export function ChecklistItem({ item, cardId }: ChecklistItemProps) {
 
       {/* Task Text */}
       <span className={cn(
-        "flex-1 text-sm transition-all duration-200",
+        "flex-1 text-sm transition-all duration-300 ease-out",
         item.completed 
           ? "line-through text-slate-400" 
           : "text-slate-200 group-hover:text-white"
