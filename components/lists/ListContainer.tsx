@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Copy } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreateCardForm } from "@/components/cards/CreateCardForm";
 import { CardItem } from "@/components/cards/CardItem";
+import { CopyListModal } from "./CopyListModal";
 import { toast } from "sonner";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
@@ -25,8 +26,9 @@ interface ListContainerProps {
   index: number;
 }
 
-function SortableListContainer({ list, boardId, index: _index }: ListContainerProps) {
+function SortableListContainer({ list, boardId, index }: ListContainerProps) {
   const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
   const queryClient = useQueryClient();
@@ -93,17 +95,20 @@ function SortableListContainer({ list, boardId, index: _index }: ListContainerPr
 
 
   return (
-    <Draggable draggableId={list.id} index={list.position}>
+    <>
+    <Draggable draggableId={list.id} index={index}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 cursor-grab active:cursor-grabbing ${snapshot.isDragging ? "opacity-50" : ""}`}
+          className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 cursor-grab active:cursor-grabbing transition-all duration-300 ease-out ${
+            snapshot.isDragging ? "opacity-90 scale-[1.02] rotate-1 shadow-lg z-50" : ""
+          }`}
         >
       <Card className={cn(
-        "h-fit bg-slate-50 dark:bg-black border-slate-200 border-2 dark:border-slate-800 py-0 shadow-lg gap-2 transition-all duration-200 rounded-md",
-        snapshot.isDragging && "opacity-50 scale-105 shadow-2xl"
+        "h-fit bg-slate-50 dark:bg-black border-slate-200 border-2 dark:border-slate-800 py-0 shadow-lg gap-2 transition-all duration-300 ease-out rounded-md",
+        snapshot.isDragging && "border-teal-600 shadow-md"
       )}>
         <CardHeader className="p-3 m-1 rounded-md rounded-b-none bg-slate-100 dark:bg-slate-900">
           <div className="flex items-center justify-between">
@@ -127,7 +132,7 @@ function SortableListContainer({ list, boardId, index: _index }: ListContainerPr
                 />
               ) : (
                 <CardTitle 
-                  className="text-base cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded transition-all duration-200 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-100 flex-1"
+                  className="text-base cursor-pointer px-2 py-1 rounded transition-all duration-200 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-100 flex-1"
                   onClick={() => setIsEditing(true)}
                 >
                   {list.title}
@@ -151,6 +156,13 @@ function SortableListContainer({ list, boardId, index: _index }: ListContainerPr
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setIsCopyModalOpen(true)}
+                  className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy List
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={handleDelete}
@@ -212,6 +224,14 @@ function SortableListContainer({ list, boardId, index: _index }: ListContainerPr
         </div>
       )}
     </Draggable>
+
+    <CopyListModal
+      isOpen={isCopyModalOpen}
+      onClose={() => setIsCopyModalOpen(false)}
+      list={list}
+      currentBoardId={boardId}
+    />
+    </>
   );
 }
 

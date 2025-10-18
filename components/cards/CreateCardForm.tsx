@@ -118,7 +118,7 @@ export function CreateCardForm({ listId, onSuccess }: CreateCardFormProps) {
           >
             Cancel
           </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting}>
+          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-teal-600 hover:bg-teal-700 text-white">
             {isSubmitting ? "Adding..." : "Add Card"}
           </Button>
         </div>

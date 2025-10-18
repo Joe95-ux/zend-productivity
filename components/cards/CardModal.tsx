@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -80,7 +80,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [activeTab, setActiveTab] = useState("details");
+  const [isCompleted, setIsCompleted] = useState(card.isCompleted);
   const queryClient = useQueryClient();
+
+  // Sync local state when card prop changes
+  useEffect(() => {
+    setIsCompleted(card.isCompleted);
+  }, [card.isCompleted]);
 
   // Fetch activities for this card
   const { data: activities, isLoading: activitiesLoading } = useQuery({
@@ -131,6 +137,8 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       toast.success("Card updated successfully!");
     },
     onError: (error: Error) => {
+      // Revert the local state change on error
+      setIsCompleted(card.isCompleted);
       toast.error(error.message);
     },
   });
@@ -267,10 +275,12 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   };
 
   const handleToggleComplete = () => {
+    const newCompletedState = !isCompleted;
+    setIsCompleted(newCompletedState);
     updateCardMutation.mutate({ 
       title: card.title, 
       description: card.description || "", 
-      isCompleted: !card.isCompleted 
+      isCompleted: newCompletedState 
     });
   };
 
@@ -324,7 +334,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    className="h-7 w-7 md:h-8 md:w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
+                    className="h-7 w-7 md:h-8 md:w-8 p-0 border-none hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
                   >
                     <HoverHint label="Actions" side="top">
                     <MoreHorizontal className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
@@ -379,15 +389,15 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   <div className="flex items-start gap-3">
                     <div 
                       className={`w-5 h-5 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
-                        card.isCompleted 
-                          ? 'bg-slate-600 border-slate-600 hover:bg-slate-700 hover:border-slate-700' 
-                          : 'border-slate-300 dark:border-slate-600 hover:border-slate-500 dark:hover:border-slate-400'
+                        isCompleted 
+                          ? 'bg-teal-600 border-teal-600 hover:bg-teal-700 hover:border-teal-700' 
+                          : 'border-slate-300 dark:border-slate-600 hover:border-teal-600 dark:hover:border-teal-600'
                       } ${updateCardMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                       onClick={updateCardMutation.isPending ? undefined : handleToggleComplete}
                     >
                       {updateCardMutation.isPending ? (
                         <div className="w-2.5 h-2.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                      ) : card.isCompleted ? (
+                      ) : isCompleted ? (
                         <Check className="w-3 h-3 text-white animate-in zoom-in duration-200" />
                       ) : null}
                     </div>
@@ -411,7 +421,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                         )}
                       />
                       <div className="flex gap-2">
-                        <Button type="submit" size="sm" className="bg-slate-600 hover:bg-slate-700 text-white text-sm px-3 py-1 h-7">
+                        <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white text-sm px-3 py-1 h-7">
                           Save
                         </Button>
                         <Button
@@ -478,7 +488,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                         )}
                       />
                       <div className="flex gap-3">
-                        <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
                           Save
                         </Button>
                         <Button
@@ -729,16 +739,16 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                 <div className="flex items-start gap-4">
                   <div 
                     className={`w-6 h-6 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
-                      card.isCompleted 
-                        ? 'bg-slate-600 border-slate-600 hover:bg-slate-700 hover:border-slate-700' 
-                        : 'border-slate-300 dark:border-slate-600 hover:border-slate-500 dark:hover:border-slate-400'
+                      isCompleted 
+                        ? 'bg-teal-600 border-teal-600 hover:bg-teal-700 hover:border-teal-700' 
+                        : 'border-slate-300 dark:border-slate-600 hover:border-teal-600 dark:hover:border-teal-600'
                     } ${updateCardMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                     onClick={updateCardMutation.isPending ? undefined : handleToggleComplete}
                   >
                     {updateCardMutation.isPending ? (
                       <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                    ) : card.isCompleted ? (
-                      <Check className="w-4 h-4 text-white animate-in zoom-in duration-200" />
+                    ) : isCompleted ? (
+                      <Check className="w-3 h-3 text-white animate-in zoom-in duration-200" />
                     ) : null}
                   </div>
                   {isEditingTitle ? (
@@ -761,7 +771,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                           )}
                         />
                         <div className="flex gap-3">
-                          <Button type="submit" size="sm" className="bg-slate-600 hover:bg-slate-700 text-white">
+                          <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
                             Save
                           </Button>
                           <Button
@@ -828,7 +838,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                           )}
                         />
                         <div className="flex gap-3">
-                          <Button type="submit" size="sm" className="bg-slate-600 hover:bg-slate-700 text-white">
+                          <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
                             Save
                           </Button>
                           <Button
@@ -934,7 +944,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                         type="submit" 
                         size="sm" 
                         disabled={addCommentMutation.isPending}
-                        className="bg-slate-600 hover:bg-slate-700 text-white"
+                        className="bg-teal-600 hover:bg-teal-700 text-white"
                       >
                         <Send className="w-4 h-4 mr-2" />
                         {addCommentMutation.isPending ? "Adding..." : "Comment"}

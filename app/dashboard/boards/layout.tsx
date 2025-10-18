@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default function BoardLayout({
@@ -24,9 +25,9 @@ export default function BoardLayout({
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
           <p className="text-muted-foreground mb-4">Please sign in to access the dashboard.</p>
-          <a href="/sign-in" className="text-primary hover:underline">
+          <Link href="/sign-in" className="text-primary hover:underline">
             Go to Sign In
-          </a>
+          </Link>
         </div>
       </div>
     );

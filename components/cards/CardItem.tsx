@@ -3,8 +3,15 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, Trash2, Check } from "lucide-react";
+import { Edit, Trash2, Check, Copy, MoreHorizontal } from "lucide-react";
 import { CardModal } from "./CardModal";
+import { CopyCardModal } from "./CopyCardModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -22,6 +29,7 @@ interface CardItemProps {
 
 export function CardItem({ card, list, boardId, index }: CardItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
   const queryClient = useQueryClient();
@@ -151,11 +159,11 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               {updateCardMutation.isPending ? (
                 <div className="w-5 h-5 border-2 border-slate-400 rounded-full animate-pulse"></div>
               ) : isCompleted ? (
-                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center transition-all duration-200 animate-in zoom-in">
+                <div className="w-5 h-5 bg-teal-600 rounded-full flex items-center justify-center transition-all duration-200 animate-in zoom-in">
                   <Check className="w-3 h-3 text-white" />
                 </div>
               ) : (
-                <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-blue-400 transition-all duration-200"></div>
+                <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-teal-600 transition-all duration-200"></div>
               )}
             </div>
 
@@ -195,24 +203,38 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                 </div>
               )}
 
-              {/* Delete Icon - Only show when completed */}
-              {isCompleted && (
-                <button
-                  onClick={handleDelete}
-                  disabled={deleteCardMutation.isPending}
-                  className={cn(
-                    "w-6 h-6 flex items-center justify-center rounded transition-all duration-300 ease-out",
-                    deleteCardMutation.isPending 
-                      ? "cursor-not-allowed opacity-50" 
-                      : "hover:bg-red-100 dark:hover:bg-red-500/20 hover:scale-105"
-                  )}
-                >
-                  {deleteCardMutation.isPending ? (
-                    <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300" />
-                  )}
-                </button>
+              {/* More Options Dropdown - Show on hover */}
+              {isHovered && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      disabled={updateCardMutation.isPending}
+                      className={cn(
+                        "w-6 h-6 flex items-center justify-center rounded transition-all duration-300 ease-out",
+                        updateCardMutation.isPending 
+                          ? "cursor-not-allowed opacity-50" 
+                          : "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
+                      )}
+                    >
+                      <MoreHorizontal className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => setIsCopyModalOpen(true)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Card
+                    </DropdownMenuItem>
+                    {isCompleted && (
+                      <DropdownMenuItem 
+                        onClick={handleDelete}
+                        className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Card
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>
@@ -227,6 +249,14 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
         boardId={boardId}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      <CopyCardModal
+        isOpen={isCopyModalOpen}
+        onClose={() => setIsCopyModalOpen(false)}
+        card={card}
+        currentBoardId={boardId}
+        currentListId={list.id}
       />
     </>
   );

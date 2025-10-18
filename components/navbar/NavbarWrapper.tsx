@@ -1,4 +1,3 @@
-// components/navbar/NavbarWrapper.tsx
 "use client";
 
 import { Navbar } from "@/components/navbar/Navbar";

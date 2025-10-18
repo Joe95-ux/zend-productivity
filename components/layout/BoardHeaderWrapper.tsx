@@ -49,8 +49,8 @@ export function BoardHeaderWrapper() {
   return (
     <BoardHeader 
       boardId={boardId || ""} 
-      boardTitle={board.title} 
-      boardDescription={board.description}
+      boardTitle={board.title || "Board Title"} 
+      boardDescription={board.description || "Board Description"}
       membersCount={board.members ? board.members.length + 1 : 1}
     />
   );

@@ -115,7 +115,7 @@ export function CreateBoardForm({ onSuccess }: CreateBoardFormProps) {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="bg-teal-600 hover:bg-teal-700 text-white">
             {isSubmitting ? "Creating..." : "Create Board"}
           </Button>
         </div>

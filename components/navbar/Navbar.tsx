@@ -6,12 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeSwitcherBtn } from "@/components/ThemeSwitcherBtn";
 import Logo from "@/components/Logo";
-import { Menu, User, LogIn, UserPlus, Search, Filter, MessageSquare, Bell, Info, Palette, LogOut, Plus, Kanban, Layout } from "lucide-react";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Menu,
+  User,
+  LogIn,
+  UserPlus,
+  Search,
+  Filter,
+  MessageSquare,
+  Bell,
+  Info,
+  Palette,
+  LogOut,
+  Plus,
+  Kanban,
+  Layout,
+} from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
@@ -19,11 +30,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CreateBoardForm } from "@/components/boards/CreateBoardForm";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const { isLoaded, isSignedIn } = useUser();
@@ -35,6 +53,10 @@ export function Navbar() {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
+
+  const pathname = usePathname();
+  const isDashboardPage = pathname.startsWith("/dashboard");
+
 
   return (
     <>
@@ -51,9 +73,9 @@ export function Navbar() {
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/80"
                   >
                     <HoverHint label="Filter search" side="bottom">
@@ -74,360 +96,434 @@ export function Navbar() {
       )}
 
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="w-full px-[18px] lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Logo fontSize="xl" iconSize={24} />
+        <div
+          className={cn(
+            !isDashboardPage ? "container mx-auto" : "w-full px-[18px] lg:px-8"
+          )}
+        >
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <Logo fontSize="xl" iconSize={24} />
 
-          {/* Search Bar and Create CTA Group - Desktop */}
-          <div className="hidden min-[422px]:flex items-center gap-4 flex-1 max-w-lg mx-2 sm:mx-4 lg:mx-8">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search..."
-                className="pl-10 pr-4 py-2 w-full bg-muted/50 border-muted-foreground/20 focus:bg-background transition-all duration-200 text-sm"
-              />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/80"
-                  >
-                    <HoverHint label="Filter search" side="bottom">
-                      <Filter className="h-4 w-4" />
-                    </HoverHint>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem>All Boards</DropdownMenuItem>
-                  <DropdownMenuItem>My Boards</DropdownMenuItem>
-                  <DropdownMenuItem>Shared Boards</DropdownMenuItem>
-                  <DropdownMenuItem>Recent</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            
-            {/* Create CTA */}
+            {/* Search Bar and Create CTA Group - Desktop */}
             {isSignedIn && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="bg-primary hover:bg-primary/90 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Create</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 p-0">
-                  <div className="p-4 space-y-3">
-                    {/* Create Board */}
-                    <div 
-                      className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors"
-                      onClick={() => setIsCreateBoardOpen(true)}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Kanban className="h-5 w-5 text-slate-400 mt-0.5" />
-                        <div className="flex-1">
-                          <div className="text-[15px] font-medium text-slate-900 dark:text-white">Create board</div>
-                          <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
-                            A board is made up of cards ordered on lists. Use it to manage projects, track information or organize anything.
+              <div className="hidden min-[422px]:flex items-center gap-4 flex-1 max-w-lg mx-2 sm:mx-4 lg:mx-8">
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search..."
+                    className="pl-10 pr-4 py-2 w-full bg-muted/50 border-muted-foreground/20 focus:bg-background transition-all duration-200 text-sm"
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/80"
+                      >
+                        <HoverHint label="Filter search" side="bottom">
+                          <Filter className="h-4 w-4" />
+                        </HoverHint>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem>All Boards</DropdownMenuItem>
+                      <DropdownMenuItem>My Boards</DropdownMenuItem>
+                      <DropdownMenuItem>Shared Boards</DropdownMenuItem>
+                      <DropdownMenuItem>Recent</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Create CTA */}
+                {isSignedIn && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="bg-teal-600 hover:bg-teal-700 text-white cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Create</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80 p-0">
+                      <div className="p-4 space-y-3">
+                        {/* Create Board */}
+                        <div
+                          className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors"
+                          onClick={() => setIsCreateBoardOpen(true)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Kanban className="h-5 w-5 text-slate-400 mt-0.5" />
+                            <div className="flex-1">
+                              <div className="text-[15px] font-medium text-slate-900 dark:text-white">
+                                Create board
+                              </div>
+                              <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
+                                A board is made up of cards ordered on lists.
+                                Use it to manage projects, track information or
+                                organize anything.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Start with Template */}
+                        <div className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors">
+                          <div className="flex items-start gap-3">
+                            <Layout className="h-5 w-5 text-slate-400 mt-0.5" />
+                            <div className="flex-1">
+                              <div className="text-[15px] font-medium text-slate-900 dark:text-white">
+                                Start with a template
+                              </div>
+                              <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
+                                Get started faster with a board template.
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Start with Template */}
-                    <div className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors">
-                      <div className="flex items-start gap-3">
-                        <Layout className="h-5 w-5 text-slate-400 mt-0.5" />
-                        <div className="flex-1">
-                          <div className="text-[15px] font-medium text-slate-900 dark:text-white">Start with a template</div>
-                          <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
-                            Get started faster with a board template.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-
-          {/* Mobile Search Icon, Create CTA, and Menu Icon */}
-          <div className="flex min-[422px]:hidden items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="h-8 w-8 p-0 hover:bg-muted/80"
-            >
-              <HoverHint label="Search" side="bottom">
-                <Search className="h-4 w-4" />
-              </HoverHint>
-            </Button>
-            
-            {/* Create CTA - Mobile */}
-            {isSignedIn && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="bg-primary hover:bg-primary/90 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 p-0">
-                  <div className="p-4 space-y-3">
-                    {/* Create Board */}
-                    <div 
-                      className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors"
-                      onClick={() => setIsCreateBoardOpen(true)}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Kanban className="h-5 w-5 text-slate-400 mt-0.5" />
-                        <div className="flex-1">
-                          <div className="text-[15px] font-medium text-slate-900 dark:text-white">Create board</div>
-                          <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
-                            A board is made up of cards ordered on lists. Use it to manage projects, track information or organize anything.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Start with Template */}
-                    <div className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors">
-                      <div className="flex items-start gap-3">
-                        <Layout className="h-5 w-5 text-slate-400 mt-0.5" />
-                        <div className="flex-1">
-                          <div className="text-[15px] font-medium text-slate-900 dark:text-white">Start with a template</div>
-                          <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
-                            Get started faster with a board template.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-1 xl:space-x-2">
-            {isLoaded && (
-              <>
-                {isSignedIn ? (
-                  <>
-                    <Button asChild variant="ghost">
-                      <Link href="/dashboard">
-                        Dashboard
-                      </Link>
-                    </Button>
-                    
-                    {/* Feedback, Notifications, Information Icons */}
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="cursor-pointer transition-all duration-200 hover:scale-105"
-                      onClick={() => setIsFeedbackOpen(true)}
-                    >
-                      <HoverHint label="Feedback" side="bottom">
-                        <MessageSquare className="h-4 w-4" />
-                      </HoverHint>
-                    </Button>
-                    <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
-                      <HoverHint label="Notifications" side="bottom">
-                        <Bell className="h-4 w-4" />
-                      </HoverHint>
-                    </Button>
-                    <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
-                      <HoverHint label="Information" side="bottom">
-                        <Info className="h-4 w-4" />
-                      </HoverHint>
-                    </Button>
-                    
-                    <UserButton 
-                      afterSignOutUrl="/"
-                      appearance={{
-                        elements: {
-                          avatarBox: "w-8 h-8"
-                        }
-                      }}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Button asChild variant="ghost">
-                      <Link href="/sign-in">
-                        <LogIn className="w-4 h-4 mr-2" />
-                        Sign In
-                      </Link>
-                    </Button>
-                    <Button asChild>
-                      <Link href="/sign-up">
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Get Started
-                      </Link>
-                    </Button>
-                  </>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
-                <ThemeSwitcherBtn />
-              </>
+              </div>
             )}
-          </div>
+            {/* Mobile Search Icon, Create CTA, and Menu Icon */}
 
-          {/* Mobile Navigation */}
-          <div className="flex lg:hidden items-center space-x-2">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-200 hover:scale-105">
-                  <HoverHint label="Menu" side="bottom">
-                    <Menu className="h-5 w-5" />
+            <div className="flex min-[422px]:hidden items-center gap-4">
+              {isSignedIn && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsSearchOpen(!isSearchOpen)}
+                  className="h-8 w-8 p-0 hover:bg-muted/80"
+                >
+                  <HoverHint label="Search" side="bottom">
+                    <Search className="h-4 w-4" />
                   </HoverHint>
                 </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] min-[320px]:w-80 sm:w-96 p-0">
-                <div className="flex flex-col h-full">
-                  {/* Header */}
-                  <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-center border-b">
-                    <h3 className="text-[17px] font-bold">Menu</h3>
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
-                    <div className="p-[14px] space-y-2">
-                      {isLoaded && (
-                        <>
-                          {isSignedIn ? (
-                            <>
-                              {/* Create Section */}
-                              <div className="space-y-0">
-                                <div 
-                                  className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
-                                  onClick={() => {
-                                    setIsCreateBoardOpen(true);
-                                    closeMobileMenu();
-                                  }}
-                                >
-                                  <Plus className="h-4 w-4 text-slate-400" />
-                                  <span className="text-sm font-normal">Create board</span>
-                                </div>
-                              </div>
+              )}
+              {/* Create CTA - Mobile */}
+              {isSignedIn && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="bg-teal-600 hover:bg-teal-700 text-white cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80 p-0">
+                    <div className="p-4 space-y-3">
+                      {/* Create Board */}
+                      <div
+                        className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors"
+                        onClick={() => setIsCreateBoardOpen(true)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Kanban className="h-5 w-5 text-slate-400 mt-0.5" />
+                          <div className="flex-1">
+                            <div className="text-[15px] font-medium text-slate-900 dark:text-white">
+                              Create board
+                            </div>
+                            <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
+                              A board is made up of cards ordered on lists. Use
+                              it to manage projects, track information or
+                              organize anything.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-                              <Separator />
+                      {/* Start with Template */}
+                      <div className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-3 rounded-md transition-colors">
+                        <div className="flex items-start gap-3">
+                          <Layout className="h-5 w-5 text-slate-400 mt-0.5" />
+                          <div className="flex-1">
+                            <div className="text-[15px] font-medium text-slate-900 dark:text-white">
+                              Start with a template
+                            </div>
+                            <div className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
+                              Get started faster with a board template.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
 
-                              {/* Account Section */}
-                              <div className="space-y-0">
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                  <UserButton 
-                                    afterSignOutUrl="/"
-                                    appearance={{
-                                      elements: {
-                                        avatarBox: "w-4 h-4"
-                                      }
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-1 xl:space-x-2">
+              {isLoaded && (
+                <>
+                  {isSignedIn ? (
+                    <>
+                      <Button asChild variant="ghost">
+                        <Link href="/dashboard">Dashboard</Link>
+                      </Button>
+
+                      {/* Feedback, Notifications, Information Icons */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="cursor-pointer transition-all duration-200 hover:scale-105"
+                        onClick={() => setIsFeedbackOpen(true)}
+                      >
+                        <HoverHint label="Feedback" side="bottom">
+                          <MessageSquare className="h-4 w-4" />
+                        </HoverHint>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="cursor-pointer transition-all duration-200 hover:scale-105"
+                      >
+                        <HoverHint label="Notifications" side="bottom">
+                          <Bell className="h-4 w-4" />
+                        </HoverHint>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="cursor-pointer transition-all duration-200 hover:scale-105"
+                      >
+                        <HoverHint label="Information" side="bottom">
+                          <Info className="h-4 w-4" />
+                        </HoverHint>
+                      </Button>
+
+                      <UserButton
+                        afterSignOutUrl="/"
+                        appearance={{
+                          elements: {
+                            avatarBox: "w-8 h-8",
+                          },
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Button asChild variant="ghost">
+                        <Link href="/sign-in">
+                          <LogIn className="w-4 h-4 mr-2" />
+                          Sign In
+                        </Link>
+                      </Button>
+                      <Button asChild>
+                        <Link href="/sign-up">
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Get Started
+                        </Link>
+                      </Button>
+                    </>
+                  )}
+                  <ThemeSwitcherBtn />
+                </>
+              )}
+            </div>
+
+            {/* Mobile Navigation */}
+            <div className="flex lg:hidden items-center space-x-2">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="cursor-pointer transition-all duration-200 hover:scale-105"
+                  >
+                    <HoverHint label="Menu" side="bottom">
+                      <Menu className="h-5 w-5" />
+                    </HoverHint>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="right"
+                  className="w-[280px] min-[320px]:w-80 sm:w-96 p-0"
+                >
+                  <div className="flex flex-col h-full">
+                    {/* Header */}
+                    <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-center border-b">
+                      <h3 className="text-[17px] font-bold">Menu</h3>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
+                      <div className="p-[14px] space-y-2">
+                        {isLoaded && (
+                          <>
+                            {isSignedIn ? (
+                              <>
+                                {/* Create Section */}
+                                <div className="space-y-0">
+                                  <div
+                                    className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                                    onClick={() => {
+                                      setIsCreateBoardOpen(true);
+                                      closeMobileMenu();
                                     }}
-                                  />
-                                  <span className="text-sm font-normal">Account</span>
-                                </div>
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors" onClick={closeMobileMenu}>
-                                  <Link href="/dashboard" className="flex items-center gap-3 w-full">
-                                    <User className="h-4 w-4 text-slate-400" />
-                                    <span className="text-sm font-normal">Dashboard</span>
-                                  </Link>
-                                </div>
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                  <MessageSquare className="h-4 w-4 text-slate-400" />
-                                  <span className="text-sm font-normal">Feedback</span>
-                                </div>
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                  <Bell className="h-4 w-4 text-slate-400" />
-                                  <span className="text-sm font-normal">Notifications</span>
-                                </div>
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                  <Info className="h-4 w-4 text-slate-400" />
-                                  <span className="text-sm font-normal">Information</span>
-                                </div>
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                  <Palette className="h-4 w-4 text-slate-400" />
-                                  <span className="text-sm font-normal">Theme</span>
-                                  <div className="ml-auto">
-                                    <ThemeSwitcherBtn />
+                                  >
+                                    <Plus className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-normal">
+                                      Create board
+                                    </span>
                                   </div>
                                 </div>
-                              </div>
 
-                              <Separator />
+                                <Separator />
 
-                              {/* Logout Section */}
-                              <div className="space-y-0">
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                  <LogOut className="h-4 w-4 text-slate-400" />
-                                  <span className="text-sm font-normal text-slate-900 dark:text-white">Logout</span>
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              {/* Guest Section */}
-                              <div className="space-y-0">
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors" onClick={closeMobileMenu}>
-                                  <Link href="/sign-in" className="flex items-center gap-3 w-full">
-                                    <LogIn className="h-4 w-4 text-slate-400" />
-                                    <span className="text-sm font-normal">Sign In</span>
-                                  </Link>
-                                </div>
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors" onClick={closeMobileMenu}>
-                                  <Link href="/sign-up" className="flex items-center gap-3 w-full">
-                                    <UserPlus className="h-4 w-4 text-slate-400" />
-                                    <span className="text-sm font-normal">Get Started</span>
-                                  </Link>
-                                </div>
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                  <Info className="h-4 w-4 text-slate-400" />
-                                  <span className="text-sm font-normal">Information</span>
-                                </div>
-                                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                  <Palette className="h-4 w-4 text-slate-400" />
-                                  <span className="text-sm font-normal">Theme</span>
-                                  <div className="ml-auto">
-                                    <ThemeSwitcherBtn />
+                                {/* Account Section */}
+                                <div className="space-y-0">
+                                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                                    <UserButton
+                                      afterSignOutUrl="/"
+                                      appearance={{
+                                        elements: {
+                                          avatarBox: "w-4 h-4",
+                                        },
+                                      }}
+                                    />
+                                    <span className="text-sm font-normal">
+                                      Account
+                                    </span>
+                                  </div>
+                                  <div
+                                    className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                                    onClick={closeMobileMenu}
+                                  >
+                                    <Link
+                                      href="/dashboard"
+                                      className="flex items-center gap-3 w-full"
+                                    >
+                                      <User className="h-4 w-4 text-slate-400" />
+                                      <span className="text-sm font-normal">
+                                        Dashboard
+                                      </span>
+                                    </Link>
+                                  </div>
+                                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                                    <MessageSquare className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-normal">
+                                      Feedback
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                                    <Bell className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-normal">
+                                      Notifications
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                                    <Info className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-normal">
+                                      Information
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                                    <Palette className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-normal">
+                                      Theme
+                                    </span>
+                                    <div className="ml-auto">
+                                      <ThemeSwitcherBtn />
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </>
-                          )}
-                        </>
-                      )}
+
+                                <Separator />
+
+                                {/* Logout Section */}
+                                <div className="space-y-0">
+                                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                                    <LogOut className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-normal text-slate-900 dark:text-white">
+                                      Logout
+                                    </span>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                {/* Guest Section */}
+                                <div className="space-y-0">
+                                  <div
+                                    className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                                    onClick={closeMobileMenu}
+                                  >
+                                    <Link
+                                      href="/sign-in"
+                                      className="flex items-center gap-3 w-full"
+                                    >
+                                      <LogIn className="h-4 w-4 text-slate-400" />
+                                      <span className="text-sm font-normal">
+                                        Sign In
+                                      </span>
+                                    </Link>
+                                  </div>
+                                  <div
+                                    className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                                    onClick={closeMobileMenu}
+                                  >
+                                    <Link
+                                      href="/sign-up"
+                                      className="flex items-center gap-3 w-full"
+                                    >
+                                      <UserPlus className="h-4 w-4 text-slate-400" />
+                                      <span className="text-sm font-normal">
+                                        Get Started
+                                      </span>
+                                    </Link>
+                                  </div>
+                                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                                    <Info className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-normal">
+                                      Information
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                                    <Palette className="h-4 w-4 text-slate-400" />
+                                    <span className="text-sm font-normal">
+                                      Theme
+                                    </span>
+                                    <div className="ml-auto">
+                                      <ThemeSwitcherBtn />
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
 
-    {/* Create Board Modal */}
-    <Dialog open={isCreateBoardOpen} onOpenChange={setIsCreateBoardOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create New Board</DialogTitle>
-        </DialogHeader>
-        <CreateBoardForm onSuccess={() => setIsCreateBoardOpen(false)} />
-      </DialogContent>
-    </Dialog>
+      {/* Create Board Modal */}
+      <Dialog open={isCreateBoardOpen} onOpenChange={setIsCreateBoardOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Board</DialogTitle>
+          </DialogHeader>
+          <CreateBoardForm onSuccess={() => setIsCreateBoardOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
-    <FeedbackModal 
-      isOpen={isFeedbackOpen} 
-      onClose={() => setIsFeedbackOpen(false)} 
-    />
+      <FeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+      />
     </>
   );
 }

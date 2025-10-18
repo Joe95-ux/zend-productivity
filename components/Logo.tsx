@@ -9,11 +9,11 @@ export default function Logo({fontSize= "2xl", iconSize=18}:{fontSize?: string, 
   <Link href="/">
     <div className={cn("text-lg font-extrabold flex items-center gap-2", fontSize)}>
       
-      <div className="rounded bg-gradient-to-r from-blue-500 to-blue-600 p-2">
+      <div className="rounded bg-gradient-to-r from-[#066f72] to-[#0d9488] p-2">
         <Kanban size={iconSize} className="stroke-white" />
       </div>
       <div>
-        <span className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
+        <span className="bg-gradient-to-r from-[#066f72] to-[#0d9488] bg-clip-text text-transparent">
           Zendllo
         </span>
       </div>

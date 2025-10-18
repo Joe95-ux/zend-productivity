@@ -15,11 +15,31 @@ import {
 export function ThemeSwitcherBtn() {
   const { setTheme, theme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  const [isBlueTheme, setIsBlueTheme] = React.useState(false);
 
   // Avoid hydration mismatch by only rendering after mount
   React.useEffect(() => {
     setMounted(true);
+    // Check if blue theme is enabled (teal is default)
+    const savedTheme = localStorage.getItem("color-theme");
+    if (savedTheme === "blue") {
+      setIsBlueTheme(true);
+      document.body.setAttribute("data-theme", "blue");
+    }
   }, []);
+
+  const toggleBlueTheme = () => {
+    const newBlueTheme = !isBlueTheme;
+    setIsBlueTheme(newBlueTheme);
+    
+    if (newBlueTheme) {
+      document.body.setAttribute("data-theme", "blue");
+      localStorage.setItem("color-theme", "blue");
+    } else {
+      document.body.removeAttribute("data-theme");
+      localStorage.setItem("color-theme", "teal");
+    }
+  };
 
   if (!mounted) {
     return (
@@ -48,6 +68,9 @@ export function ThemeSwitcherBtn() {
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("system")}>
           System
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={toggleBlueTheme}>
+          {isBlueTheme ? "Teal Theme" : "Blue Theme"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

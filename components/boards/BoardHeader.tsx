@@ -164,7 +164,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       setIsEditingTitle(false);
                     }
                   }}
-                  className="h-8 text-[17px] font-bold bg-transparent border-none p-0 text-slate-900 dark:text-white focus:bg-slate-100 dark:focus:bg-slate-700 focus:border-blue-400 transition-all duration-300 ease-out"
+                  className="h-8 text-[17px] font-medium bg-transparent border-none px-2 py-1 rounded-md w-fit border-1 text-slate-900 dark:text-white focus:bg-slate-100 dark:focus:bg-slate-700
+                  dark:focus:border-slate-200 focus:border-blue-400 transition-all duration-300 ease-out"
                   autoFocus
                 />
               ) : (
