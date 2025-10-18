@@ -4,15 +4,24 @@ import { db } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { cardId, targetBoardId, targetListId, position, afterCardId } = body;
+    // Get the user from database to get the internal ID
+    const user = await db.user.findUnique({
+      where: { clerkId: clerkUserId },
+    });
 
-    if (!cardId || !targetBoardId || !targetListId || !position) {
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const { cardId, targetBoardId, targetListId, position, newTitle } = body;
+
+    if (!cardId || !targetBoardId || !targetListId || position === undefined) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -60,41 +69,21 @@ export async function POST(request: NextRequest) {
       orderBy: { position: "asc" },
     });
 
-    let newPosition = 0;
-
-    if (position === "top") {
-      newPosition = 0;
-      // Update positions of existing cards
-      await db.card.updateMany({
-        where: { listId: targetListId },
-        data: { position: { increment: 1 } },
-      });
-    } else if (position === "bottom") {
-      newPosition = targetListCards.length;
-    } else if (position === "after" && afterCardId) {
-      const afterCard = await db.card.findUnique({
-        where: { id: afterCardId },
-      });
-      if (!afterCard) {
-        return NextResponse.json({ error: "After card not found" }, { status: 404 });
-      }
-      newPosition = afterCard.position + 1;
-      // Update positions of cards after this position
-      await db.card.updateMany({
-        where: {
-          listId: targetListId,
-          position: { gt: afterCard.position },
-        },
-        data: { position: { increment: 1 } },
-      });
-    }
+    // Update positions of cards at or after the target position
+    await db.card.updateMany({
+      where: {
+        listId: targetListId,
+        position: { gte: position },
+      },
+      data: { position: { increment: 1 } },
+    });
 
     // Create the copied card
     const copiedCard = await db.card.create({
       data: {
-        title: `${originalCard.title} (Copy)`,
+        title: newTitle || `${originalCard.title} (Copy)`,
         description: originalCard.description,
-        position: newPosition,
+        position: position,
         isCompleted: false, // Reset completion status
         listId: targetListId,
         dueDate: originalCard.dueDate,
@@ -123,8 +112,9 @@ export async function POST(request: NextRequest) {
     try {
       await db.activity.create({
         data: {
+          type: "copied_card",
           message: `copied card "${originalCard.title}" to ${targetList.title}`,
-          userId,
+          userId: user.id,
           boardId: targetBoardId,
           cardId: copiedCard.id,
         },

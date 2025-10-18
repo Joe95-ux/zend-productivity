@@ -18,15 +18,28 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
   const moveCardMutation = useMutation({
     mutationFn: async ({ cardId, destinationListId, destinationIndex }: MoveCardParams) => {
+      const requestBody: any = { 
+        position: destinationIndex 
+      };
+      
+      // Only add listId if it's different from current list
+      if (destinationListId) {
+        requestBody.listId = destinationListId;
+      }
+      
+      console.log('Sending card move request:', {
+        cardId,
+        destinationListId,
+        destinationIndex,
+        requestBody
+      });
+      
       const response = await fetch(`/api/cards/${cardId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          listId: destinationListId, 
-          position: destinationIndex 
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -50,12 +63,20 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
   const moveListMutation = useMutation({
     mutationFn: async ({ listId, position }: MoveListParams) => {
+      const requestBody = { position };
+      
+      console.log('Sending list move request:', {
+        listId,
+        position,
+        requestBody
+      });
+      
       const response = await fetch(`/api/lists/${listId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ position }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -79,18 +100,8 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId, type } = result;
 
-    console.log('Drag end triggered:', {
-      destination,
-      source,
-      draggableId,
-      type,
-      sourceDroppableId: source.droppableId,
-      destinationDroppableId: destination.droppableId
-    });
-
     // If there's no destination, do nothing
     if (!destination) {
-      console.log('No destination, returning');
       return;
     }
 
@@ -99,7 +110,6 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     ) {
-      console.log('Same position, returning');
       return;
     }
 
@@ -108,20 +118,8 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     if (!boardData) return;
 
     if (type === "list") {
-      console.log('List reordering logic triggered');
-      
       // Handle list reordering using utility function
       const updatedLists = reorderLists(boardData.lists, source.index, destination.index);
-
-      console.log('List reorder:', {
-        sourceIndex: source.index,
-        destinationIndex: destination.index,
-        listId: draggableId,
-        originalListsCount: boardData.lists.length,
-        updatedListsCount: updatedLists.length,
-        originalLists: boardData.lists.map(l => ({ id: l.id, title: l.title, position: l.position })),
-        updatedLists: updatedLists.map(l => ({ id: l.id, title: l.title, position: l.position }))
-      });
 
       // Optimistic update
       queryClient.setQueryData<Board>(["board", boardId], (oldData) => {
@@ -131,18 +129,12 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
           lists: updatedLists
         };
       });
-
-      console.log('Calling moveListMutation with:', {
-        listId: draggableId,
-        position: destination.index,
-      });
       
       moveListMutation.mutate({
         listId: draggableId,
-        position: destination.index,
+        position: destination.index + 1, // Convert to 1-based indexing
       });
     } else {
-      console.log('Not a list drag, type is:', type);
       // Handle card reordering
       const sourceList = boardData.lists.find((list) => list.id === source.droppableId);
       const destinationList = boardData.lists.find((list) => list.id === destination.droppableId);
@@ -154,19 +146,12 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         // Same list reordering - use simple array reorder
         const updatedCards = reorderArray(sourceList.cards, source.index, destination.index);
         
-        // Update positions
+        // Update positions (1-based indexing)
         const finalCards = updatedCards.map((card, index) => ({
           ...card,
-          position: index
+          position: index + 1
         }));
 
-        console.log('Same list reorder:', {
-          sourceIndex: source.index,
-          destinationIndex: destination.index,
-          originalCards: sourceList.cards.length,
-          finalCardsCount: finalCards.length,
-          finalCards: finalCards.map(c => ({ id: c.id, title: c.title, position: c.position }))
-        });
 
         // Optimistic update for same list
         queryClient.setQueryData<Board>(["board", boardId], (oldData) => {
@@ -213,10 +198,11 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         });
       }
 
+
       moveCardMutation.mutate({
         cardId: draggableId,
         destinationListId: destination.droppableId,
-        destinationIndex: destination.index,
+        destinationIndex: destination.index + 1, // Convert to 1-based indexing
       });
     }
   };

@@ -20,10 +20,11 @@ type CreateCardFormData = z.infer<typeof createCardSchema>;
 
 interface CreateCardFormProps {
   listId: string;
+  boardId: string;
   onSuccess?: () => void;
 }
 
-export function CreateCardForm({ listId, onSuccess }: CreateCardFormProps) {
+export function CreateCardForm({ listId, boardId, onSuccess }: CreateCardFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
@@ -56,7 +57,7 @@ export function CreateCardForm({ listId, onSuccess }: CreateCardFormProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Card created successfully!");
       form.reset();
       onSuccess?.();

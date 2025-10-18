@@ -14,10 +14,28 @@ export async function PUT(
     }
 
     const { cardId } = await params;
-    console.log(`PUT /api/cards/${cardId} - User: ${user.id}, Request started`);
+    const startTime = Date.now();
+    console.log(`PUT /api/cards/${cardId} - User: ${user.id}, Request started at ${new Date().toISOString()}`);
     
-    const body = await request.json();
+    // Safely parse JSON with error handling
+    let body;
+    try {
+      const text = await request.text();
+      if (!text || text.trim() === '') {
+        console.log(`PUT /api/cards/${cardId} - Empty request body`);
+        return NextResponse.json({ error: "Request body is required" }, { status: 400 });
+      }
+      body = JSON.parse(text);
+    } catch (error) {
+      console.error(`PUT /api/cards/${cardId} - JSON parse error:`, error);
+      return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+    }
+
     const { title, description, position, listId, isCompleted } = body;
+    
+    console.log(`PUT /api/cards/${cardId} - Received data:`, {
+      title, description, position, listId, isCompleted
+    });
 
     // Check if user has access to the card
     const card = await db.card.findFirst({
@@ -59,12 +77,21 @@ export async function PUT(
     }
 
     const updateData: any = {};
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (position !== undefined) updateData.position = position;
-    if (listId !== undefined) updateData.listId = listId;
-    if (isCompleted !== undefined) updateData.isCompleted = isCompleted;
+    if (title !== undefined && title !== null) updateData.title = title;
+    if (description !== undefined && description !== null) updateData.description = description;
+    if (position !== undefined && position !== null) updateData.position = position;
+    if (listId !== undefined && listId !== null) updateData.listId = listId;
+    if (isCompleted !== undefined && isCompleted !== null) updateData.isCompleted = isCompleted;
+    
+    // If no valid data to update, return early
+    if (Object.keys(updateData).length === 0) {
+      console.log(`PUT /api/cards/${cardId} - No valid data to update, returning current card`);
+      return NextResponse.json(card);
+    }
 
+    const dbUpdateStart = Date.now();
+    console.log(`PUT /api/cards/${cardId} - Starting database update at ${new Date().toISOString()}`);
+    
     const updatedCard = await db.card.update({
       where: { id: cardId },
       data: updateData,
@@ -77,6 +104,9 @@ export async function PUT(
         }
       }
     });
+    
+    const dbUpdateEnd = Date.now();
+    console.log(`PUT /api/cards/${cardId} - Database update completed in ${dbUpdateEnd - dbUpdateStart}ms`);
 
     // Create activity log with specific details
     let activityMessage = `Updated card "${updatedCard.title}"`;
@@ -120,6 +150,9 @@ export async function PUT(
       // Don't fail the card update if activity creation fails
     }
 
+    const totalTime = Date.now() - startTime;
+    console.log(`PUT /api/cards/${cardId} - Request completed in ${totalTime}ms at ${new Date().toISOString()}`);
+    
     return NextResponse.json(updatedCard);
   } catch (error) {
     console.error("Error updating card:", error);

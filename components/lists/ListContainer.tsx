@@ -15,6 +15,7 @@ import {
 import { CreateCardForm } from "@/components/cards/CreateCardForm";
 import { CardItem } from "@/components/cards/CardItem";
 import { CopyListModal } from "./CopyListModal";
+import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
 import { toast } from "sonner";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ interface ListContainerProps {
 function SortableListContainer({ list, boardId, index }: ListContainerProps) {
   const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
   const queryClient = useQueryClient();
@@ -51,7 +53,7 @@ function SortableListContainer({ list, boardId, index }: ListContainerProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -72,7 +74,7 @@ function SortableListContainer({ list, boardId, index }: ListContainerProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("List deleted successfully!");
     },
     onError: (error: Error) => {
@@ -88,9 +90,12 @@ function SortableListContainer({ list, boardId, index }: ListContainerProps) {
   };
 
   const handleDelete = () => {
-    if (confirm("Are you sure you want to delete this list? This action cannot be undone.")) {
-      deleteListMutation.mutate();
-    }
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    deleteListMutation.mutate();
+    setIsDeleteModalOpen(false);
   };
 
 
@@ -176,7 +181,7 @@ function SortableListContainer({ list, boardId, index }: ListContainerProps) {
           </div>
         </CardHeader>
         
-         <CardContent className="space-y-2 p-3 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
+         <CardContent className="p-3 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
            <Droppable droppableId={list.id} type="card">
              {(provided, snapshot) => (
                <div
@@ -205,10 +210,11 @@ function SortableListContainer({ list, boardId, index }: ListContainerProps) {
          {/* Fixed Card Footer */}
          <div className="flex items-center m-1 px-3 py-4 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-all duration-200">
            {isCreateCardOpen ? (
-             <CreateCardForm 
-               listId={list.id} 
-               onSuccess={() => setIsCreateCardOpen(false)} 
-             />
+            <CreateCardForm 
+              listId={list.id} 
+              boardId={boardId}
+              onSuccess={() => setIsCreateCardOpen(false)}
+            />
            ) : (
              <Button
                variant="ghost"
@@ -230,6 +236,17 @@ function SortableListContainer({ list, boardId, index }: ListContainerProps) {
       onClose={() => setIsCopyModalOpen(false)}
       list={list}
       currentBoardId={boardId}
+    />
+
+    <DeleteConfirmationModal
+      isOpen={isDeleteModalOpen}
+      onClose={() => setIsDeleteModalOpen(false)}
+      onConfirm={confirmDelete}
+      title="Delete List"
+      description={`Are you sure you want to delete "${list.title}"?`}
+      itemName={list.title}
+      isLoading={deleteListMutation.isPending}
+      variant="list"
     />
     </>
   );

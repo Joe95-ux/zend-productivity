@@ -4,9 +4,18 @@ import { db } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get the user from database to get the internal ID
+    const user = await db.user.findUnique({
+      where: { clerkId: clerkUserId },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -131,8 +140,9 @@ export async function POST(request: NextRequest) {
     try {
       await db.activity.create({
         data: {
+          type: "copied_list",
           message: `copied list "${originalList.title}" with ${originalList.cards.length} cards`,
-          userId,
+          userId: user.id,
           boardId: targetBoardId,
         },
       });

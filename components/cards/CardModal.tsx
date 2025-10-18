@@ -133,7 +133,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Card updated successfully!");
     },
     onError: (error: Error) => {
@@ -165,7 +165,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       queryClient.invalidateQueries({ queryKey: ["comments"] });
       commentForm.reset();
       setIsCommentFormExpanded(false);
@@ -194,7 +194,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       setEditingCommentId(null);
       setEditingCommentContent("");
       toast.success("Comment updated successfully!");
@@ -218,7 +218,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Comment deleted successfully!");
     },
     onError: (error: Error) => {
@@ -384,7 +384,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   <TabsTrigger value="details" className="text-sm">Details</TabsTrigger>
                   <TabsTrigger value="activity" className="text-sm">Activity</TabsTrigger>
                 </TabsList>
-                <TabsContent value="details" className="p-4 space-y-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+                <TabsContent value="details" className="p-4 space-y-6 max-h-[calc(90vh-200px)]">
                   {/* Card Title with Check Radio */}
                   <div className="flex items-start gap-3">
                     <div 
@@ -537,7 +537,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
               )}
                 </TabsContent>
                 
-                <TabsContent value="activity" className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-200px)]">
+                <TabsContent value="activity" className="p-4 space-y-4 max-h-[calc(90vh-200px)]">
                   {/* Comments Header */}
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">

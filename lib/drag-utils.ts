@@ -31,15 +31,15 @@ export function reorderCards(
     listId: destinationListId
   });
 
-  // Update positions
+  // Update positions (1-based indexing)
   const finalSourceCards = updatedSourceCards.map((card, index) => ({
     ...card,
-    position: index
+    position: index + 1
   }));
 
   const finalDestinationCards = updatedDestinationCards.map((card, index) => ({
     ...card,
-    position: index
+    position: index + 1
   }));
 
   return {
@@ -54,9 +54,9 @@ export function reorderCards(
 export function reorderLists(lists: List[], fromIndex: number, toIndex: number): List[] {
   const reorderedLists = reorderArray(lists, fromIndex, toIndex);
   
-  // Update positions
+  // Update positions (1-based indexing)
   return reorderedLists.map((list, index) => ({
     ...list,
-    position: index
+    position: index + 1
   }));
 }

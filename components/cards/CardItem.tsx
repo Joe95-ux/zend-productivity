@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Edit, Trash2, Check, Copy, MoreHorizontal } from "lucide-react";
 import { CardModal } from "./CardModal";
 import { CopyCardModal } from "./CopyCardModal";
+import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,8 @@ interface CardItemProps {
 export function CardItem({ card, list, boardId, index }: CardItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
   const queryClient = useQueryClient();
@@ -52,7 +55,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
     },
     onError: (error: Error) => {
       console.error("Error updating card:", error);
@@ -76,7 +79,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Card deleted successfully!");
     },
     onError: (error: Error) => {
@@ -100,10 +103,12 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (deleteCardMutation.isPending) return; // Prevent multiple clicks during deletion
-    
-    if (confirm("Are you sure you want to delete this card?")) {
-      deleteCardMutation.mutate();
-    }
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    deleteCardMutation.mutate();
+    setIsDeleteModalOpen(false);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -130,13 +135,37 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               updateCardMutation.isPending && "opacity-75 pointer-events-none"
             )}
             onClick={(e) => {
+              // Don't open modal if dropdown is open or clicking on action buttons
+              if (isDropdownOpen) {
+                return;
+              }
+              
+              const target = e.target as HTMLElement;
+              if (target.closest('[data-dropdown-trigger]') || 
+                  target.closest('[data-dropdown-content]') || 
+                  target.closest('[data-action-button]') ||
+                  target.closest('button')) {
+                return;
+              }
+              
               e.stopPropagation();
               if (!updateCardMutation.isPending && !snapshot.isDragging) {
                 setIsModalOpen(true);
               }
             }}
             onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseLeave={() => {
+              // Only delay hover state change if dropdown is open
+              if (isDropdownOpen) {
+                setTimeout(() => {
+                  if (!isDropdownOpen) {
+                    setIsHovered(false);
+                  }
+                }, 150);
+              } else {
+                setIsHovered(false);
+              }
+            }}
           >
         <CardContent className="p-0 relative">
           <div className="flex items-center h-12 px-3 relative overflow-hidden">
@@ -144,7 +173,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
             {/* Radio Button - Always present, hidden behind title by default */}
             <div 
               className={cn(
-                "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-300 ease-out absolute left-3 z-10",
+                "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-200 ease-out absolute left-3 z-10",
                 updateCardMutation.isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:scale-105",
                 // Always visible but opacity changes based on state
                 (isCompleted || isHovered) 
@@ -169,7 +198,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
 
             {/* Card Title - Slides right on hover to reveal radio icon underneath */}
             <h4 className={cn(
-              "font-medium text-sm text-slate-900 dark:text-white transition-all duration-300 ease-out relative z-20",
+              "font-medium text-sm text-slate-900 dark:text-white transition-all duration-200 ease-out relative z-20",
               isCompleted && "line-through text-slate-500 dark:text-slate-400",
               // Slide right on hover to reveal radio icon underneath
               (isCompleted || isHovered) 
@@ -185,10 +214,11 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               {isHovered && (
                 <div className="hidden lg:block">
                   <button
+                    data-action-button
                     onClick={handleEdit}
                     disabled={updateCardMutation.isPending}
                     className={cn(
-                      "w-6 h-6 flex items-center justify-center rounded transition-all duration-300 ease-out",
+                      "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out",
                       updateCardMutation.isPending 
                         ? "cursor-not-allowed opacity-50" 
                         : "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
@@ -205,12 +235,20 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
 
               {/* More Options Dropdown - Show on hover */}
               {isHovered && (
-                <DropdownMenu>
+                <DropdownMenu onOpenChange={(open) => {
+                  setIsDropdownOpen(open);
+                  if (!open) {
+                    // Close hover state when dropdown closes, with shorter delay
+                    setTimeout(() => setIsHovered(false), 100);
+                  }
+                }}>
                   <DropdownMenuTrigger asChild>
                     <button
+                      data-dropdown-trigger
+                      onClick={(e) => e.stopPropagation()}
                       disabled={updateCardMutation.isPending}
                       className={cn(
-                        "w-6 h-6 flex items-center justify-center rounded transition-all duration-300 ease-out",
+                        "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out",
                         updateCardMutation.isPending 
                           ? "cursor-not-allowed opacity-50" 
                           : "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
@@ -219,14 +257,20 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                       <MoreHorizontal className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => setIsCopyModalOpen(true)}>
+                  <DropdownMenuContent align="end" className="w-48" data-dropdown-content>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCopyModalOpen(true);
+                    }}>
                       <Copy className="h-4 w-4 mr-2" />
                       Copy Card
                     </DropdownMenuItem>
                     {isCompleted && (
                       <DropdownMenuItem 
-                        onClick={handleDelete}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(e);
+                        }}
                         className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
@@ -257,6 +301,17 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
         card={card}
         currentBoardId={boardId}
         currentListId={list.id}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Card"
+        description={`Are you sure you want to delete "${card.title}"?`}
+        itemName={card.title}
+        isLoading={deleteCardMutation.isPending}
+        variant="card"
       />
     </>
   );

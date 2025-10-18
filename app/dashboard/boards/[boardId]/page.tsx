@@ -78,32 +78,33 @@ export default function BoardPage() {
       <div className="w-full min-h-screen">
         {board?.lists && board.lists.length > 0 ? (
           <DndProvider boardId={boardId}>
-            <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-8">
-              <Droppable droppableId="board" type="list" direction="horizontal">
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="flex gap-2 min-[320px]:gap-3 sm:gap-4"
+            <div className="pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-4">
+              <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto">
+                <Droppable droppableId="board" type="list" direction="horizontal">
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="flex gap-2 min-[320px]:gap-3 sm:gap-4"
+                    >
+                      {board.lists.map((list, index) => (
+                        <ListContainer key={list.id} list={list} boardId={boardId} index={index} />
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+                {/* Add List Button - Outside Droppable */}
+                <div className="flex-shrink-0 w-72">
+                  <Button
+                    onClick={() => setIsCreateListOpen(true)}
+                    variant="outline"
+                    className="w-full h-12 border-dashed border-2 hover:border-solid cursor-pointer transition-all duration-300 ease-out hover:scale-[1.02]"
                   >
-                    {board.lists.map((list, index) => (
-                      <ListContainer key={list.id} list={list} boardId={boardId} index={index} />
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-              
-              {/* Add List Button - Outside Droppable */}
-              <div className="flex-shrink-0 w-72">
-                <Button
-                  onClick={() => setIsCreateListOpen(true)}
-                  variant="outline"
-                  className="w-full h-12 border-dashed border-2 hover:border-solid cursor-pointer transition-all duration-300 ease-out hover:scale-[1.02]"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add another list
-                </Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add another list
+                  </Button>
+                </div>
               </div>
             </div>
           </DndProvider>
