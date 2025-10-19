@@ -7,13 +7,59 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateListForm } from "@/components/lists/CreateListForm";
 import { ListContainer } from "@/components/lists/ListContainer";
-import { DndProvider } from "@/components/dnd/DndProvider";
+import { DndProvider, useDndContext } from "@/components/dnd/DndProvider";
 import { Droppable } from "@hello-pangea/dnd";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import Link from "next/link";
 import { Board } from "@/lib/types";
 
+function BoardContent({ boardId, onAddList }: { boardId: string; onAddList: () => void }) {
+  const { orderedData } = useDndContext();
+  
+  if (!orderedData) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Loading...</h2>
+          <p className="text-muted-foreground">Loading board data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-4">
+      <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto">
+        <Droppable droppableId="board" type="list" direction="horizontal">
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="flex gap-2 min-[320px]:gap-3 sm:gap-4"
+            >
+              {orderedData.lists.map((list, index) => (
+                <ListContainer key={list.id} list={list} boardId={boardId} index={index} />
+              ))}
+              {provided.placeholder}
+              {/* Add List Button - Inside Droppable but not draggable */}
+              <div className="flex-shrink-0 w-72">
+                <Button
+                  onClick={onAddList}
+                  variant="outline"
+                  className="w-full h-12 border-dashed border-2 hover:border-solid cursor-pointer transition-all duration-300 ease-out hover:scale-[1.02]"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add another list
+                </Button>
+              </div>
+            </div>
+          )}
+        </Droppable>
+      </div>
+    </div>
+  );
+}
 
 export default function BoardPage() {
   const params = useParams();
@@ -78,35 +124,7 @@ export default function BoardPage() {
       <div className="w-full min-h-screen">
         {board?.lists && board.lists.length > 0 ? (
           <DndProvider boardId={boardId}>
-            <div className="pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-4">
-              <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto">
-                <Droppable droppableId="board" type="list" direction="horizontal">
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className="flex gap-2 min-[320px]:gap-3 sm:gap-4"
-                    >
-                      {board.lists.map((list, index) => (
-                        <ListContainer key={list.id} list={list} boardId={boardId} index={index} />
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-                {/* Add List Button - Outside Droppable */}
-                <div className="flex-shrink-0 w-72">
-                  <Button
-                    onClick={() => setIsCreateListOpen(true)}
-                    variant="outline"
-                    className="w-full h-12 border-dashed border-2 hover:border-solid cursor-pointer transition-all duration-300 ease-out hover:scale-[1.02]"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add another list
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <BoardContent boardId={boardId} onAddList={() => setIsCreateListOpen(true)} />
           </DndProvider>
         ) : (
           <div className="text-center py-12">

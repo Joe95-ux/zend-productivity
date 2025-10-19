@@ -1,235 +1,176 @@
 "use client";
 
-import { DragDropContext, DropResult, DragStart } from "@hello-pangea/dnd";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, createContext, useContext } from "react";
+import { DragDropContext, DropResult } from "@hello-pangea/dnd";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ReactNode, useState } from "react";
-import { Board, MoveCardParams, MoveListParams } from "@/lib/types";
-import { reorderLists, reorderCards, reorderArray } from "@/lib/drag-utils";
+import { Board } from "@/lib/types";
 
 interface DndProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
   boardId: string;
+}
+
+interface DndContextType {
+  orderedData: Board | null;
+}
+
+const DndContext = createContext<DndContextType | undefined>(undefined);
+
+export const useDndContext = () => {
+  const context = useContext(DndContext);
+  if (!context) {
+    throw new Error("useDndContext must be used within a DndProvider");
+  }
+  return context;
+};
+
+// Simple reorder function
+function reorder<T>(list: T[], startIndex: number, endIndex: number) {
+  const result = Array.from(list);
+  const [removed] = result.splice(startIndex, 1);
+  result.splice(endIndex, 0, removed);
+  return result;
 }
 
 export function DndProvider({ children, boardId }: DndProviderProps) {
   const queryClient = useQueryClient();
-  const [_draggedItem, setDraggedItem] = useState<{ id: string; type: string; title?: string } | null>(null);
+  const [orderedData, setOrderedData] = useState<Board | null>(null);
 
-  const moveCardMutation = useMutation({
-    mutationFn: async ({ cardId, destinationListId, destinationIndex }: MoveCardParams) => {
-      const requestBody: any = { 
-        position: destinationIndex 
-      };
-      
-      // Only add listId if it's different from current list
-      if (destinationListId) {
-        requestBody.listId = destinationListId;
-      }
-      
-      console.log('Sending card move request:', {
-        cardId,
-        destinationListId,
-        destinationIndex,
-        requestBody
+  const updateListOrderMutation = useMutation({
+    mutationFn: async ({ items, boardId }: { items: { id: string; position: number }[], boardId: string }) => {
+      const response = await fetch("/api/lists/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, boardId }),
       });
-      
-      const response = await fetch(`/api/cards/${cardId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to move card");
-      }
-
+      if (!response.ok) throw new Error("Failed to reorder lists");
       return response.json();
     },
     onSuccess: () => {
-      console.log('Card move API call succeeded');
-      toast.success("Card moved successfully!");
+      toast.success("List reordered");
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
     },
-    onError: (error: Error) => {
-      console.error('Card move API call failed:', error.message);
-      toast.error(error.message);
-      // Revert optimistic update on error
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
-    },
+    onError: (error) => toast.error(error.message),
   });
 
-  const moveListMutation = useMutation({
-    mutationFn: async ({ listId, position }: MoveListParams) => {
-      const requestBody = { position };
-      
-      console.log('Sending list move request:', {
-        listId,
-        position,
-        requestBody
+  const updateCardOrderMutation = useMutation({
+    mutationFn: async ({ items, boardId }: { items: { id: string; position: number; listId: string }[], boardId: string }) => {
+      const response = await fetch("/api/cards/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, boardId }),
       });
-      
-      const response = await fetch(`/api/lists/${listId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to move list");
-      }
-
+      if (!response.ok) throw new Error("Failed to reorder cards");
       return response.json();
     },
     onSuccess: () => {
-      console.log('List move API call succeeded');
-      toast.success("List moved successfully!");
+      toast.success("Card reordered");
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
     },
-    onError: (error: Error) => {
-      console.error('List move API call failed:', error.message);
-      toast.error(error.message);
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
-    },
+    onError: (error) => toast.error(error.message),
   });
 
-  const handleDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId, type } = result;
+  // Use useQuery to ensure reactive updates
+  const { data: boardData } = useQuery<Board>({
+    queryKey: ["board", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/boards/${boardId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch board");
+      }
+      return response.json();
+    },
+    enabled: !!boardId,
+  });
 
-    // If there's no destination, do nothing
-    if (!destination) {
+  // Update ordered data when board data changes
+  useEffect(() => {
+    if (boardData) {
+      setOrderedData(boardData);
+    }
+  }, [boardData]);
+
+  const onDragEnd = (result: DropResult) => {
+    const { destination, source, type } = result;
+
+    if (!destination) return;
+
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
       return;
     }
 
-    // If the item is dropped in the same position, do nothing
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
-      return;
-    }
+    if (!orderedData) return;
 
-    // Get current board data
-    const boardData = queryClient.getQueryData<Board>(["board", boardId]);
-    if (!boardData) return;
-
+    // User moves a list
     if (type === "list") {
-      // Handle list reordering using utility function
-      const updatedLists = reorderLists(boardData.lists, source.index, destination.index);
+      const items = reorder(orderedData.lists, source.index, destination.index)
+        .map((item, index) => ({ ...item, position: index }));
 
-      // Optimistic update
-      queryClient.setQueryData<Board>(["board", boardId], (oldData) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          lists: updatedLists
-        };
-      });
-      
-      moveListMutation.mutate({
-        listId: draggableId,
-        position: destination.index + 1, // Convert to 1-based indexing
-      });
-    } else {
-      // Handle card reordering
-      const sourceList = boardData.lists.find((list) => list.id === source.droppableId);
-      const destinationList = boardData.lists.find((list) => list.id === destination.droppableId);
+      setOrderedData({ ...orderedData, lists: items });
+      updateListOrderMutation.mutate({ items, boardId });
+    }
 
-      if (!sourceList || !destinationList) return;
+    // User moves a card
+    if (type === "card") {
+      const newOrderedData = { ...orderedData };
 
-      // Check if moving within the same list
+      const sourceList = newOrderedData.lists.find(list => list.id === source.droppableId);
+      const destList = newOrderedData.lists.find(list => list.id === destination.droppableId);
+
+      if (!sourceList || !destList) return;
+
+      // Moving the card in the same list
       if (source.droppableId === destination.droppableId) {
-        // Same list reordering - use simple array reorder
-        const updatedCards = reorderArray(sourceList.cards, source.index, destination.index);
-        
-        // Update positions (1-based indexing)
-        const finalCards = updatedCards.map((card, index) => ({
-          ...card,
-          position: index + 1
-        }));
+        const reorderedCards = reorder(sourceList.cards, source.index, destination.index);
+        reorderedCards.forEach((card, idx) => {
+          card.position = idx;
+        });
+        sourceList.cards = reorderedCards;
 
-
-        // Optimistic update for same list
-        queryClient.setQueryData<Board>(["board", boardId], (oldData) => {
-        if (!oldData) return oldData;
-          return {
-            ...oldData,
-            lists: oldData.lists.map((list) => {
-              if (list.id === source.droppableId) {
-                return { ...list, cards: finalCards };
-              }
-              return list;
-            })
-          };
+        setOrderedData(newOrderedData);
+        updateCardOrderMutation.mutate({ 
+          boardId, 
+          items: reorderedCards.map(card => ({ 
+            id: card.id, 
+            position: card.position, 
+            listId: card.listId || source.droppableId 
+          })) 
         });
       } else {
-        // Different lists - use the existing logic
-        const sourceCards = Array.from(sourceList.cards);
-        const destinationCards = Array.from(destinationList.cards);
+        // Remove card from the source list
+        const [movedCard] = sourceList.cards.splice(source.index, 1);
+        movedCard.listId = destination.droppableId;
 
-        // Use utility function for card reordering
-        const { updatedSourceCards, updatedDestinationCards } = reorderCards(
-          sourceCards,
-          destinationCards,
-          source.index,
-          destination.index,
-          destination.droppableId
-        );
+        // Add card to the destination list
+        destList.cards.splice(destination.index, 0, movedCard);
 
-        // Optimistic update for different lists
-        queryClient.setQueryData<Board>(["board", boardId], (oldData) => {
-          if (!oldData) return oldData;
-            return {
-            ...oldData,
-            lists: oldData.lists.map((list) => {
-              if (list.id === source.droppableId) {
-                return { ...list, cards: updatedSourceCards };
-              }
-              if (list.id === destination.droppableId) {
-                return { ...list, cards: updatedDestinationCards };
-          }
-          return list;
-            })
-          };
+        sourceList.cards.forEach((card, idx) => {
+          card.position = idx;
         });
-      }
 
+        destList.cards.forEach((card, idx) => {
+          card.position = idx;
+        });
 
-      moveCardMutation.mutate({
-        cardId: draggableId,
-        destinationListId: destination.droppableId,
-        destinationIndex: destination.index + 1, // Convert to 1-based indexing
-      });
-    }
-  };
-
-  const handleDragStart = (start: DragStart) => {
-    const { draggableId, type } = start;
-    
-    // Get the board data to find the item being dragged
-    const boardData = queryClient.getQueryData<Board>(["board", boardId]);
-    if (!boardData) return;
-
-    if (type === "list") {
-      const list = boardData.lists.find(l => l.id === draggableId);
-      if (list) {
-        setDraggedItem({ id: draggableId, type, title: list.title });
-      }
-    } else {
-      const card = boardData.lists.flatMap(l => l.cards).find(c => c.id === draggableId);
-      if (card) {
-        setDraggedItem({ id: draggableId, type, title: card.title });
+        setOrderedData(newOrderedData);
+        updateCardOrderMutation.mutate({ 
+          boardId, 
+          items: destList.cards.map(card => ({ 
+            id: card.id, 
+            position: card.position, 
+            listId: card.listId || destination.droppableId 
+          })) 
+        });
       }
     }
   };
 
   return (
-    <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext.Provider value={{ orderedData }}>
+      <DragDropContext onDragEnd={onDragEnd}>
         {children}
-    </DragDropContext>
+      </DragDropContext>
+    </DndContext.Provider>
   );
 }

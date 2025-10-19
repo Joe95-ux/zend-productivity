@@ -20,6 +20,8 @@ import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Mega
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { HoverHint } from "@/components/HoverHint";
+import { ShootingStars } from "@/components/ui/ShootingStars";
+import { motion } from "framer-motion";
 
 const updateCardSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -81,6 +83,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [activeTab, setActiveTab] = useState("details");
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
+  const [showShootingStars, setShowShootingStars] = useState(false);
   const queryClient = useQueryClient();
 
   // Sync local state when card prop changes
@@ -133,12 +136,77 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      // Just refetch to ensure server sync (cache already updated)
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
       toast.success("Card updated successfully!");
     },
     onError: (error: Error) => {
       // Revert the local state change on error
       setIsCompleted(card.isCompleted);
+      
+      // Revert the query cache to the original state
+      queryClient.setQueryData(["board", boardId], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return {
+          ...oldData,
+          lists: oldData.lists.map((list: any) => ({
+            ...list,
+            cards: list.cards.map((c: any) => 
+              c.id === card.id 
+                ? { ...c, isCompleted: card.isCompleted }
+                : c
+            )
+          }))
+        };
+      });
+      
+      toast.error(error.message);
+    },
+  });
+
+  const updateCardContentMutation = useMutation({
+    mutationFn: async (data: UpdateCardFormData) => {
+      const response = await fetch(`/api/cards/${card.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update card");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      // Update the query cache immediately with the new data
+      queryClient.setQueryData(["board", boardId], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return {
+          ...oldData,
+          lists: oldData.lists.map((list: any) => ({
+            ...list,
+            cards: list.cards.map((c: any) => 
+              c.id === card.id 
+                ? { ...c, title: variables.title, description: variables.description }
+                : c
+            )
+          }))
+        };
+      });
+      
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      toast.success("Card updated successfully!");
+      // Close the editing forms after successful update
+      setIsEditingTitle(false);
+      setIsEditingDescription(false);
+    },
+    onError: (error: Error) => {
       toast.error(error.message);
     },
   });
@@ -165,7 +233,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
       queryClient.invalidateQueries({ queryKey: ["comments"] });
       commentForm.reset();
       setIsCommentFormExpanded(false);
@@ -194,7 +262,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
       setEditingCommentId(null);
       setEditingCommentContent("");
       toast.success("Comment updated successfully!");
@@ -218,7 +286,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
       toast.success("Comment deleted successfully!");
     },
     onError: (error: Error) => {
@@ -265,18 +333,42 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   };
 
   const handleTitleSave = (data: UpdateCardFormData) => {
-    updateCardMutation.mutate(data);
-    setIsEditingTitle(false);
+    updateCardContentMutation.mutate(data);
   };
 
   const handleDescriptionSave = (data: UpdateCardFormData) => {
-    updateCardMutation.mutate(data);
-    setIsEditingDescription(false);
+    updateCardContentMutation.mutate(data);
   };
 
   const handleToggleComplete = () => {
     const newCompletedState = !isCompleted;
+    
+    // Trigger shooting stars animation when completing a card
+    if (newCompletedState && !isCompleted) {
+      setShowShootingStars(true);
+    }
+    
+    // Update local state immediately for instant visual feedback
     setIsCompleted(newCompletedState);
+    
+    // Update the query cache immediately for instant UI updates
+    queryClient.setQueryData(["board", boardId], (oldData: any) => {
+      if (!oldData) return oldData;
+      
+      return {
+        ...oldData,
+        lists: oldData.lists.map((list: any) => ({
+          ...list,
+          cards: list.cards.map((c: any) => 
+            c.id === card.id 
+              ? { ...c, isCompleted: newCompletedState }
+              : c
+          )
+        }))
+      };
+    });
+    
+    // Then update the database in the background
     updateCardMutation.mutate({ 
       title: card.title, 
       description: card.description || "", 
@@ -388,18 +480,31 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   {/* Card Title with Check Radio */}
                   <div className="flex items-start gap-3">
                     <div 
-                      className={`w-5 h-5 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
+                      className={`relative w-5 h-5 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
                         isCompleted 
                           ? 'bg-teal-600 border-teal-600 hover:bg-teal-700 hover:border-teal-700' 
                           : 'border-slate-300 dark:border-slate-600 hover:border-teal-600 dark:hover:border-teal-600'
-                      } ${updateCardMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      onClick={updateCardMutation.isPending ? undefined : handleToggleComplete}
+                      }`}
+                      onClick={handleToggleComplete}
                     >
-                      {updateCardMutation.isPending ? (
-                        <div className="w-2.5 h-2.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                      ) : isCompleted ? (
-                        <Check className="w-3 h-3 text-white animate-in zoom-in duration-200" />
+                      {isCompleted ? (
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ 
+                            type: "spring", 
+                            stiffness: 500, 
+                            damping: 15,
+                            duration: 0.3 
+                          }}
+                        >
+                          <Check className="w-3 h-3 text-white" />
+                        </motion.div>
                       ) : null}
+                      <ShootingStars 
+                        isActive={showShootingStars} 
+                        onComplete={() => setShowShootingStars(false)} 
+                      />
                     </div>
                 {isEditingTitle ? (
                   <Form {...cardForm}>
@@ -421,8 +526,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                         )}
                       />
                       <div className="flex gap-2">
-                        <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white text-sm px-3 py-1 h-7">
-                          Save
+                        <Button 
+                          type="submit" 
+                          size="sm" 
+                          disabled={updateCardContentMutation.isPending}
+                          className="bg-teal-600 hover:bg-teal-700 text-white text-sm px-3 py-1 h-7"
+                        >
+                          {updateCardContentMutation.isPending ? "Saving..." : "Save"}
                         </Button>
                         <Button
                           type="button"
@@ -488,8 +598,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                         )}
                       />
                       <div className="flex gap-3">
-                        <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
-                          Save
+                        <Button 
+                          type="submit" 
+                          size="sm" 
+                          disabled={updateCardContentMutation.isPending}
+                          className="bg-teal-600 hover:bg-teal-700 text-white"
+                        >
+                          {updateCardContentMutation.isPending ? "Saving..." : "Save"}
                         </Button>
                         <Button
                           type="button"
@@ -738,18 +853,31 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                 {/* Card Title with Check Radio */}
                 <div className="flex items-start gap-4">
                   <div 
-                    className={`w-6 h-6 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
+                    className={`relative w-6 h-6 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
                       isCompleted 
                         ? 'bg-teal-600 border-teal-600 hover:bg-teal-700 hover:border-teal-700' 
                         : 'border-slate-300 dark:border-slate-600 hover:border-teal-600 dark:hover:border-teal-600'
-                    } ${updateCardMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={updateCardMutation.isPending ? undefined : handleToggleComplete}
+                    }`}
+                    onClick={handleToggleComplete}
                   >
-                    {updateCardMutation.isPending ? (
-                      <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                    ) : isCompleted ? (
-                      <Check className="w-3 h-3 text-white animate-in zoom-in duration-200" />
+                    {isCompleted ? (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ 
+                          type: "spring", 
+                          stiffness: 500, 
+                          damping: 15,
+                          duration: 0.3 
+                        }}
+                      >
+                        <Check className="w-3 h-3 text-white" />
+                      </motion.div>
                     ) : null}
+                    <ShootingStars 
+                      isActive={showShootingStars} 
+                      onComplete={() => setShowShootingStars(false)} 
+                    />
                   </div>
                   {isEditingTitle ? (
                     <Form {...cardForm}>
@@ -771,8 +899,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                           )}
                         />
                         <div className="flex gap-3">
-                          <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
-                            Save
+                          <Button 
+                            type="submit" 
+                            size="sm" 
+                            disabled={updateCardContentMutation.isPending}
+                            className="bg-teal-600 hover:bg-teal-700 text-white"
+                          >
+                            {updateCardContentMutation.isPending ? "Saving..." : "Save"}
                           </Button>
                           <Button
                             type="button"
@@ -838,8 +971,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                           )}
                         />
                         <div className="flex gap-3">
-                          <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
-                            Save
+                          <Button 
+                            type="submit" 
+                            size="sm" 
+                            disabled={updateCardContentMutation.isPending}
+                            className="bg-teal-600 hover:bg-teal-700 text-white"
+                          >
+                            {updateCardContentMutation.isPending ? "Saving..." : "Save"}
                           </Button>
                           <Button
                             type="button"

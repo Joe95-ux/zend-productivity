@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Check, Copy, MoreHorizontal } from "lucide-react";
 import { CardModal } from "./CardModal";
 import { CopyCardModal } from "./CopyCardModal";
 import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
+import { ShootingStars } from "@/components/ui/ShootingStars";
+import { motion } from "framer-motion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,32 +38,68 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
+  const [showShootingStars, setShowShootingStars] = useState(false);
   const queryClient = useQueryClient();
+
+  // Get the current card data from query cache to stay in sync
+  const { data: boardData } = useQuery({
+    queryKey: ["board", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/boards/${boardId}`);
+      if (!response.ok) throw new Error("Failed to fetch board");
+      return response.json();
+    },
+    enabled: false, // Don't fetch, just subscribe to cache updates
+  });
+
+  // Sync local state with query cache updates
+  useEffect(() => {
+    if (boardData) {
+      const updatedCard = boardData.lists
+        ?.find((l: any) => l.id === list.id)
+        ?.cards?.find((c: any) => c.id === card.id);
+      
+      if (updatedCard && updatedCard.isCompleted !== isCompleted) {
+        setIsCompleted(updatedCard.isCompleted);
+      }
+    }
+  }, [boardData, list.id, card.id, isCompleted]);
 
   const updateCardMutation = useMutation({
     mutationFn: async ({ title, description, position, isCompleted }: UpdateCardParams) => {
       const response = await fetch(`/api/cards/${card.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, description, position, isCompleted }),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update card");
-      }
-
+      if (!response.ok) throw new Error("Failed to update card");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      toast.success("Card updated successfully!");
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
     },
     onError: (error: Error) => {
-      console.error("Error updating card:", error);
       // Revert the local state change on error
       setIsCompleted(card.isCompleted);
+      
+      // Revert the query cache to the original state
+      queryClient.setQueryData(["board", boardId], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return {
+          ...oldData,
+          lists: oldData.lists.map((list: any) => ({
+            ...list,
+            cards: list.cards.map((c: any) => 
+              c.id === card.id 
+                ? { ...c, isCompleted: card.isCompleted }
+                : c
+            )
+          }))
+        };
+      });
+      
       toast.error(error.message);
     },
   });
@@ -70,17 +109,12 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
       const response = await fetch(`/api/cards/${card.id}`, {
         method: "DELETE",
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete card");
-      }
-
+      if (!response.ok) throw new Error("Failed to delete card");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Card deleted successfully!");
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -92,7 +126,33 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
     if (updateCardMutation.isPending) return; // Prevent multiple clicks during update
     
     const newCompletedState = !isCompleted;
+    
+    // Trigger shooting stars animation when completing a card
+    if (newCompletedState && !isCompleted) {
+      setShowShootingStars(true);
+    }
+    
+    // Update local state immediately for instant visual feedback
     setIsCompleted(newCompletedState);
+    
+    // Update the query cache immediately for instant UI updates
+    queryClient.setQueryData(["board", boardId], (oldData: any) => {
+      if (!oldData) return oldData;
+      
+      return {
+        ...oldData,
+        lists: oldData.lists.map((list: any) => ({
+          ...list,
+          cards: list.cards.map((c: any) => 
+            c.id === card.id 
+              ? { ...c, isCompleted: newCompletedState }
+              : c
+          )
+        }))
+      };
+    });
+    
+    // Then update the database in the background
     updateCardMutation.mutate({ 
       title: card.title,
       description: card.description,
@@ -116,6 +176,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
     setIsModalOpen(true);
   };
 
+
   return (
     <>
       <Draggable draggableId={card.id} index={index}>
@@ -130,50 +191,25 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               "hover:shadow-md hover:shadow-slate-900/20 hover:border-slate-300 dark:hover:border-slate-600",
               "hover:scale-[1.005] hover:bg-slate-50/50 dark:hover:bg-slate-700/50",
               "hover:-translate-y-0.5",
-              snapshot.isDragging && "opacity-50 scale-105 rotate-2 shadow-xl",
+              snapshot.isDragging && "opacity-90 scale-105 rotate-2 shadow-2xl z-50",
               isCompleted && "opacity-60 bg-slate-100 dark:bg-slate-700",
               updateCardMutation.isPending && "opacity-75 pointer-events-none"
             )}
-            onClick={(e) => {
-              // Don't open modal if dropdown is open or clicking on action buttons
-              if (isDropdownOpen) {
-                return;
-              }
-              
-              const target = e.target as HTMLElement;
-              if (target.closest('[data-dropdown-trigger]') || 
-                  target.closest('[data-dropdown-content]') || 
-                  target.closest('[data-action-button]') ||
-                  target.closest('button')) {
-                return;
-              }
-              
-              e.stopPropagation();
-              if (!updateCardMutation.isPending && !snapshot.isDragging) {
-                setIsModalOpen(true);
-              }
-            }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => {
-              // Only delay hover state change if dropdown is open
-              if (isDropdownOpen) {
-                setTimeout(() => {
-                  if (!isDropdownOpen) {
-                    setIsHovered(false);
-                  }
-                }, 150);
-              } else {
+              if (!isDropdownOpen) {
                 setIsHovered(false);
               }
             }}
+            onClick={() => setIsModalOpen(true)}
           >
-        <CardContent className="p-0 relative">
-          <div className="flex items-center h-12 px-3 relative overflow-hidden">
+            <CardContent className="p-0 relative">
+          <div className="flex items-center h-12 px-3 relative">
             
             {/* Radio Button - Always present, hidden behind title by default */}
             <div 
               className={cn(
-                "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-200 ease-out absolute left-3 z-10",
+                "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-200 ease-out absolute left-3 z-10 relative",
                 updateCardMutation.isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:scale-105",
                 // Always visible but opacity changes based on state
                 (isCompleted || isHovered) 
@@ -188,12 +224,38 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               {updateCardMutation.isPending ? (
                 <div className="w-5 h-5 border-2 border-slate-400 rounded-full animate-pulse"></div>
               ) : isCompleted ? (
-                <div className="w-5 h-5 bg-teal-600 rounded-full flex items-center justify-center transition-all duration-200 animate-in zoom-in">
-                  <Check className="w-3 h-3 text-white" />
-                </div>
+                <motion.div 
+                  className="w-5 h-5 bg-teal-600 rounded-full flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 500, 
+                    damping: 15,
+                    duration: 0.3 
+                  }}
+                >
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 600, 
+                      damping: 12,
+                      duration: 0.4,
+                      delay: 0.1
+                    }}
+                  >
+                    <Check className="w-3 h-3 text-white" />
+                  </motion.div>
+                </motion.div>
               ) : (
                 <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-teal-600 transition-all duration-200"></div>
               )}
+              <ShootingStars 
+                isActive={showShootingStars} 
+                onComplete={() => setShowShootingStars(false)} 
+              />
             </div>
 
             {/* Card Title - Slides right on hover to reveal radio icon underneath */}
@@ -287,12 +349,12 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
         )}
       </Draggable>
 
-      <CardModal 
+      <CardModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         card={card}
         list={list}
         boardId={boardId}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
       />
 
       <CopyCardModal
@@ -308,10 +370,9 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
         title="Delete Card"
-        description={`Are you sure you want to delete "${card.title}"?`}
+        description="Are you sure you want to delete this card? This action cannot be undone."
         itemName={card.title}
         isLoading={deleteCardMutation.isPending}
-        variant="card"
       />
     </>
   );

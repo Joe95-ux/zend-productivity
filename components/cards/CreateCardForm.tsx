@@ -57,7 +57,7 @@ export function CreateCardForm({ listId, boardId, onSuccess }: CreateCardFormPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      queryClient.refetchQueries({ queryKey: ["board", boardId] });
       toast.success("Card created successfully!");
       form.reset();
       onSuccess?.();

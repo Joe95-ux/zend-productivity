@@ -56,7 +56,8 @@ export function CopyCardModal({
   currentBoardId,
   currentListId,
 }: CopyCardModalProps) {
-  const [selectedBoardId, setSelectedBoardId] = useState<string>(currentBoardId);
+  const [selectedBoardId, setSelectedBoardId] =
+    useState<string>(currentBoardId);
   const queryClient = useQueryClient();
 
   const form = useForm<CopyCardFormData>({
@@ -65,7 +66,7 @@ export function CopyCardModal({
       name: card.title,
       targetBoardId: currentBoardId,
       targetListId: currentListId,
-      position: 1, // Default to first position
+      position: card.position, // Use current card position as default
     },
   });
 
@@ -114,12 +115,26 @@ export function CopyCardModal({
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       toast.success("Card copied successfully!");
-      queryClient.invalidateQueries({ queryKey: ["board", form.getValues("targetBoardId")] });
-      if (form.getValues("targetBoardId") !== currentBoardId) {
-        queryClient.invalidateQueries({ queryKey: ["board", currentBoardId] });
+      
+      // Force refetch of the target board to ensure UI updates immediately
+      queryClient.refetchQueries({
+        queryKey: ["board", variables.targetBoardId],
+      });
+      
+      // If copying to a different board, also refetch the current board
+      if (variables.targetBoardId !== currentBoardId) {
+        queryClient.refetchQueries({ 
+          queryKey: ["board", currentBoardId] 
+        });
       }
+      
+      // Also invalidate any activities queries that might be affected
+      queryClient.invalidateQueries({
+        queryKey: ["activities"],
+      });
+      
       onClose();
     },
     onError: (error) => {
@@ -131,33 +146,87 @@ export function CopyCardModal({
     copyCardMutation.mutate(data);
   };
 
-  const targetBoardLists = useMemo(() => targetBoard?.lists || [], [targetBoard?.lists]);
-  
+  const targetBoardLists = useMemo(
+    () => targetBoard?.lists || [],
+    [targetBoard?.lists]
+  );
+
   // Get the current list to show card count
   const selectedListId = form.watch("targetListId");
-  const currentList = targetBoardLists.find((list: List) => list.id === selectedListId);
+  const currentList = targetBoardLists.find(
+    (list: List) => list.id === selectedListId
+  );
+
+  // Debug: Log the current list data
+  console.log("CopyCardModal currentList debug:", {
+    selectedListId,
+    currentListId,
+    targetBoardLists: targetBoardLists?.map((list: List) => ({
+      id: list.id,
+      title: list.title,
+      cardCount: list.cards?.length,
+    })),
+    currentList: currentList
+      ? {
+          id: currentList.id,
+          title: currentList.title,
+          cardCount: currentList.cards?.length,
+        }
+      : null,
+  });
+
+  // Check if copying to the same list
+  const isSameList = selectedListId === currentListId;
+
+  // Calculate card count: use full count for position dropdown (we want to show all possible positions)
   const cardCount = currentList?.cards?.length || 0;
+
+  // Debug: Log card position and list info only when relevant data changes
+  useEffect(() => {
+    if (selectedListId && currentList) {
+      console.log("CopyCardModal debug:", {
+        cardPosition: card.position,
+        cardTitle: card.title,
+        selectedListId,
+        cardCount,
+        currentListTitle: currentList.title,
+        currentListCards: currentList.cards?.map((c: Card) => ({
+          id: c.id,
+          title: c.title,
+          position: c.position,
+        })),
+      });
+    }
+  }, [selectedListId, currentList, card.position, card.title, cardCount]);
 
   const handleBoardChange = (boardId: string) => {
     setSelectedBoardId(boardId);
     form.setValue("targetBoardId", boardId);
     form.setValue("targetListId", ""); // Reset list selection
-    form.setValue("position", 1); // Reset position to first
+    form.setValue("position", 1); // Reset position to first (will be adjusted when list is selected)
   };
 
   // Update position when target list changes
   useEffect(() => {
     if (selectedListId) {
-      const targetList = targetBoardLists.find((list: List) => list.id === selectedListId);
+      const targetList = targetBoardLists.find(
+        (list: List) => list.id === selectedListId
+      );
       const targetCardCount = targetList?.cards?.length || 0;
-      
-      // If copying to the same list, use current position
-      if (selectedListId === currentListId) {
-        form.setValue("position", card.position);
-      } else {
-        // If copying to different list, default to end position
-        form.setValue("position", targetCardCount + 1);
-      }
+
+        if (selectedListId === currentListId) {
+          // When copying within the same list, we can place the card at any position
+          // including the current card's position, plus the end position
+          const maxPosition = targetCardCount + 1; // Maximum valid position (end position)
+
+          // Use current position as default when copying within same list
+          const newPosition =
+            card.position <= maxPosition ? card.position : maxPosition;
+          form.setValue("position", newPosition);
+        } else {
+          // If copying to different list, default to end position
+          form.setValue("position", targetCardCount);
+        }
     }
   }, [selectedListId, targetBoardLists, currentListId, card.position, form]);
 
@@ -236,7 +305,6 @@ export function CopyCardModal({
                     <FormItem className="col-span-2">
                       <FormLabel>List</FormLabel>
                       <Select
-                        
                         onValueChange={field.onChange}
                         value={field.value}
                         disabled={!selectedBoardId}
@@ -267,42 +335,55 @@ export function CopyCardModal({
                     <FormItem className="col-span-1">
                       <FormLabel>Position</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        value={field.value?.toString() || "1"}
+                        onValueChange={(value) =>
+                          field.onChange(parseInt(value))
+                        }
+                        value={field.value?.toString() ?? card.position.toString()}
                         disabled={!selectedListId}
                       >
                         <FormControl>
                           <SelectTrigger className="h-12 w-full">
-                            <SelectValue placeholder={selectedListId ? "Select position" : "Select list first"} />
+                            <SelectValue
+                              placeholder={
+                                selectedListId
+                                  ? "Select position"
+                                  : "Select list first"
+                              }
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent side="top">
-                          {selectedListId && cardCount > 0 ? (
+                          {selectedListId ? (
                             <>
-                              {Array.from({ length: cardCount }, (_, i) => {
-                                const position = i + 1; // Convert to 1-based indexing
-                                const isCurrentPosition = position === card.position;
+                              {Array.from({ length: cardCount + 1 }, (_, i) => {
+                                const position = i; // zero-based position
+                                const displayPosition = i + 1; // user-facing
+                                const isCurrentPosition =
+                                  isSameList && position === card.position;
+                                const isEndPosition = position === cardCount;
+
                                 return (
-                                  <SelectItem 
-                                    key={i} 
+                                  <SelectItem
+                                    key={i}
                                     value={position.toString()}
-                                    className={isCurrentPosition ? "bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 font-medium" : ""}
+                                    className={
+                                      isCurrentPosition
+                                        ? "bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 font-medium"
+                                        : ""
+                                    }
                                   >
-                                    {isCurrentPosition ? `${position} (current)` : position.toString()}
+                                    {isCurrentPosition
+                                      ? `${displayPosition} (current)`
+                                      : isEndPosition
+                                      ? `${displayPosition} (end)`
+                                      : displayPosition.toString()}
                                   </SelectItem>
                                 );
                               })}
-                              {/* Add option to place at the end */}
-                              <SelectItem 
-                                value={(cardCount + 1).toString()}
-                                className="text-slate-500 dark:text-slate-400"
-                              >
-                                {cardCount + 1} (end)
-                              </SelectItem>
                             </>
                           ) : (
                             <SelectItem value="1" disabled>
-                              {selectedListId ? "No cards in list" : "Select a list first"}
+                              Select a list first
                             </SelectItem>
                           )}
                         </SelectContent>
