@@ -21,7 +21,7 @@ export default function BoardLayout({
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="h-full bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
           <p className="text-muted-foreground mb-4">Please sign in to access the dashboard.</p>
@@ -33,5 +33,5 @@ export default function BoardLayout({
     );
   }
 
-  return <>{children}</>;
+  return <div className="h-full w-full">{children}</div>;
 }

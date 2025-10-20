@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -139,6 +140,66 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
 
   return (
     <>
+      {/* Animated Title Edit Overlay */}
+      <AnimatePresence>
+        {isEditingTitle && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => {
+              setEditTitle(boardTitle);
+              setIsEditingTitle(false);
+            }}
+          >
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-6 w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Edit Board Title</h3>
+              <Input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleEditTitle();
+                  } else if (e.key === "Escape") {
+                    setEditTitle(boardTitle);
+                    setIsEditingTitle(false);
+                  }
+                }}
+                className="w-full text-lg font-medium"
+                autoFocus
+                placeholder="Enter board title..."
+              />
+              <div className="flex gap-2 mt-4">
+                <Button
+                  onClick={handleEditTitle}
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditTitle(boardTitle);
+                    setIsEditingTitle(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Board Header Navbar - Second Navbar */}
       <div className="relative w-full bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
         <div className="w-full px-[18px] lg:px-8">
@@ -151,36 +212,17 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   Back
                 </Link>
               </Button>
-              {isEditingTitle ? (
-                <Input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={handleEditTitle}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleEditTitle();
-                    } else if (e.key === "Escape") {
-                      setEditTitle(boardTitle);
-                      setIsEditingTitle(false);
-                    }
-                  }}
-                  className="h-8 text-[17px] font-medium bg-transparent border-none px-2 py-1 rounded-md w-fit border-1 text-slate-900 dark:text-white focus:bg-slate-100 dark:focus:bg-slate-700
-                  dark:focus:border-slate-200 focus:border-blue-400 transition-all duration-300 ease-out"
-                  autoFocus
-                />
-              ) : (
-                <h1 
-                  className="text-sm sm:text-[17px] font-bold text-slate-900 dark:text-white cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 px-2 py-1 rounded transition-all duration-300 ease-out truncate"
-                  onClick={() => setIsEditingTitle(true)}
-                >
-                  {boardTitle}
-                </h1>
-              )}
+              <h1 
+                className="text-sm sm:text-[17px] font-bold text-slate-900 dark:text-white cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 px-2 py-1 rounded transition-all duration-300 ease-out truncate"
+                onClick={() => setIsEditingTitle(true)}
+              >
+                {boardTitle}
+              </h1>
             </div>
 
             {/* Right side - All clickable actions */}
             <div className="flex items-center gap-1 min-[320px]:gap-2">
-              {/* Members count - Clickable */}
+              {/* Members count - Clickable - Hidden on mobile */}
               <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
                 <HoverHint label={`${membersCount} members`} side="bottom">
                   <Users className="h-4 w-4 mr-1" />
@@ -188,29 +230,31 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                 <span className="text-sm">{membersCount}</span>
               </Button>
 
-              {/* Favorite button - Clickable */}
+              {/* Favorite button - Clickable - Hidden on mobile */}
               <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
                 <HoverHint label="Add to favorites" side="bottom">
                   <Star className="h-4 w-4" />
                 </HoverHint>
               </Button>
 
-              {/* Share button - Clickable */}
+              {/* Share button - Clickable - Hidden on mobile */}
               <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
                 <HoverHint label="Share board" side="bottom">
                   <Share2 className="h-4 w-4" />
                 </HoverHint>
               </Button>
 
-              {/* User Profile - Same as main navbar */}
-              <UserButton 
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "w-8 h-8"
-                  }
-                }}
-              />
+              {/* User Profile - Hidden on mobile, shown in menu */}
+              <div className="hidden lg:block">
+                <UserButton 
+                  afterSignOutUrl="/"
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8"
+                    }
+                  }}
+                />
+              </div>
 
               {/* Menu - Clickable */}
               <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -244,6 +288,21 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                         <X className="h-4 w-4" />
                       </HoverHint>
                     </Button>
+                  </div>
+                  
+                  {/* Mobile User Profile - Only visible on mobile */}
+                  <div className="lg:hidden px-[14px] py-2 border-b border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-3">
+                      <UserButton 
+                        afterSignOutUrl="/"
+                        appearance={{
+                          elements: {
+                            avatarBox: "w-8 h-8"
+                          }
+                        }}
+                      />
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Account</span>
+                    </div>
                   </div>
                   
                   <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">

@@ -22,6 +22,7 @@ import { formatDistanceToNow } from "date-fns";
 import { HoverHint } from "@/components/HoverHint";
 import { ShootingStars } from "@/components/ui/ShootingStars";
 import { motion } from "framer-motion";
+import { Board, List, Card as CardType } from "@/lib/types";
 
 const updateCardSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -145,14 +146,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       setIsCompleted(card.isCompleted);
       
       // Revert the query cache to the original state
-      queryClient.setQueryData(["board", boardId], (oldData: any) => {
+      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
         if (!oldData) return oldData;
         
         return {
           ...oldData,
-          lists: oldData.lists.map((list: any) => ({
+          lists: oldData.lists.map((list: List) => ({
             ...list,
-            cards: list.cards.map((c: any) => 
+            cards: list.cards.map((c: CardType) => 
               c.id === card.id 
                 ? { ...c, isCompleted: card.isCompleted }
                 : c
@@ -184,14 +185,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
     },
     onSuccess: (data, variables) => {
       // Update the query cache immediately with the new data
-      queryClient.setQueryData(["board", boardId], (oldData: any) => {
+      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
         if (!oldData) return oldData;
         
         return {
           ...oldData,
-          lists: oldData.lists.map((list: any) => ({
+          lists: oldData.lists.map((list: List) => ({
             ...list,
-            cards: list.cards.map((c: any) => 
+            cards: list.cards.map((c: CardType) => 
               c.id === card.id 
                 ? { ...c, title: variables.title, description: variables.description }
                 : c
@@ -352,14 +353,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
     setIsCompleted(newCompletedState);
     
     // Update the query cache immediately for instant UI updates
-    queryClient.setQueryData(["board", boardId], (oldData: any) => {
+    queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
       if (!oldData) return oldData;
       
       return {
         ...oldData,
-        lists: oldData.lists.map((list: any) => ({
+        lists: oldData.lists.map((list: List) => ({
           ...list,
-          cards: list.cards.map((c: any) => 
+          cards: list.cards.map((c: CardType) => 
             c.id === card.id 
               ? { ...c, isCompleted: newCompletedState }
               : c
@@ -401,7 +402,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   return (
     <>
       <Dialog open={isOpen}>
-        <DialogContent showCloseButton={false} className="w-[calc(100vw-8px)] sm:max-w-[65rem] max-h-[90vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900">
+        <DialogContent showCloseButton={false} className="w-[calc(100vw-8px)] sm:max-w-[65rem] h-auto max-h-[80vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900 flex flex-col">
           {/* Header */}
           <DialogHeader>
             <DialogTitle>
@@ -468,15 +469,15 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
           
 
           {/* Body - Responsive Layout */}
-          <div className="min-h-0 flex-1 bg-white dark:bg-slate-900">
+          <div className="min-h-0 flex-1 bg-white dark:bg-slate-900 flex flex-col">
             {/* Mobile: Tabbed Layout */}
-            <div className="md:hidden">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+            <div className="md:hidden flex flex-col flex-1">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1">
                 <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                   <TabsTrigger value="details" className="text-sm">Details</TabsTrigger>
                   <TabsTrigger value="activity" className="text-sm">Activity</TabsTrigger>
                 </TabsList>
-                <TabsContent value="details" className="p-4 space-y-6 max-h-[calc(90vh-200px)]">
+                <TabsContent value="details" className="p-4 space-y-6 flex-1 overflow-y-auto">
                   {/* Card Title with Check Radio */}
                   <div className="flex items-start gap-3">
                     <div 
@@ -652,7 +653,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
               )}
                 </TabsContent>
                 
-                <TabsContent value="activity" className="p-4 space-y-4 max-h-[calc(90vh-200px)]">
+                <TabsContent value="activity" className="p-4 space-y-4 flex-1 overflow-y-auto">
                   {/* Comments Header */}
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">

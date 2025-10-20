@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Check, Copy, MoreHorizontal } from "lucide-react";
 import { CardModal } from "./CardModal";
 import { CopyCardModal } from "./CopyCardModal";
+import { CardIndicators } from "./CardIndicators";
 import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
 import { ShootingStars } from "@/components/ui/ShootingStars";
 import { motion } from "framer-motion";
@@ -19,7 +19,7 @@ import {
 import { Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Card as CardType, UpdateCardParams } from "@/lib/types";
+import { Card as CardType, UpdateCardParams, Board, List } from "@/lib/types";
 
 interface CardItemProps {
   card: CardType;
@@ -56,8 +56,8 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
   useEffect(() => {
     if (boardData) {
       const updatedCard = boardData.lists
-        ?.find((l: any) => l.id === list.id)
-        ?.cards?.find((c: any) => c.id === card.id);
+        ?.find((l: List) => l.id === list.id)
+        ?.cards?.find((c: CardType) => c.id === card.id);
       
       if (updatedCard && updatedCard.isCompleted !== isCompleted) {
         setIsCompleted(updatedCard.isCompleted);
@@ -84,14 +84,14 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
       setIsCompleted(card.isCompleted);
       
       // Revert the query cache to the original state
-      queryClient.setQueryData(["board", boardId], (oldData: any) => {
+      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
         if (!oldData) return oldData;
         
         return {
           ...oldData,
-          lists: oldData.lists.map((list: any) => ({
+          lists: oldData.lists.map((list: List) => ({
             ...list,
-            cards: list.cards.map((c: any) => 
+            cards: list.cards.map((c: CardType) => 
               c.id === card.id 
                 ? { ...c, isCompleted: card.isCompleted }
                 : c
@@ -136,14 +136,14 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
     setIsCompleted(newCompletedState);
     
     // Update the query cache immediately for instant UI updates
-    queryClient.setQueryData(["board", boardId], (oldData: any) => {
+    queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
       if (!oldData) return oldData;
       
       return {
         ...oldData,
-        lists: oldData.lists.map((list: any) => ({
+        lists: oldData.lists.map((list: List) => ({
           ...list,
-          cards: list.cards.map((c: any) => 
+          cards: list.cards.map((c: CardType) => 
             c.id === card.id 
               ? { ...c, isCompleted: newCompletedState }
               : c
@@ -186,7 +186,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             className={cn(
-              "group cursor-grab active:cursor-grabbing bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm border rounded-md",
+              "group cursor-pointer active:cursor-grabbing bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm border rounded-md",
               "transition-all duration-300 ease-out",
               "hover:shadow-md hover:shadow-slate-900/20 hover:border-slate-300 dark:hover:border-slate-600",
               "hover:scale-[1.005] hover:bg-slate-50/50 dark:hover:bg-slate-700/50",
@@ -204,74 +204,79 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
             onClick={() => setIsModalOpen(true)}
           >
             <CardContent className="p-0 relative">
-          <div className="flex items-center h-12 px-3 relative">
-            
-            {/* Radio Button - Always present, hidden behind title by default */}
-            <div 
-              className={cn(
-                "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-200 ease-out absolute left-3 z-10 relative",
-                updateCardMutation.isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:scale-105",
-                // Always visible but opacity changes based on state
-                (isCompleted || isHovered) 
-                  ? "opacity-100" 
-                  : "opacity-0"
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleComplete(e);
-              }}
-            >
-              {updateCardMutation.isPending ? (
-                <div className="w-5 h-5 border-2 border-slate-400 rounded-full animate-pulse"></div>
-              ) : isCompleted ? (
-                <motion.div 
-                  className="w-5 h-5 bg-teal-600 rounded-full flex items-center justify-center"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 500, 
-                    damping: 15,
-                    duration: 0.3 
+              {/* Card Header with Title and Radio Button */}
+              <div className="flex items-center min-h-12 px-3 relative">
+                
+                {/* Radio Button - Always present, hidden behind title by default */}
+                <div 
+                  className={cn(
+                    "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-200 ease-out absolute left-3 z-10",
+                    updateCardMutation.isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:scale-105",
+                    // Always visible but opacity changes based on state
+                    (isCompleted || isHovered) 
+                      ? "opacity-100" 
+                      : "opacity-0"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleComplete(e);
                   }}
                 >
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ 
-                      type: "spring", 
-                      stiffness: 600, 
-                      damping: 12,
-                      duration: 0.4,
-                      delay: 0.1
-                    }}
-                  >
-                    <Check className="w-3 h-3 text-white" />
-                  </motion.div>
-                </motion.div>
-              ) : (
-                <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-teal-600 transition-all duration-200"></div>
-              )}
-              <ShootingStars 
-                isActive={showShootingStars} 
-                onComplete={() => setShowShootingStars(false)} 
-              />
-            </div>
+                  {updateCardMutation.isPending ? (
+                    <div className="w-5 h-5 border-2 border-slate-400 rounded-full animate-pulse"></div>
+                  ) : isCompleted ? (
+                    <motion.div 
+                      className="w-5 h-5 bg-teal-600 rounded-full flex items-center justify-center"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 500, 
+                        damping: 15,
+                        duration: 0.3 
+                      }}
+                    >
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ 
+                          type: "spring", 
+                          stiffness: 600, 
+                          damping: 12,
+                          duration: 0.4,
+                          delay: 0.1
+                        }}
+                      >
+                        <Check className="w-3 h-3 text-white" />
+                      </motion.div>
+                    </motion.div>
+                  ) : (
+                    <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-teal-600 transition-all duration-200"></div>
+                  )}
+                  <ShootingStars 
+                    isActive={showShootingStars} 
+                    onComplete={() => setShowShootingStars(false)} 
+                  />
+                </div>
 
-            {/* Card Title - Slides right on hover to reveal radio icon underneath */}
-            <h4 className={cn(
-              "font-medium text-sm text-slate-900 dark:text-white transition-all duration-200 ease-out relative z-20",
-              isCompleted && "line-through text-slate-500 dark:text-slate-400",
-              // Slide right on hover to reveal radio icon underneath
-              (isCompleted || isHovered) 
-                ? "translate-x-8" // Move right to reveal radio icon
-                : "translate-x-0" // Normal position, covering radio icon
-            )}>
-              {card.title}
-            </h4>
+                {/* Card Title - Slides right on hover to reveal radio icon underneath */}
+                <h4 className={cn(
+                  "font-medium text-sm text-slate-900 dark:text-white transition-all duration-200 ease-out relative z-20",
+                  isCompleted && "line-through text-slate-500 dark:text-slate-400",
+                  // Slide right on hover to reveal radio icon underneath
+                  (isCompleted || isHovered) 
+                    ? "translate-x-8" // Move right to reveal radio icon
+                    : "translate-x-0" // Normal position, covering radio icon
+                )}>
+                  {card.title}
+                </h4>
+              </div>
 
-            {/* Action Buttons - Positioned absolutely on the right */}
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {/* Card Indicators */}
+              <CardIndicators card={card} />
+
+              {/* Action Buttons - Positioned absolutely on the right, aligned with title */}
+              <div className="absolute right-3 top-3 flex items-center gap-1">
               {/* Edit Icon - Show on hover for large devices */}
               {isHovered && (
                 <div className="hidden lg:block">
@@ -342,9 +347,8 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-            </div>
-          </div>
-        </CardContent>
+              </div>
+            </CardContent>
           </Card>
         )}
       </Draggable>

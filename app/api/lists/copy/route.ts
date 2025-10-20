@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { listId, targetBoardId, position, afterListId } = body;
+    const { listId, targetBoardId, position, afterListId, newTitle } = body;
 
     if (!listId || !targetBoardId || !position) {
       return NextResponse.json(
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     // Create the copied list
     const copiedList = await db.list.create({
       data: {
-        title: `${originalList.title} (Copy)`,
+        title: newTitle || `${originalList.title} (Copy)`,
         position: newPosition,
         boardId: targetBoardId,
       },

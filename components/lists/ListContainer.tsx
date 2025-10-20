@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal
 import { toast } from "sonner";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
-import { List as ListType, UpdateListParams } from "@/lib/types";
+import { List as ListType, UpdateListParams, Board, List } from "@/lib/types";
 
 interface ListContainerProps {
   list: ListType;
@@ -35,6 +35,26 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
+  // Get the current list data from query cache to stay in sync
+  const { data: boardData } = useQuery({
+    queryKey: ["board", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/boards/${boardId}`);
+      if (!response.ok) throw new Error("Failed to fetch board");
+      return response.json();
+    },
+    enabled: false, // Don't fetch, just subscribe to cache updates
+  });
+
+  // Get the current list title from the query cache
+  const currentList = boardData?.lists?.find((l: List) => l.id === list.id);
+  const displayTitle = currentList?.title || list.title;
+
+  // Update editTitle when displayTitle changes
+  useEffect(() => {
+    setEditTitle(displayTitle);
+  }, [displayTitle]);
+
   const updateListMutation = useMutation({
     mutationFn: async ({ title }: UpdateListParams) => {
       const response = await fetch(`/api/lists/${list.id}`, {
@@ -45,12 +65,31 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
       if (!response.ok) throw new Error("Failed to update list");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       toast.success("List updated successfully!");
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      // Update the query cache immediately for instant UI feedback
+      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          lists: oldData.lists.map((l: List) => 
+            l.id === list.id ? { ...l, title: variables.title } : l
+          )
+        };
+      });
     },
     onError: (error: Error) => {
       toast.error(error.message);
+      // Revert the optimistic update on error
+      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          lists: oldData.lists.map((l: List) => 
+            l.id === list.id ? { ...l, title: list.title } : l
+          )
+        };
+      });
     },
   });
 
@@ -73,7 +112,20 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
 
   const handleEdit = () => {
     if (editTitle.trim() && editTitle !== list.title) {
-      updateListMutation.mutate({ title: editTitle.trim() });
+      const newTitle = editTitle.trim();
+      
+      // Optimistic update - update UI immediately
+      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          lists: oldData.lists.map((l: List) => 
+            l.id === list.id ? { ...l, title: newTitle } : l
+          )
+        };
+      });
+      
+      updateListMutation.mutate({ title: newTitle });
     }
     setIsEditing(false);
   };
@@ -129,7 +181,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                         className="text-base cursor-pointer px-2 py-1 rounded transition-all duration-200 text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-100 flex-1"
                         onClick={() => setIsEditing(true)}
                       >
-                        {list.title}
+                        {displayTitle}
                       </CardTitle>
                     )}
                   </div>
@@ -173,7 +225,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                 </div>
               </CardHeader>
 
-              <CardContent className="p-3 max-h-[calc(100vh-300px)] overflow-y-scroll scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
+              <CardContent className="p-3 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
                 <Droppable droppableId={list.id} type="card">
                   {(provided, snapshot) => (
                     <div

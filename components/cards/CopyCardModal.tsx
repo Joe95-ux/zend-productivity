@@ -157,23 +157,6 @@ export function CopyCardModal({
     (list: List) => list.id === selectedListId
   );
 
-  // Debug: Log the current list data
-  console.log("CopyCardModal currentList debug:", {
-    selectedListId,
-    currentListId,
-    targetBoardLists: targetBoardLists?.map((list: List) => ({
-      id: list.id,
-      title: list.title,
-      cardCount: list.cards?.length,
-    })),
-    currentList: currentList
-      ? {
-          id: currentList.id,
-          title: currentList.title,
-          cardCount: currentList.cards?.length,
-        }
-      : null,
-  });
 
   // Check if copying to the same list
   const isSameList = selectedListId === currentListId;
@@ -181,23 +164,6 @@ export function CopyCardModal({
   // Calculate card count: use full count for position dropdown (we want to show all possible positions)
   const cardCount = currentList?.cards?.length || 0;
 
-  // Debug: Log card position and list info only when relevant data changes
-  useEffect(() => {
-    if (selectedListId && currentList) {
-      console.log("CopyCardModal debug:", {
-        cardPosition: card.position,
-        cardTitle: card.title,
-        selectedListId,
-        cardCount,
-        currentListTitle: currentList.title,
-        currentListCards: currentList.cards?.map((c: Card) => ({
-          id: c.id,
-          title: c.title,
-          position: c.position,
-        })),
-      });
-    }
-  }, [selectedListId, currentList, card.position, card.title, cardCount]);
 
   const handleBoardChange = (boardId: string) => {
     setSelectedBoardId(boardId);

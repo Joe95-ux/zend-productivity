@@ -29,14 +29,14 @@ function BoardContent({ boardId, onAddList }: { boardId: string; onAddList: () =
   }
 
   return (
-    <div className="pb-4 min-h-[calc(100vh-200px)] px-[18px] lg:px-4">
-      <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto">
+    <div className="pb-4 h-full lg:px-4">
+      <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4">
         <Droppable droppableId="board" type="list" direction="horizontal">
           {(provided) => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="flex gap-2 min-[320px]:gap-3 sm:gap-4"
+              className="flex h-[calc(100vh-136px)] gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto scrollbar-thin"
             >
               {orderedData.lists.map((list, index) => (
                 <ListContainer key={list.id} list={list} boardId={boardId} index={index} />
@@ -96,9 +96,9 @@ export default function BoardPage() {
 
   if (isLoading) {
     return (
-      <div className="w-full">
+      <div className="w-full h-full">
         <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto pb-4 px-[18px] lg:px-4">
-          {Array.from({ length: 3 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0">
               <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
                 <Skeleton className="h-6 w-24 mb-4 bg-slate-700" />
@@ -121,7 +121,7 @@ export default function BoardPage() {
   return (
     <>
       {/* Board Content */}
-      <div className="w-full min-h-screen">
+      <div className="w-full h-full">
         {board?.lists && board.lists.length > 0 ? (
           <DndProvider boardId={boardId}>
             <BoardContent boardId={boardId} onAddList={() => setIsCreateListOpen(true)} />

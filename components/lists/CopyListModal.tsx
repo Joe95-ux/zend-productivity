@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,11 +29,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Copy } from "lucide-react";
 
 const copyListSchema = z.object({
+  name: z.string().min(1, "Please enter a list name"),
   targetBoardId: z.string().min(1, "Please select a target board"),
   position: z.enum(["left", "right", "after"]),
   afterListId: z.string().optional(),
@@ -59,12 +60,13 @@ export function CopyListModal({
   list,
   currentBoardId,
 }: CopyListModalProps) {
-  const [selectedBoardId, setSelectedBoardId] = useState<string>("");
+  const [selectedBoardId, setSelectedBoardId] = useState<string>(currentBoardId);
   const queryClient = useQueryClient();
 
   const form = useForm<CopyListFormData>({
     resolver: zodResolver(copyListSchema),
     defaultValues: {
+      name: list.title,
       targetBoardId: currentBoardId,
       position: "right",
     },
@@ -104,6 +106,7 @@ export function CopyListModal({
           targetBoardId: data.targetBoardId,
           position: data.position,
           afterListId: data.afterListId,
+          newTitle: data.name,
         }),
       });
 
@@ -114,11 +117,11 @@ export function CopyListModal({
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       toast.success("List copied successfully!");
-      queryClient.invalidateQueries({ queryKey: ["board", data.targetBoardId] });
-      if (data.targetBoardId !== currentBoardId) {
-        queryClient.invalidateQueries({ queryKey: ["board", currentBoardId] });
+      queryClient.refetchQueries({ queryKey: ["board", variables.targetBoardId] });
+      if (variables.targetBoardId !== currentBoardId) {
+        queryClient.refetchQueries({ queryKey: ["board", currentBoardId] });
       }
       onClose();
     },
@@ -140,112 +143,170 @@ export function CopyListModal({
     form.setValue("position", position as "left" | "right" | "after");
   };
 
+  // Watch for form changes to update selectedBoardId
+  const watchedTargetBoardId = form.watch("targetBoardId");
+  useEffect(() => {
+    if (watchedTargetBoardId && watchedTargetBoardId !== selectedBoardId) {
+      setSelectedBoardId(watchedTargetBoardId);
+    }
+  }, [watchedTargetBoardId, selectedBoardId]);
+
   const targetBoardLists = targetBoard?.lists || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Copy className="h-5 w-5" />
+          <DialogTitle className="text-center font-medium">
             Copy List
           </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Target Board Selection */}
+            {/* List Name */}
             <FormField
               control={form.control}
-              name="targetBoardId"
+              name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Target Board</FormLabel>
-                  <Select
-                    onValueChange={handleBoardChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose target board" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {boards?.map((board: any) => (
-                        <SelectItem key={board.id} value={board.id}>
-                          {board.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Position Selection */}
-            <FormField
-              control={form.control}
-              name="position"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Position</FormLabel>
+                  <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <RadioGroup
-                      onValueChange={handlePositionChange}
-                      defaultValue={field.value}
-                      className="space-y-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="left" id="left" />
-                        <Label htmlFor="left">Left side</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="right" id="right" />
-                        <Label htmlFor="right">Right side</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="after" id="after" />
-                        <Label htmlFor="after">After specific list</Label>
-                      </div>
-                    </RadioGroup>
+                    <Input
+                      {...field}
+                      placeholder="Enter list name"
+                      className="w-full h-10"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* After List Selection (if position is "after") */}
-            {form.watch("position") === "after" && (
+            {/* Copy to section */}
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Copy to...
+              </p>
+
+              {/* Board Selection - Full Width */}
               <FormField
                 control={form.control}
-                name="afterListId"
+                name="targetBoardId"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>After List</FormLabel>
+                  <FormItem className="w-full">
+                    <FormLabel>Board</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={!selectedBoardId}
+                      onValueChange={handleBoardChange}
+                      defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose list to place after" />
+                        <SelectTrigger className="h-12 w-full">
+                          <SelectValue placeholder="Choose board" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {targetBoardLists.map((targetList: any) => (
-                          <SelectItem key={targetList.id} value={targetList.id}>
-                            {targetList.title}
+                        {boards?.map((board: any) => (
+                          <SelectItem key={board.id} value={board.id}>
+                            {board.title}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {selectedBoardId && targetBoardLists.length > 0 && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Target board has {targetBoardLists.length} list{targetBoardLists.length !== 1 ? 's' : ''}
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
+
+              {/* Position Selection - Full Width */}
+              <FormField
+                control={form.control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Position</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={handlePositionChange}
+                        defaultValue={field.value}
+                        className="space-y-3"
+                      >
+                        <div className="flex items-start space-x-3">
+                          <RadioGroupItem value="left" id="left" className="mt-1" />
+                          <div className="space-y-1">
+                            <Label htmlFor="left" className="font-medium">Left side</Label>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Place at the beginning of the board
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <RadioGroupItem value="right" id="right" className="mt-1" />
+                          <div className="space-y-1">
+                            <Label htmlFor="right" className="font-medium">Right side</Label>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Place at the end of the board
+                              {targetBoardLists.length > 0 && (
+                                <span className="ml-1">
+                                  ({targetBoardLists.length} existing list{targetBoardLists.length !== 1 ? 's' : ''})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <RadioGroupItem value="after" id="after" className="mt-1" />
+                          <div className="space-y-1">
+                            <Label htmlFor="after" className="font-medium">After specific list</Label>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Choose which list to place after
+                            </p>
+                          </div>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* After List Selection (if position is "after") */}
+              {form.watch("position") === "after" && (
+                <FormField
+                  control={form.control}
+                  name="afterListId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>After List</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={!selectedBoardId}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-12 w-full">
+                            <SelectValue placeholder="Choose list to place after" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {targetBoardLists.map((targetList: any) => (
+                            <SelectItem key={targetList.id} value={targetList.id}>
+                              {targetList.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onClose}>

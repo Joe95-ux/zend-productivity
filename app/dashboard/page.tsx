@@ -62,7 +62,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full space-y-6 px-[18px] lg:px-4">
+    <div className="w-full space-y-6 h-full lg:px-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
