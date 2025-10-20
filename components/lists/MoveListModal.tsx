@@ -180,11 +180,11 @@ export function MoveListModal({ isOpen, onClose, list, currentBoardId }: MoveLis
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent side="top">
-                        {Array.from({ length: listCount + 1 }, (_, i) => {
+                        {Array.from({ length: isSameBoard ? listCount : listCount + 1 }, (_, i) => {
                           const position = i; // zero-based position
                           const displayPosition = i + 1; // user-facing
                           const isCurrentPosition = isSameBoard && position === (list.position - 1);
-                          const isEndPosition = position === listCount;
+                          const isEndPosition = position === (isSameBoard ? Math.max(listCount - 1, 0) : listCount);
 
                           return (
                             <SelectItem
