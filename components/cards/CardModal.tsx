@@ -653,7 +653,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
               )}
                 </TabsContent>
                 
-                <TabsContent value="activity" className="p-4 space-y-4 flex-1 overflow-y-auto">
+                <TabsContent value="activity" className="p-4 space-y-4 flex-1 overflow-y-auto max-h-[70vh]">
                   {/* Comments Header */}
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
@@ -719,7 +719,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   )}
 
                   {/* Comments and Activity List */}
-                  <div className="space-y-3">
+                  <div className="space-y-3 pb-4">
                     {/* Comments Section */}
                     {card.comments.length > 0 && (
                       <div className="space-y-2">
@@ -804,7 +804,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
 
                     {/* Activities Section */}
                     <div className="space-y-2">
-                      <div className="flex items-center gap-1 text-xs font-medium text-strong dark:text-slate-300">
+                      <div className="flex items-center gap-1 text-sm font-medium text-strong dark:text-slate-300 mb-2">
                         <Clock className="w-3 h-3" />
                         Recent Activity
                       </div>
@@ -816,7 +816,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                             <div key={activity.id} className="flex items-start gap-2">
                               <ConditionalUserProfile user={activity.user} size="sm" />
                               <div className="flex-1 space-y-1">
-                                <p className="text-xs">
+                                <p className="text-sm">
                                   <span className="font-medium text-strong dark:text-slate-300">
                                     {activity.user.name || activity.user.email}
                                   </span>{" "}

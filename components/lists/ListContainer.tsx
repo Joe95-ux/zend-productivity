@@ -5,7 +5,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, MoreHorizontal, Edit, Trash2, Copy } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Copy, Move } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,7 @@ import {
 import { CreateCardForm } from "@/components/cards/CreateCardForm";
 import { CardItem } from "@/components/cards/CardItem";
 import { CopyListModal } from "./CopyListModal";
+import { MoveListModal } from "./MoveListModal";
 import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
 import { toast } from "sonner";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
@@ -32,6 +33,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [editTitle, setEditTitle] = useState(list.title);
   const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -214,6 +216,13 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                         Copy List
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                        onClick={() => setIsMoveModalOpen(true)}
+                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200"
+                      >
+                        <Move className="h-4 w-4 mr-2" />
+                        Move List
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         onClick={handleDelete}
                         className="text-red-400 focus:text-red-400 hover:bg-red-400/10 transition-colors duration-200"
                       >
@@ -279,6 +288,13 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
       <CopyListModal
         isOpen={isCopyModalOpen}
         onClose={() => setIsCopyModalOpen(false)}
+        list={list}
+        currentBoardId={boardId}
+      />
+
+      <MoveListModal
+        isOpen={isMoveModalOpen}
+        onClose={() => setIsMoveModalOpen(false)}
         list={list}
         currentBoardId={boardId}
       />

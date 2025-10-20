@@ -325,7 +325,7 @@ export function CopyCardModal({
                                 const position = i; // zero-based position
                                 const displayPosition = i + 1; // user-facing
                                 const isCurrentPosition =
-                                  isSameList && position === card.position;
+                                  isSameList && position === (card.position - 1);
                                 const isEndPosition = position === cardCount;
 
                                 return (

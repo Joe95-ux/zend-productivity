@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, Trash2, Check, Copy, MoreHorizontal } from "lucide-react";
+import { Edit, Trash2, Check, Copy, MoreHorizontal, Move } from "lucide-react";
 import { CardModal } from "./CardModal";
 import { CopyCardModal } from "./CopyCardModal";
+import { MoveCardModal } from "./MoveCardModal";
 import { CardIndicators } from "./CardIndicators";
 import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
 import { ShootingStars } from "@/components/ui/ShootingStars";
@@ -34,6 +35,7 @@ interface CardItemProps {
 export function CardItem({ card, list, boardId, index }: CardItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -332,6 +334,13 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                       <Copy className="h-4 w-4 mr-2" />
                       Copy Card
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMoveModalOpen(true);
+                    }}>
+                      <Move className="h-4 w-4 mr-2" />
+                      Move Card
+                    </DropdownMenuItem>
                     {isCompleted && (
                       <DropdownMenuItem 
                         onClick={(e) => {
@@ -364,6 +373,14 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
       <CopyCardModal
         isOpen={isCopyModalOpen}
         onClose={() => setIsCopyModalOpen(false)}
+        card={card}
+        currentBoardId={boardId}
+        currentListId={list.id}
+      />
+
+      <MoveCardModal
+        isOpen={isMoveModalOpen}
+        onClose={() => setIsMoveModalOpen(false)}
         card={card}
         currentBoardId={boardId}
         currentListId={list.id}
