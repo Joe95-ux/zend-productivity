@@ -66,7 +66,7 @@ export function CopyCardModal({
       name: card.title,
       targetBoardId: currentBoardId,
       targetListId: currentListId,
-      position: card.position, // Use current card position as default
+      position: card.position - 1, // Convert 1-based to 0-based for dropdown
     },
   });
 
@@ -169,7 +169,7 @@ export function CopyCardModal({
     setSelectedBoardId(boardId);
     form.setValue("targetBoardId", boardId);
     form.setValue("targetListId", ""); // Reset list selection
-    form.setValue("position", 1); // Reset position to first (will be adjusted when list is selected)
+    form.setValue("position", 0); // Reset position to first (0-based)
   };
 
   // Update position when target list changes
@@ -183,11 +183,10 @@ export function CopyCardModal({
         if (selectedListId === currentListId) {
           // When copying within the same list, we can place the card at any position
           // including the current card's position, plus the end position
-          const maxPosition = targetCardCount + 1; // Maximum valid position (end position)
+          const maxPosition = targetCardCount; // Maximum valid position (end position)
 
-          // Use current position as default when copying within same list
-          const newPosition =
-            card.position <= maxPosition ? card.position : maxPosition;
+          // Use current position as default when copying within same list (convert to 0-based)
+          const newPosition = Math.min(card.position - 1, maxPosition);
           form.setValue("position", newPosition);
         } else {
           // If copying to different list, default to end position

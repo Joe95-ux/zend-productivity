@@ -69,7 +69,7 @@ export function MoveCardModal({ isOpen, onClose, card, currentBoardId, currentLi
     defaultValues: {
       targetBoardId: currentBoardId,
       targetListId: currentListId,
-      position: 0, // zero-based position
+      position: card.position - 1, // Convert 1-based to 0-based for dropdown
     },
   });
 
@@ -86,16 +86,18 @@ export function MoveCardModal({ isOpen, onClose, card, currentBoardId, currentLi
         setSelectedListId(firstList.id);
         form.setValue("targetListId", firstList.id);
       }
-      form.setValue("position", 1);
+      form.setValue("position", 0); // Reset to first position when changing boards
     }
   }, [watchedTargetBoardId, selectedBoardId, targetBoardLists, form]);
 
   useEffect(() => {
     if (watchedTargetListId && watchedTargetListId !== selectedListId) {
       setSelectedListId(watchedTargetListId);
-      form.setValue("position", 0); // Reset position when list changes
+      // When changing lists, use card's current position if moving within same list, otherwise reset to 0
+      const newPosition = watchedTargetListId === currentListId ? card.position - 1 : 0;
+      form.setValue("position", newPosition);
     }
-  }, [watchedTargetListId, selectedListId, form]);
+  }, [watchedTargetListId, selectedListId, form, card.position, currentListId]);
 
   // Update position options when target list changes
   useEffect(() => {
@@ -105,13 +107,14 @@ export function MoveCardModal({ isOpen, onClose, card, currentBoardId, currentLi
         const cardCount = targetList.cards?.length || 0;
         const currentPosition = form.getValues("position");
         
-        // If current position is greater than available positions, reset to 0
+        // If current position is greater than available positions, reset to the card's current position or 0
         if (currentPosition > cardCount) {
-          form.setValue("position", 0);
+          const newPosition = selectedListId === currentListId ? Math.min(card.position - 1, cardCount) : 0;
+          form.setValue("position", newPosition);
         }
       }
     }
-  }, [targetBoardLists, selectedListId, form]);
+  }, [targetBoardLists, selectedListId, form, card.position, currentListId]);
 
   const moveCardMutation = useMutation({
     mutationFn: async (data: { targetBoardId: string; targetListId: string; position: number }) => {
@@ -267,14 +270,13 @@ export function MoveCardModal({ isOpen, onClose, card, currentBoardId, currentLi
                   )}
                   <span>{nextList.title}</span>
                 </Button>
-                <p className="text-sm text-slate-600 dark:text-slate-300">Select destination</p>
               </div>
             )}
 
             {/* Move to section */}
             <div className="space-y-4">
               <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Move to...
+                Select destination
               </p>
 
               {/* Board Selection - Full Width */}

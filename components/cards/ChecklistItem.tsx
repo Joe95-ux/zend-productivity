@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ChecklistItemProps {
   item: {
@@ -36,8 +37,50 @@ export function ChecklistItem({ item, cardId }: ChecklistItemProps) {
 
       return response.json();
     },
+    onMutate: async (newData) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["board"] });
+      
+      // Snapshot the previous value
+      const previousBoard = queryClient.getQueryData(["board"]);
+      
+      // Optimistically update the cache
+      queryClient.setQueryData(["board"], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          lists: old.lists.map((list: any) => ({
+            ...list,
+            cards: list.cards.map((c: any) => 
+              c.id === cardId 
+                ? {
+                    ...c,
+                    checklists: c.checklists.map((checklist: any) => ({
+                      ...checklist,
+                      items: checklist.items.map((checklistItem: any) => 
+                        checklistItem.id === item.id 
+                          ? { ...checklistItem, completed: newData.completed ?? checklistItem.completed }
+                          : checklistItem
+                      )
+                    }))
+                  }
+                : c
+            )
+          }))
+        };
+      });
+      
+      return { previousBoard };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board"] });
+      // Cache already updated optimistically
+    },
+    onError: (err, newData, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousBoard) {
+        queryClient.setQueryData(["board"], context.previousBoard);
+      }
+      toast.error("Failed to update checklist item");
     },
   });
 
