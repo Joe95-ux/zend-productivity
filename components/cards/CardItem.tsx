@@ -78,8 +78,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
       return response.json();
     },
     onSuccess: () => {
-      toast.success("Card updated successfully!");
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      // Cache already updated optimistically, no need to refetch
     },
     onError: (error: Error) => {
       // Revert the local state change on error
@@ -125,7 +124,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
 
   const handleToggleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (updateCardMutation.isPending) return; // Prevent multiple clicks during update
+    // No need to prevent clicks since we're doing optimistic updates
     
     const newCompletedState = !isCompleted;
     
@@ -195,7 +194,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               "hover:-translate-y-0.5",
               snapshot.isDragging && "opacity-90 scale-105 rotate-2 shadow-2xl z-50",
               isCompleted && "opacity-60 bg-slate-100 dark:bg-slate-700",
-              updateCardMutation.isPending && "opacity-75 pointer-events-none"
+              // Removed loading state since we're doing optimistic updates
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => {
@@ -213,7 +212,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                 <div 
                   className={cn(
                     "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-200 ease-out absolute left-3 z-10",
-                    updateCardMutation.isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:scale-105",
+                    "cursor-pointer hover:scale-105",
                     // Always visible but opacity changes based on state
                     (isCompleted || isHovered) 
                       ? "opacity-100" 
@@ -224,9 +223,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                     handleToggleComplete(e);
                   }}
                 >
-                  {updateCardMutation.isPending ? (
-                    <div className="w-5 h-5 border-2 border-slate-400 rounded-full animate-pulse"></div>
-                  ) : isCompleted ? (
+                  {isCompleted ? (
                     <motion.div 
                       className="w-5 h-5 bg-teal-600 rounded-full flex items-center justify-center"
                       initial={{ scale: 0 }}
@@ -285,19 +282,12 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                   <button
                     data-action-button
                     onClick={handleEdit}
-                    disabled={updateCardMutation.isPending}
                     className={cn(
                       "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out",
-                      updateCardMutation.isPending 
-                        ? "cursor-not-allowed opacity-50" 
-                        : "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
+                      "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
                     )}
                   >
-                    {updateCardMutation.isPending ? (
-                      <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <Edit className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
-                    )}
+                    <Edit className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
                   </button>
                 </div>
               )}
@@ -315,12 +305,9 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                     <button
                       data-dropdown-trigger
                       onClick={(e) => e.stopPropagation()}
-                      disabled={updateCardMutation.isPending}
                       className={cn(
                         "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out",
-                        updateCardMutation.isPending 
-                          ? "cursor-not-allowed opacity-50" 
-                          : "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
+                        "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
                       )}
                     >
                       <MoreHorizontal className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />

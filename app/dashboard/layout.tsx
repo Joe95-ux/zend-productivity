@@ -34,9 +34,9 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="h-full bg-background">
+    <div className="h-[calc(100vh-114px)] bg-background">
       {/* Main Content */}
-      <main className="w-full h-full mx-auto px-4 py-6">
+      <main className="w-full overflow-auto scrollbar-thin h-full mx-auto px-4 py-6">
         {children}
       </main>
     </div>

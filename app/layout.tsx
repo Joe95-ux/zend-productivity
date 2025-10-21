@@ -55,13 +55,13 @@ export default function RootLayout({
     >
       <html
         lang="en"
-        className="dark"
+        className="dark h-full"
         style={{
           colorScheme: "dark",
         }}
       >
         <body
-          className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+          className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased h-full`}
         >
           <Toaster richColors position="bottom-right" />
           <RootProviders>

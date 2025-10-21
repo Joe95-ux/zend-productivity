@@ -36,7 +36,7 @@ function BoardContent({ boardId, onAddList }: { boardId: string; onAddList: () =
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="flex h-[calc(100vh-136px)] gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto scrollbar-thin"
+              className="flex gap-2 min-[320px]:gap-3 sm:gap-4"
             >
               {orderedData.lists.map((list, index) => (
                 <ListContainer key={list.id} list={list} boardId={boardId} index={index} />

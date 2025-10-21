@@ -87,10 +87,29 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   const [showShootingStars, setShowShootingStars] = useState(false);
   const queryClient = useQueryClient();
 
-  // Sync local state when card prop changes
+  // Get the current card data from query cache to stay in sync
+  const { data: boardData } = useQuery({
+    queryKey: ["board", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/boards/${boardId}`);
+      if (!response.ok) throw new Error("Failed to fetch board");
+      return response.json();
+    },
+    enabled: false, // Don't fetch, just subscribe to cache updates
+  });
+
+  // Sync local state with query cache updates
   useEffect(() => {
-    setIsCompleted(card.isCompleted);
-  }, [card.isCompleted]);
+    if (boardData) {
+      const updatedCard = boardData.lists
+        ?.find((l: List) => l.id === list.id)
+        ?.cards?.find((c: CardType) => c.id === card.id);
+      
+      if (updatedCard && updatedCard.isCompleted !== isCompleted) {
+        setIsCompleted(updatedCard.isCompleted);
+      }
+    }
+  }, [boardData, list.id, card.id, isCompleted]);
 
   // Fetch activities for this card
   const { data: activities, isLoading: activitiesLoading } = useQuery({

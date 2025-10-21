@@ -39,6 +39,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
   const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
+  const [cardFormPosition, setCardFormPosition] = useState<'bottom' | 'top'>('bottom');
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -77,21 +78,24 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
     onMutate: async (newData) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["board", boardId] });
-      
+
       // Snapshot the previous value
       const previousBoard = queryClient.getQueryData(["board", boardId]);
-      
+
       // Optimistically update the cache
-      queryClient.setQueryData(["board", boardId], (old: BoardData | undefined) => {
-        if (!old || !old.lists) return old;
-        return {
-          ...old,
-          lists: old.lists.map((l: List) => 
-            l.id === list.id ? { ...l, title: newData.title } : l
-          )
-        };
-      });
-      
+      queryClient.setQueryData(
+        ["board", boardId],
+        (old: BoardData | undefined) => {
+          if (!old || !old.lists) return old;
+          return {
+            ...old,
+            lists: old.lists.map((l: List) =>
+              l.id === list.id ? { ...l, title: newData.title } : l
+            ),
+          };
+        }
+      );
+
       // Return a context object with the snapshotted value
       return { previousBoard };
     },
@@ -152,8 +156,10 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
             ref={provided.innerRef}
             {...provided.draggableProps}
             className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 h-max active:cursor-grabbing transition-all duration-300 ease-out ${
-            snapshot.isDragging ? "opacity-90 scale-[1.02] rotate-1 shadow-lg z-50" : ""
-          }`}
+              snapshot.isDragging
+                ? "opacity-90 scale-[1.02] rotate-1 shadow-lg z-50"
+                : ""
+            }`}
           >
             <Card
               {...provided.dragHandleProps}
@@ -205,29 +211,39 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                       className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     >
                       <DropdownMenuItem
+                        onClick={() => {
+                          setCardFormPosition('top');
+                          setIsCreateCardOpen(true);
+                        }}
+                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Card
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         onClick={() => setIsEditing(true)}
-                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200"
+                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setIsCopyModalOpen(true)}
-                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200"
+                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
                       >
                         <Copy className="h-4 w-4 mr-2" />
                         Copy List
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setIsMoveModalOpen(true)}
-                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200"
+                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
                       >
                         <Move className="h-4 w-4 mr-2" />
                         Move List
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={handleDelete}
-                        className="text-red-400 focus:text-red-400 hover:bg-red-400/10 transition-colors duration-200"
+                        className="text-red-400 focus:text-red-400 hover:bg-red-400/10 transition-colors duration-200 cursor-pointer"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
@@ -237,7 +253,17 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                 </div>
               </CardHeader>
 
-              <CardContent className="p-3 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
+              <CardContent className={cn("flex flex-col gap-2 px-3 py-0 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500", isCreateCardOpen && cardFormPosition === 'top' && "pb-3")}>
+                {isCreateCardOpen && cardFormPosition === 'top' && (
+                  <CreateCardForm
+                    listId={list.id}
+                    boardId={boardId}
+                    onSuccess={() => {
+                      setIsCreateCardOpen(false);
+                      setCardFormPosition('bottom');
+                    }}
+                  />
+                )}
                 <Droppable droppableId={list.id} type="card">
                   {(provided, snapshot) => (
                     <div
@@ -264,25 +290,33 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                 </Droppable>
               </CardContent>
 
-              {/* Fixed Card Footer */}
-              <div className="flex items-center m-1 px-3 py-4 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-all duration-200">
-                {isCreateCardOpen ? (
-                  <CreateCardForm
-                    listId={list.id}
-                    boardId={boardId}
-                    onSuccess={() => setIsCreateCardOpen(false)}
-                  />
-                ) : (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white transition-all duration-300 ease-out hover:scale-[1.005] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
-                    onClick={() => setIsCreateCardOpen(true)}
-                  >
-                    <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300 ease-out" />
-                    Add a card
-                  </Button>
-                )}
-              </div>
+              {/* Fixed Card Footer - Hide when form is at top */}
+              {!(isCreateCardOpen && cardFormPosition === 'top') && (
+                <div className="flex items-center m-1 px-3 py-4 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-all duration-200">
+                  {isCreateCardOpen && cardFormPosition === 'bottom' ? (
+                    <CreateCardForm
+                      listId={list.id}
+                      boardId={boardId}
+                      onSuccess={() => {
+                        setIsCreateCardOpen(false);
+                        setCardFormPosition('bottom');
+                      }}
+                    />
+                  ) : (
+                    !isCreateCardOpen && <Button
+                      variant="ghost"
+                      className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white transition-all duration-300 ease-out hover:scale-[1.005] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
+                      onClick={() => {
+                        setCardFormPosition('bottom');
+                        setIsCreateCardOpen(true);
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300 ease-out" />
+                      Add a card
+                    </Button>
+                  )}
+                </div>
+              )}
             </Card>
           </div>
         )}
