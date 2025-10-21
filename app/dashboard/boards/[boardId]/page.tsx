@@ -31,7 +31,7 @@ function BoardContent({ boardId, onAddList }: { boardId: string; onAddList: () =
   return (
     <div className="pb-4 h-full lg:px-4">
       <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4">
-        <Droppable droppableId="board" type="list" direction="horizontal">
+        <Droppable droppableId="lists" type="list" direction="horizontal">
           {(provided) => (
             <div
               ref={provided.innerRef}

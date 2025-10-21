@@ -49,9 +49,13 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     },
     onSuccess: () => {
       toast.success("List reordered");
+      // Don't refetch - let optimistic update handle UI
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      // Only refetch on error to revert to server state
       queryClient.refetchQueries({ queryKey: ["board", boardId] });
     },
-    onError: (error) => toast.error(error.message),
   });
 
   const updateCardOrderMutation = useMutation({
@@ -66,9 +70,13 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     },
     onSuccess: () => {
       toast.success("Card reordered");
+      // Don't refetch - let optimistic update handle UI
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      // Only refetch on error to revert to server state
       queryClient.refetchQueries({ queryKey: ["board", boardId] });
     },
-    onError: (error) => toast.error(error.message),
   });
 
   // Use useQuery to ensure reactive updates
@@ -82,14 +90,22 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
       return response.json();
     },
     enabled: !!boardId,
+    refetchOnWindowFocus: false, // Prevent automatic refetches
+    refetchOnMount: false, // Prevent refetch on component mount
   });
 
-  // Update ordered data when board data changes
   useEffect(() => {
-    if (boardData) {
+    if (boardData && !orderedData) {
       setOrderedData(boardData);
     }
-  }, [boardData]);
+  }, [boardData, orderedData]);
+
+  // Update ordered data when board data changes, but not during pending mutations
+  // useEffect(() => {
+  //   if (boardData && !updateListOrderMutation.isPending && !updateCardOrderMutation.isPending) {
+  //     setOrderedData(boardData);
+  //   }
+  // }, [boardData, updateListOrderMutation.isPending, updateCardOrderMutation.isPending]);
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, type } = result;
@@ -124,7 +140,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
       if (source.droppableId === destination.droppableId) {
         const reorderedCards = reorder(sourceList.cards, source.index, destination.index);
         reorderedCards.forEach((card, idx) => {
-          card.position = idx;
+          card.position = idx + 1; // Use 1-based indexing for server
         });
         sourceList.cards = reorderedCards;
 
@@ -146,11 +162,11 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         destList.cards.splice(destination.index, 0, movedCard);
 
         sourceList.cards.forEach((card, idx) => {
-          card.position = idx;
+          card.position = idx + 1; // Use 1-based indexing for server
         });
 
         destList.cards.forEach((card, idx) => {
-          card.position = idx;
+          card.position = idx + 1; // Use 1-based indexing for server
         });
 
         setOrderedData(newOrderedData);

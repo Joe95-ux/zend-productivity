@@ -96,22 +96,50 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
       if (!response.ok) throw new Error("Failed to update board");
       return response.json();
     },
+    onMutate: async (newData) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["board", boardId] });
+      
+      // Snapshot the previous value
+      const previousBoard = queryClient.getQueryData(["board", boardId]);
+      
+      // Optimistically update the cache
+      queryClient.setQueryData(["board", boardId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          title: newData.title || old.title,
+          description: newData.description || old.description,
+        };
+      });
+      
+      // Return a context object with the snapshotted value
+      return { previousBoard };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Board updated successfully");
     },
-    onError: () => {
+    onError: (err, newData, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousBoard) {
+        queryClient.setQueryData(["board", boardId], context.previousBoard);
+      }
       toast.error("Failed to update board");
+      // Reopen the modal on error so user can retry
+      setIsEditingTitle(true);
+      setEditTitle(newData.title || boardTitle);
     },
   });
 
   const handleEditTitle = () => {
     if (editTitle.trim() && editTitle !== boardTitle) {
+      // Optimistic update - close modal immediately and update UI
+      setIsEditingTitle(false);
       updateBoardMutation.mutate({ title: editTitle.trim() });
     } else {
       setEditTitle(boardTitle);
+      setIsEditingTitle(false);
     }
-    setIsEditingTitle(false);
   };
 
   const handleEditDescription = () => {

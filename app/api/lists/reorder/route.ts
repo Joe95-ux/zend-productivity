@@ -13,22 +13,26 @@ export async function POST(request: NextRequest) {
     const { items, boardId } = body;
 
     if (!items || !boardId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    // Update all lists in a transaction
-    const transaction = items.map((list: any) => 
-      db.list.update({
+    // Sequential updates to avoid deadlocks
+    for (const list of items) {
+      await db.list.update({
         where: { id: list.id },
         data: { position: list.position },
-      })
-    );
-
-    await db.$transaction(transaction);
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error reordering lists:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

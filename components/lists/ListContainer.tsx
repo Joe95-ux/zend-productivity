@@ -20,7 +20,14 @@ import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal
 import { toast } from "sonner";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
-import { List as ListType, UpdateListParams, Board, List } from "@/lib/types";
+import { List as ListType, UpdateListParams, List } from "@/lib/types";
+
+interface BoardData {
+  lists: List[];
+  title?: string;
+  description?: string;
+  id?: string;
+}
 
 interface ListContainerProps {
   list: ListType;
@@ -67,31 +74,39 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
       if (!response.ok) throw new Error("Failed to update list");
       return response.json();
     },
-    onSuccess: (data, variables) => {
-      toast.success("List updated successfully!");
-      // Update the query cache immediately for instant UI feedback
-      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
-        if (!oldData) return oldData;
+    onMutate: async (newData) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["board", boardId] });
+      
+      // Snapshot the previous value
+      const previousBoard = queryClient.getQueryData(["board", boardId]);
+      
+      // Optimistically update the cache
+      queryClient.setQueryData(["board", boardId], (old: BoardData | undefined) => {
+        if (!old || !old.lists) return old;
         return {
-          ...oldData,
-          lists: oldData.lists.map((l: List) => 
-            l.id === list.id ? { ...l, title: variables.title } : l
+          ...old,
+          lists: old.lists.map((l: List) => 
+            l.id === list.id ? { ...l, title: newData.title } : l
           )
         };
       });
+      
+      // Return a context object with the snapshotted value
+      return { previousBoard };
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
-      // Revert the optimistic update on error
-      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          lists: oldData.lists.map((l: List) => 
-            l.id === list.id ? { ...l, title: list.title } : l
-          )
-        };
-      });
+    onSuccess: () => {
+      toast.success("List updated successfully!");
+    },
+    onError: (err, newData, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousBoard) {
+        queryClient.setQueryData(["board", boardId], context.previousBoard);
+      }
+      toast.error("Failed to update list");
+      // Reopen editing mode on error so user can retry
+      setIsEditing(true);
+      setEditTitle(newData.title || list.title);
     },
   });
 
@@ -115,18 +130,6 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const handleEdit = () => {
     if (editTitle.trim() && editTitle !== list.title) {
       const newTitle = editTitle.trim();
-      
-      // Optimistic update - update UI immediately
-      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          lists: oldData.lists.map((l: List) => 
-            l.id === list.id ? { ...l, title: newTitle } : l
-          )
-        };
-      });
-      
       updateListMutation.mutate({ title: newTitle });
     }
     setIsEditing(false);
@@ -148,12 +151,12 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
           <div
             ref={provided.innerRef}
             {...provided.draggableProps}
-            {...provided.dragHandleProps}
-            className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 cursor-grab active:cursor-grabbing transition-all duration-300 ease-out ${
+            className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 h-max active:cursor-grabbing transition-all duration-300 ease-out ${
             snapshot.isDragging ? "opacity-90 scale-[1.02] rotate-1 shadow-lg z-50" : ""
           }`}
           >
             <Card
+              {...provided.dragHandleProps}
               className={cn(
                 "h-fit bg-slate-50 dark:bg-black border-slate-200 border-2 dark:border-slate-800 py-0 shadow-lg gap-2 transition-all duration-300 ease-out rounded-md",
                 snapshot.isDragging && "border-teal-600 shadow-md"

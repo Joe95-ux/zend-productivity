@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
+// interface ReorderCardItem {
+//   id: string;
+//   position: number;
+//   listId: string;
+// }
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -16,18 +22,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Update all cards in a transaction
-    const transaction = items.map((card: any) => 
-      db.card.update({
+    // Run sequential updates (avoids deadlocks)
+    for (const card of items) {
+      await db.card.update({
         where: { id: card.id },
-        data: { 
+        data: {
           position: card.position,
-          listId: card.listId 
+          listId: card.listId,
         },
-      })
-    );
-
-    await db.$transaction(transaction);
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

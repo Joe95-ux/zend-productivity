@@ -345,11 +345,11 @@ export function MoveCardModal({ isOpen, onClose, card, currentBoardId, currentLi
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent side="top">
-                          {Array.from({ length: cardCount + 1 }, (_, i) => {
+                          {Array.from({ length: isSameList ? cardCount : cardCount + 1 }, (_, i) => {
                             const position = i; // zero-based position
                             const displayPosition = i + 1; // user-facing
                             const isCurrentPosition = isSameList && position === (card.position - 1);
-                            const isEndPosition = position === cardCount;
+                            const isEndPosition = position === (isSameList ? Math.max(cardCount - 1, 0) : cardCount);
 
                             return (
                               <SelectItem

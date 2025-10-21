@@ -188,7 +188,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             className={cn(
-              "group cursor-pointer active:cursor-grabbing bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm border rounded-md",
+              "group cursor-pointer active:cursor-grabbing bg-white dark:bg-[#0D1117] border-slate-200 dark:border-slate-700 shadow-sm border rounded-md",
               "transition-all duration-300 ease-out",
               "hover:shadow-md hover:shadow-slate-900/20 hover:border-slate-300 dark:hover:border-slate-600",
               "hover:scale-[1.005] hover:bg-slate-50/50 dark:hover:bg-slate-700/50",
