@@ -52,13 +52,61 @@ export function CreateListForm({ boardId, onSuccess }: CreateListFormProps) {
 
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+    onMutate: async (newData) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["board", boardId] });
+
+      // Snapshot the previous value
+      const previousBoard = queryClient.getQueryData(["board", boardId]);
+
+      // Get current lists to determine next position
+      const currentBoard = queryClient.getQueryData(["board", boardId]) as any;
+      const nextPosition = currentBoard?.lists?.length ? Math.max(...currentBoard.lists.map((l: any) => l.position)) + 1 : 1;
+
+      // Create optimistic list
+      const optimisticList = {
+        id: `temp-${Date.now()}`, // Temporary ID
+        title: newData.title,
+        position: nextPosition,
+        boardId: boardId,
+        cards: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Optimistically update the cache
+      queryClient.setQueryData(["board", boardId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          lists: [...(old.lists || []), optimisticList]
+        };
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousBoard, optimisticList };
+    },
+    onSuccess: (data, variables, context) => {
+      // Update the cache with the real data from server
+      queryClient.setQueryData(["board", boardId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          lists: old.lists.map((list: any) => 
+            list.id === context?.optimisticList.id ? data : list
+          )
+        };
+      });
+      
       toast.success("List created successfully!");
       form.reset();
       onSuccess?.();
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousBoard) {
+        queryClient.setQueryData(["board", boardId], context.previousBoard);
+      }
       toast.error(error.message);
     },
   });

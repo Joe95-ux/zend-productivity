@@ -16,11 +16,12 @@ import { CreateCardForm } from "@/components/cards/CreateCardForm";
 import { CardItem } from "@/components/cards/CardItem";
 import { CopyListModal } from "./CopyListModal";
 import { MoveListModal } from "./MoveListModal";
+import { MoveAllCardsMenu } from "./MoveAllCardsMenu";
 import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
 import { toast } from "sonner";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
-import { List as ListType, UpdateListParams, List } from "@/lib/types";
+import { List as ListType, UpdateListParams, List, Card as CardType } from "@/lib/types";
 
 interface BoardData {
   lists: List[];
@@ -43,6 +44,8 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isMoveAllCardsOpen, setIsMoveAllCardsOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Get the current list data from query cache to stay in sync
@@ -56,9 +59,10 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
     enabled: false, // Don't fetch, just subscribe to cache updates
   });
 
-  // Get the current list title from the query cache
+  // Get the current list data from the query cache
   const currentList = boardData?.lists?.find((l: List) => l.id === list.id);
   const displayTitle = currentList?.title || list.title;
+  const displayCards = currentList?.cards || list.cards;
 
   // Update editTitle when displayTitle changes
   useEffect(() => {
@@ -131,6 +135,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
     },
   });
 
+
   const handleEdit = () => {
     if (editTitle.trim() && editTitle !== list.title) {
       const newTitle = editTitle.trim();
@@ -155,11 +160,11 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
           <div
             ref={provided.innerRef}
             {...provided.draggableProps}
-            className={`w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 h-max active:cursor-grabbing transition-all duration-300 ease-out ${
+            className={`relative w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 h-max active:cursor-grabbing transition-all duration-300 ease-out ${
               snapshot.isDragging
                 ? "opacity-90 scale-[1.02] rotate-1 shadow-lg z-50"
                 : ""
-            }`}
+          }`}
           >
             <Card
               {...provided.dragHandleProps}
@@ -196,7 +201,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                       </CardTitle>
                     )}
                   </div>
-                  <DropdownMenu>
+                  <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
@@ -242,6 +247,25 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                         Move List
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                        onClick={() => {
+                          if (displayCards.length === 0) {
+                            toast.info("This list has no cards to move");
+                            return;
+                          }
+                          setIsDropdownOpen(false); // Close dropdown
+                          setIsMoveAllCardsOpen(true); // Open move menu
+                        }}
+                        className={cn(
+                          "transition-colors duration-200",
+                          displayCards.length === 0
+                            ? "text-slate-400 dark:text-slate-500 cursor-not-allowed"
+                            : "text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                        )}
+                      >
+                        <Move className="h-4 w-4 mr-2" />
+                        Move All Cards
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         onClick={handleDelete}
                         className="text-red-400 focus:text-red-400 hover:bg-red-400/10 transition-colors duration-200 cursor-pointer"
                       >
@@ -275,7 +299,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                           "bg-blue-50 dark:bg-blue-900/20 rounded-md"
                       )}
                     >
-                      {list.cards.map((card, index) => (
+                      {displayCards.map((card: CardType, index: number) => (
                         <CardItem
                           key={card.id}
                           card={card}
@@ -292,32 +316,45 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
 
               {/* Fixed Card Footer - Hide when form is at top */}
               {!(isCreateCardOpen && cardFormPosition === 'top') && (
-                <div className="flex items-center m-1 px-3 py-4 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-all duration-200">
+              <div className="flex items-center m-1 px-3 py-4 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-all duration-200">
                   {isCreateCardOpen && cardFormPosition === 'bottom' ? (
-                    <CreateCardForm
-                      listId={list.id}
-                      boardId={boardId}
+                  <CreateCardForm
+                    listId={list.id}
+                    boardId={boardId}
                       onSuccess={() => {
                         setIsCreateCardOpen(false);
                         setCardFormPosition('bottom');
                       }}
-                    />
-                  ) : (
+                  />
+                ) : (
                     !isCreateCardOpen && <Button
-                      variant="ghost"
-                      className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white transition-all duration-300 ease-out hover:scale-[1.005] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
+                    variant="ghost"
+                    className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white transition-all duration-300 ease-out hover:scale-[1.005] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
                       onClick={() => {
                         setCardFormPosition('bottom');
                         setIsCreateCardOpen(true);
                       }}
-                    >
-                      <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300 ease-out" />
-                      Add a card
-                    </Button>
-                  )}
-                </div>
+                  >
+                    <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300 ease-out" />
+                    Add a card
+                  </Button>
+                )}
+              </div>
               )}
             </Card>
+            
+            {/* Move All Cards Menu - INSIDE the list container */}
+            <MoveAllCardsMenu
+              isOpen={isMoveAllCardsOpen}
+              onClose={() => setIsMoveAllCardsOpen(false)}
+              onBack={() => {
+                setIsMoveAllCardsOpen(false);
+                setIsDropdownOpen(true);
+              }}
+              sourceList={list}
+              targetLists={boardData?.lists || []}
+              boardId={boardId}
+            />
           </div>
         )}
       </Draggable>
@@ -345,6 +382,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
         itemName={list.title}
         isLoading={deleteListMutation.isPending}
       />
+
     </>
   );
 }
