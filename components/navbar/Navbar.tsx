@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useUser, UserButton } from "@clerk/nextjs";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeSwitcherBtn } from "@/components/ThemeSwitcherBtn";
@@ -30,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -49,9 +51,43 @@ export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  // Fetch notifications
+  const { data: notifications, isLoading: notificationsLoading } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const response = await fetch("/api/notifications");
+      if (!response.ok) throw new Error("Failed to fetch notifications");
+      return response.json();
+    },
+    enabled: isSignedIn && isNotificationsOpen,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Mark notifications as read
+  const markAsReadMutation = useMutation({
+    mutationFn: async (notificationIds?: string[]) => {
+      const response = await fetch("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds }),
+      });
+      if (!response.ok) throw new Error("Failed to mark notifications as read");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const handleMarkAllAsRead = () => {
+    markAsReadMutation.mutate(undefined);
   };
 
   const pathname = usePathname();
@@ -280,15 +316,94 @@ export function Navbar() {
                           <MessageSquare className="h-4 w-4" />
                         </HoverHint>
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="cursor-pointer transition-all duration-200 hover:scale-105"
-                      >
-                        <HoverHint label="Notifications" side="bottom">
-                          <Bell className="h-4 w-4" />
-                        </HoverHint>
-                      </Button>
+                      <DropdownMenu open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="cursor-pointer transition-all duration-200 hover:scale-105 relative"
+                          >
+                            <HoverHint label="Notifications" side="bottom">
+                              <Bell className="h-4 w-4" />
+                            </HoverHint>
+                            {notifications?.unreadCount > 0 && (
+                              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                {notifications.unreadCount > 99 ? '99+' : notifications.unreadCount}
+                              </span>
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-80 h-96 p-0">
+                          <div className="p-4 border-b">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-semibold">Notifications</h3>
+                              {notifications?.unreadCount > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleMarkAllAsRead}
+                                  className="text-xs"
+                                >
+                                  Mark all as read
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          <ScrollArea className="h-80">
+                            {notificationsLoading ? (
+                              <div className="p-4 text-center text-sm text-slate-500">
+                                Loading notifications...
+                              </div>
+                            ) : notifications?.notifications?.length > 0 ? (
+                              <div className="p-2">
+                                {notifications.notifications.map((notification: {
+                                  id: string;
+                                  title: string;
+                                  message: string;
+                                  isRead: boolean;
+                                  createdAt: string;
+                                }) => (
+                                  <div
+                                    key={notification.id}
+                                    className={`p-3 border-b last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer ${
+                                      !notification.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                                    }`}
+                                    onClick={() => {
+                                      if (!notification.isRead) {
+                                        markAsReadMutation.mutate([notification.id]);
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <div className="flex-shrink-0">
+                                        <Bell className="h-4 w-4 text-slate-400 mt-0.5" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-slate-900 dark:text-white">
+                                          {notification.title}
+                                        </p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                          {notification.message}
+                                        </p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                          {new Date(notification.createdAt).toLocaleString()}
+                                        </p>
+                                      </div>
+                                      {!notification.isRead && (
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="p-4 text-center text-sm text-slate-500">
+                                No notifications yet
+                              </div>
+                            )}
+                          </ScrollArea>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button
                         variant="ghost"
                         size="sm"

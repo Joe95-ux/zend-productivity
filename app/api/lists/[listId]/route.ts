@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { createActivityWithNotifications } from "@/lib/notification-utils";
 
 export async function PUT(
   request: NextRequest,
@@ -209,15 +210,13 @@ export async function DELETE(
       where: { id: listId }
     });
 
-    // Create activity log (with error handling)
+    // Create activity log with notifications (with error handling)
     try {
-      await db.activity.create({
-        data: {
-          type: "deleted_list",
-          message: `Deleted list "${list.title}"`,
-          boardId: list.boardId,
-          userId: user.id
-        }
+      await createActivityWithNotifications({
+        type: "deleted_list",
+        message: `Deleted list "${list.title}"`,
+        boardId: list.boardId,
+        userId: user.id
       });
     } catch (activityError) {
       console.error("Error creating activity for list deletion:", activityError);

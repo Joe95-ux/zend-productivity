@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editDescription, setEditDescription] = useState(boardDescription || "");
   const [activeTab, setActiveTab] = useState("activity");
+  const [isWatching, setIsWatching] = useState(false);
+  const [isWatchLoading, setIsWatchLoading] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch activities
@@ -84,6 +86,24 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     },
     enabled: isActivityOpen,
   });
+
+  // Check if user is watching this board
+  const { data: watchStatus } = useQuery({
+    queryKey: ["watch", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/watch/check?boardId=${boardId}`);
+      if (!response.ok) throw new Error("Failed to check watch status");
+      return response.json();
+    },
+    enabled: true,
+  });
+
+  // Update watch state when data changes
+  useEffect(() => {
+    if (watchStatus) {
+      setIsWatching(watchStatus.isWatching);
+    }
+  }, [watchStatus]);
 
   // Update board mutation
   const updateBoardMutation = useMutation({
@@ -164,6 +184,38 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const handleActivityClose = () => {
     setIsActivityOpen(false);
     setIsMenuOpen(false);
+  };
+
+  // Watch toggle mutation
+  const watchToggleMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/watch", {
+        method: isWatching ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ boardId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to toggle watch");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsWatching(!isWatching);
+      queryClient.invalidateQueries({ queryKey: ["watch", boardId] });
+      toast.success(isWatching ? "Stopped watching board" : "Now watching board");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleWatchToggle = () => {
+    if (isWatchLoading) return;
+    setIsWatchLoading(true);
+    watchToggleMutation.mutate();
   };
 
   return (
@@ -451,9 +503,12 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                         <Copy className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-normal">Copy board</span>
                       </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Eye className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Watch</span>
+                      <div 
+                        className={`flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors ${isWatching ? 'text-blue-600 dark:text-blue-400' : ''}`}
+                        onClick={handleWatchToggle}
+                      >
+                        {isWatching ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-slate-400" />}
+                        <span className="text-sm font-normal">{isWatching ? 'Stop Watching' : 'Watch'}</span>
                       </div>
                       <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
                         <Mail className="h-4 w-4 text-slate-400" />

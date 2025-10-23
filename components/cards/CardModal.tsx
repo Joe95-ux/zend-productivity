@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Dialog, DialogContent, DialogClose, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock } from "lucide-react";
+import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { HoverHint } from "@/components/HoverHint";
@@ -85,6 +84,8 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   const [activeTab, setActiveTab] = useState("details");
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
   const [showShootingStars, setShowShootingStars] = useState(false);
+  const [isWatching, setIsWatching] = useState(false);
+  const [isWatchLoading, setIsWatchLoading] = useState(false);
   const queryClient = useQueryClient();
 
   // Get the current card data from query cache to stay in sync
@@ -121,6 +122,24 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
     },
     enabled: isOpen,
   });
+
+  // Check if user is watching this card
+  const { data: watchStatus } = useQuery({
+    queryKey: ["watch", card.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/watch/check?cardId=${card.id}`);
+      if (!response.ok) throw new Error("Failed to check watch status");
+      return response.json();
+    },
+    enabled: isOpen,
+  });
+
+  // Update watch state when data changes
+  useEffect(() => {
+    if (watchStatus) {
+      setIsWatching(watchStatus.isWatching);
+    }
+  }, [watchStatus]);
 
 
   const cardForm = useForm<UpdateCardFormData>({
@@ -314,6 +333,32 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
     },
   });
 
+  // Watch toggle mutation
+  const watchToggleMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/watch", {
+        method: isWatching ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId: card.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to toggle watch");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsWatching(!isWatching);
+      queryClient.invalidateQueries({ queryKey: ["watch", card.id] });
+      toast.success(isWatching ? "Stopped watching card" : "Now watching card");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
 
   const handleAddComment = (data: CommentFormData) => {
     addCommentMutation.mutate(data);
@@ -396,6 +441,12 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
     });
   };
 
+  const handleWatchToggle = () => {
+    if (isWatchLoading) return;
+    setIsWatchLoading(true);
+    watchToggleMutation.mutate();
+  };
+
   const handleMenuAction = (action: string) => {
     switch (action) {
       case 'delete':
@@ -413,6 +464,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       case 'share':
         // TODO: Implement share functionality
         toast.info("Share functionality coming soon");
+        break;
+      case 'watch':
+        handleWatchToggle();
         break;
     }
   };
@@ -454,6 +508,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => handleMenuAction('watch')} className={isWatching ? "text-blue-600 dark:text-blue-400" : ""}>
+                    {isWatching ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                    {isWatching ? "Stop Watching" : "Watch"}
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleMenuAction('delete')} className="text-red-600 dark:text-red-400">
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete
@@ -567,12 +625,19 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     </form>
                   </Form>
                 ) : (
-                  <h1 
-                    className="text-lg font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 -m-2 rounded-lg transition-all duration-200 flex-1 text-slate-900 dark:text-white"
-                    onClick={handleTitleEdit}
-                  >
-                    {card.title}
-                  </h1>
+                  <div className="flex items-center gap-2">
+                    <h1 
+                      className="text-lg font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 -m-2 rounded-lg transition-all duration-200 flex-1 text-slate-900 dark:text-white"
+                      onClick={handleTitleEdit}
+                    >
+                      {card.title}
+                    </h1>
+                    {isWatching && (
+                      <HoverHint label="Watching this card" side="top">
+                        <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      </HoverHint>
+                    )}
+                  </div>
                 )}
               </div>
 

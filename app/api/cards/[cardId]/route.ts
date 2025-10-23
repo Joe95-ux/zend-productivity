@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { createActivityWithNotifications } from "@/lib/notification-utils";
 
 export async function PUT(
   request: NextRequest,
@@ -134,16 +135,14 @@ export async function PUT(
       activityType = isCompleted ? "completed_card" : "uncompleted_card";
     }
 
-    // Create activity log (with error handling)
+    // Create activity log with notifications (with error handling)
     try {
-      await db.activity.create({
-        data: {
-          type: activityType,
-          message: activityMessage,
-          boardId: card.list?.boardId,
-          cardId: cardId,
-          userId: user.id
-        }
+      await createActivityWithNotifications({
+        type: activityType,
+        message: activityMessage,
+        boardId: card.list?.boardId,
+        cardId: cardId,
+        userId: user.id
       });
     } catch (activityError) {
       console.error("Error creating activity for card update:", activityError);
@@ -214,16 +213,14 @@ export async function DELETE(
       where: { id: cardId }
     });
 
-    // Create activity log (with error handling)
+    // Create activity log with notifications (with error handling)
     try {
-      await db.activity.create({
-        data: {
-          type: "deleted_card",
-          message: `Deleted card "${card.title}"`,
-          boardId: card.list?.boardId,
-          cardId: cardId,
-          userId: user.id
-        }
+      await createActivityWithNotifications({
+        type: "deleted_card",
+        message: `Deleted card "${card.title}"`,
+        boardId: card.list?.boardId,
+        cardId: cardId,
+        userId: user.id
       });
     } catch (activityError) {
       console.error("Error creating activity for card deletion:", activityError);
