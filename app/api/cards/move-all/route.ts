@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { sourceListId, targetListId } = body;
+    const { sourceListId, targetListId, boardId } = body;
 
-    if (!sourceListId || !targetListId) {
+    if (!sourceListId || !targetListId || !boardId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 

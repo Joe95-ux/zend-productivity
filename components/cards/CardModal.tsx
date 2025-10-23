@@ -488,7 +488,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
           
 
           {/* Body - Responsive Layout */}
-          <div className="min-h-0 flex-1 bg-white dark:bg-slate-900 flex flex-col">
+          <div className="min-h-0 flex-1 bg-white dark:bg-[#0D1117] flex flex-col">
             {/* Mobile: Tabbed Layout */}
             <div className="md:hidden flex flex-col flex-1">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1">
@@ -1046,10 +1046,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
               </div>
 
               {/* Vertical Separator Line */}
-              <Separator orientation="vertical" className="bg-slate-200 dark:bg-slate-700" />
+              <Separator orientation="vertical" className="bg-slate-700 dark:bg-slate-200" />
 
             {/* Right Column */}
-            <div className="flex-1 p-8 space-y-6 overflow-y-auto bg-slate-50 dark:bg-slate-800">
+            <div className="flex-1 p-8 space-y-6 overflow-y-auto bg-slate-50 dark:bg-[#0D1117]">
               {/* Comments Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

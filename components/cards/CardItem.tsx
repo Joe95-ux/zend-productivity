@@ -65,7 +65,8 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
         setIsCompleted(updatedCard.isCompleted);
       }
     }
-  }, [boardData, list.id, card.id, isCompleted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardData, list.id, card.id]);
 
   const updateCardMutation = useMutation({
     mutationFn: async ({ title, description, position, isCompleted }: UpdateCardParams) => {
@@ -115,7 +116,8 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
     },
     onSuccess: () => {
       toast.success("Card deleted successfully!");
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      setIsDeleteModalOpen(false); // Close modal on success
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -169,7 +171,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
 
   const confirmDelete = () => {
     deleteCardMutation.mutate();
-    setIsDeleteModalOpen(false);
+    // Don't close modal immediately - let onSuccess handle it
   };
 
   const handleEdit = (e: React.MouseEvent) => {

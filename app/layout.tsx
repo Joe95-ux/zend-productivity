@@ -55,7 +55,7 @@ export default function RootLayout({
     >
       <html
         lang="en"
-        className="dark h-full"
+        className="h-full dark"
         style={{
           colorScheme: "dark",
         }}

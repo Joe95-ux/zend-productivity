@@ -133,7 +133,7 @@ export async function PUT(
     }
 
     // Update the list with any other changes (like title)
-    const updateData: any = {};
+    const updateData: { title?: string } = {};
     if (title !== undefined && title !== null) updateData.title = title;
     
     // If no valid data to update, return early

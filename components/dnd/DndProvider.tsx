@@ -13,6 +13,8 @@ interface DndProviderProps {
 
 interface DndContextType {
   orderedData: Board | null;
+  isLoading: boolean;
+  error: Error | null;
 }
 
 const DndContext = createContext<DndContextType | undefined>(undefined);
@@ -59,7 +61,10 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
   });
 
   const updateCardOrderMutation = useMutation({
-    mutationFn: async ({ items, boardId }: { items: { id: string; position: number; listId: string }[], boardId: string }) => {
+    mutationFn: async ({ items, boardId }: { 
+      items: { id: string; position: number; listId: string }[], 
+      boardId: string 
+    }) => {
       const response = await fetch("/api/cards/reorder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,9 +83,10 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
       queryClient.refetchQueries({ queryKey: ["board", boardId] });
     },
   });
+  
 
   // Use useQuery to ensure reactive updates
-  const { data: boardData } = useQuery<Board>({
+  const { data: boardData, isLoading, error } = useQuery<Board>({
     queryKey: ["board", boardId],
     queryFn: async () => {
       const response = await fetch(`/api/boards/${boardId}`);
@@ -94,18 +100,31 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     refetchOnMount: false, // Prevent refetch on component mount
   });
 
-  useEffect(() => {
-    if (boardData && !orderedData) {
-      setOrderedData(boardData);
-    }
-  }, [boardData, orderedData]);
-
-  // Update ordered data when board data changes, but not during pending mutations
   // useEffect(() => {
-  //   if (boardData && !updateListOrderMutation.isPending && !updateCardOrderMutation.isPending) {
+  //   if (boardData && !orderedData) {
   //     setOrderedData(boardData);
   //   }
-  // }, [boardData, updateListOrderMutation.isPending, updateCardOrderMutation.isPending]);
+  // }, [boardData, orderedData]);
+
+  // Update ordered data when board data changes, but not during pending mutations
+  useEffect(() => {
+    if (boardData) {
+      // Update orderedData when boardData changes, but be smart about it
+      setOrderedData(prev => {
+        // If we don't have orderedData yet, use boardData
+        if (!prev) return boardData;
+        
+        // If drag operations are pending, keep the optimistic state
+        if (updateListOrderMutation.isPending || updateCardOrderMutation.isPending) {
+          return prev;
+        }
+        
+        // Otherwise, update with fresh data (for button operations)
+        return boardData;
+      });
+    }
+  }, [boardData, updateListOrderMutation.isPending, updateCardOrderMutation.isPending]);
+  
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, type } = result;
@@ -183,7 +202,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
   };
 
   return (
-    <DndContext.Provider value={{ orderedData }}>
+    <DndContext.Provider value={{ orderedData, isLoading, error }}>
       <DragDropContext onDragEnd={onDragEnd}>
         {children}
       </DragDropContext>

@@ -118,14 +118,14 @@ export function CopyCardModal({
     onSuccess: (data, variables) => {
       toast.success("Card copied successfully!");
       
-      // Force refetch of the target board to ensure UI updates immediately
-      queryClient.refetchQueries({
+      // Invalidate queries to trigger updates
+      queryClient.invalidateQueries({
         queryKey: ["board", variables.targetBoardId],
       });
       
-      // If copying to a different board, also refetch the current board
+      // If copying to a different board, also invalidate the current board
       if (variables.targetBoardId !== currentBoardId) {
-        queryClient.refetchQueries({ 
+        queryClient.invalidateQueries({ 
           queryKey: ["board", currentBoardId] 
         });
       }

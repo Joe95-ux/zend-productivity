@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
 import { List as ListType, UpdateListParams, List, Card as CardType } from "@/lib/types";
+import { useDndContext } from "@/components/dnd/DndProvider";
 
 interface BoardData {
   lists: List[];
@@ -48,19 +49,9 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Get the current list data from query cache to stay in sync
-  const { data: boardData } = useQuery({
-    queryKey: ["board", boardId],
-    queryFn: async () => {
-      const response = await fetch(`/api/boards/${boardId}`);
-      if (!response.ok) throw new Error("Failed to fetch board");
-      return response.json();
-    },
-    enabled: false, // Don't fetch, just subscribe to cache updates
-  });
-
-  // Get the current list data from the query cache
-  const currentList = boardData?.lists?.find((l: List) => l.id === list.id);
+  // Get the current list data from DndProvider context
+  const { orderedData } = useDndContext();
+  const currentList = orderedData?.lists?.find((l: List) => l.id === list.id);
   const displayTitle = currentList?.title || list.title;
   const displayCards = currentList?.cards || list.cards;
 
@@ -128,7 +119,8 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
     },
     onSuccess: () => {
       toast.success("List deleted successfully!");
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      setIsDeleteModalOpen(false); // Close modal on success
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -150,7 +142,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
 
   const confirmDelete = () => {
     deleteListMutation.mutate();
-    setIsDeleteModalOpen(false);
+    // Don't close modal immediately - let onSuccess handle it
   };
 
   return (
@@ -169,7 +161,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
             <Card
               {...provided.dragHandleProps}
               className={cn(
-                "h-fit bg-slate-50 dark:bg-black border-slate-200 border-2 dark:border-slate-800 py-0 shadow-lg gap-2 transition-all duration-300 ease-out rounded-md",
+                "h-fit bg-slate-50 gap-0 dark:bg-black border-slate-200 border-2 dark:border-slate-800 py-0 shadow-lg transition-all duration-300 ease-out rounded-md",
                 snapshot.isDragging && "border-teal-600 shadow-md"
               )}
             >
@@ -277,7 +269,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                 </div>
               </CardHeader>
 
-              <CardContent className={cn("flex flex-col gap-2 px-3 py-0 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500", isCreateCardOpen && cardFormPosition === 'top' && "pb-3")}>
+              <CardContent className={cn("flex flex-col gap-2 px-3 pt-2 pb-0 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500", isCreateCardOpen && cardFormPosition === 'top' && "pb-3")}>
                 {isCreateCardOpen && cardFormPosition === 'top' && (
                   <CreateCardForm
                     listId={list.id}
@@ -352,7 +344,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                 setIsDropdownOpen(true);
               }}
               sourceList={list}
-              targetLists={boardData?.lists || []}
+              targetLists={orderedData?.lists || []}
               boardId={boardId}
             />
           </div>

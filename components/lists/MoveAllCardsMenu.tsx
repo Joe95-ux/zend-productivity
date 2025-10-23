@@ -3,15 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { List, Card } from "@/lib/types";
+import { List } from "@/lib/types";
 import { toast } from "sonner";
-
-interface BoardData {
-  lists: List[];
-  title?: string;
-  description?: string;
-  id?: string;
-}
 
 interface MoveAllCardsMenuProps {
   isOpen: boolean;
@@ -38,7 +31,7 @@ export function MoveAllCardsMenu({
       const targetList = targetLists.find((l: List) => l.id === targetListId);
       const sourceListName = sourceList.title;
       const targetListName = targetList?.title || "Unknown List";
-      
+
       toast.loading(`Moving all cards in list "${sourceListName}" to "${targetListName}"`, {
         id: "move-all-cards"
       });
@@ -49,57 +42,11 @@ export function MoveAllCardsMenu({
         body: JSON.stringify({
           sourceListId: sourceList.id,
           targetListId: targetListId,
+          boardId: boardId,
         }),
       });
       if (!response.ok) throw new Error("Failed to move all cards");
       return response.json();
-    },
-    onMutate: async (targetListId: string) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["board", boardId] });
-
-      // Snapshot the previous value
-      const previousBoard = queryClient.getQueryData(["board", boardId]);
-
-      // Get current board data
-      const currentBoard = queryClient.getQueryData(["board", boardId]) as BoardData | undefined;
-      if (!currentBoard) return { previousBoard };
-
-      // Get cards from source list
-      const sourceListData = currentBoard.lists?.find((l: List) => l.id === sourceList.id);
-      const sourceCards = sourceListData?.cards || [];
-
-      if (sourceCards.length === 0) return { previousBoard };
-
-      // Get target list to determine next position
-      const targetListData = currentBoard.lists?.find((l: List) => l.id === targetListId);
-      const targetCards = targetListData?.cards || [];
-      const nextPosition = targetCards.length > 0 ? Math.max(...targetCards.map((c: Card) => c.position)) + 1 : 1;
-
-      // Optimistically update the cache
-      queryClient.setQueryData(["board", boardId], (old: BoardData | undefined) => {
-        if (!old) return old;
-        return {
-          ...old,
-          lists: old.lists.map((l: List) => {
-            if (l.id === sourceList.id) {
-              // Remove all cards from source list
-              return { ...l, cards: [] };
-            } else if (l.id === targetListId) {
-              // Add all cards to target list with new positions
-              const movedCards = sourceCards.map((card: Card, index: number) => ({
-                ...card,
-                listId: targetListId,
-                position: nextPosition + index
-              }));
-              return { ...l, cards: [...(l.cards || []), ...movedCards] };
-            }
-            return l;
-          })
-        };
-      });
-      
-      return { previousBoard };
     },
     onSuccess: (data, targetListId) => {
       // Get list names for success message
@@ -107,15 +54,14 @@ export function MoveAllCardsMenu({
       const sourceListName = sourceList.title;
       const targetListName = targetList?.title || "Unknown List";
       
+      // Invalidate the query to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      
       // Dismiss loading toast and show success
       toast.dismiss("move-all-cards");
       toast.success(`All cards in list "${sourceListName}" have been moved to list "${targetListName}"`);
     },
-    onError: (error: Error, variables, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousBoard) {
-        queryClient.setQueryData(["board", boardId], context.previousBoard);
-      }
+    onError: (error: Error) => {
       // Dismiss loading toast and show error
       toast.dismiss("move-all-cards");
       toast.error(error.message);

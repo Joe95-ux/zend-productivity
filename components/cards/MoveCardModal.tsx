@@ -141,8 +141,8 @@ export function MoveCardModal({ isOpen, onClose, card, currentBoardId, currentLi
     },
     onSuccess: (data, variables) => {
       console.log("Move card success:", data);
-      queryClient.refetchQueries({ queryKey: ["board", currentBoardId] });
-      queryClient.refetchQueries({ queryKey: ["board", variables.targetBoardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", currentBoardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", variables.targetBoardId] });
       toast.success("Card moved successfully!");
       onClose();
     },
@@ -178,8 +178,8 @@ export function MoveCardModal({ isOpen, onClose, card, currentBoardId, currentLi
     },
     onSuccess: (data, variables) => {
       console.log("Suggested move success:", data);
-      queryClient.refetchQueries({ queryKey: ["board", currentBoardId] });
-      queryClient.refetchQueries({ queryKey: ["board", variables.targetBoardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", currentBoardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", variables.targetBoardId] });
       toast.success("Card moved successfully!");
       onClose();
     },
