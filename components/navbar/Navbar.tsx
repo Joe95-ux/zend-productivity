@@ -408,10 +408,13 @@ export function Navbar() {
                         variant="ghost"
                         size="sm"
                         className="cursor-pointer transition-all duration-200 hover:scale-105"
+                        asChild
                       >
-                        <HoverHint label="Information" side="bottom">
-                          <Info className="h-4 w-4" />
-                        </HoverHint>
+                        <Link href="/settings">
+                          <HoverHint label="Settings" side="bottom">
+                            <Info className="h-4 w-4" />
+                          </HoverHint>
+                        </Link>
                       </Button>
 
                       <UserButton

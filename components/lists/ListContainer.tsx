@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, MoreHorizontal, Edit, Trash2, Copy, Move } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Copy, Move, Eye, EyeOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +47,8 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isMoveAllCardsOpen, setIsMoveAllCardsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isWatching, setIsWatching] = useState(false);
+  const [isWatchLoading, setIsWatchLoading] = useState(false);
   const queryClient = useQueryClient();
 
   // Get the current list data from DndProvider context
@@ -127,6 +129,56 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
     },
   });
 
+  // Check if user is watching this list
+  const { data: watchStatus } = useQuery({
+    queryKey: ["watch", list.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/watch/check?listId=${list.id}`);
+      if (!response.ok) throw new Error("Failed to check watch status");
+      return response.json();
+    },
+    enabled: true,
+  });
+
+  // Update watch state when data changes
+  useEffect(() => {
+    if (watchStatus) {
+      setIsWatching(watchStatus.isWatching);
+    }
+  }, [watchStatus]);
+
+  // Watch toggle mutation
+  const watchToggleMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/watch", {
+        method: isWatching ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listId: list.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to toggle watch");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsWatching(!isWatching);
+      queryClient.invalidateQueries({ queryKey: ["watch", list.id] });
+      toast.success(isWatching ? "Stopped watching list" : "Now watching list");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleWatchToggle = () => {
+    if (isWatchLoading) return;
+    setIsWatchLoading(true);
+    watchToggleMutation.mutate();
+  };
+
 
   const handleEdit = () => {
     if (editTitle.trim() && editTitle !== list.title) {
@@ -193,16 +245,21 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                       </CardTitle>
                     )}
                   </div>
-                  <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 hover:scale-105"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
+                  <div className="flex items-center gap-1">
+                    {/* Watch indicator */}
+                    {isWatching && (
+                      <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    )}
+                    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 hover:scale-105"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
                       className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
@@ -223,6 +280,13 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={handleWatchToggle}
+                        className={`${isWatching ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-white'} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer`}
+                      >
+                        {isWatching ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                        {isWatching ? 'Stop Watching' : 'Watch'}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setIsCopyModalOpen(true)}
@@ -266,6 +330,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
 

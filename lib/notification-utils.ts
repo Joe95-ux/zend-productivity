@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { sendWatchNotification } from "./email";
 
 export interface NotificationData {
   type: string;
@@ -53,6 +54,20 @@ export async function createNotificationForWatchers(
       ...listWatchers.map(w => w.userId)
     ]);
 
+    // Get user details for email notifications
+    const watcherUsers = await db.user.findMany({
+      where: {
+        id: { in: Array.from(allWatchers) },
+        emailNotifications: true
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        emailFrequency: true
+      }
+    });
+
     // Create notifications for all watchers
     const notifications = Array.from(allWatchers).map(userId => ({
       userId,
@@ -71,10 +86,76 @@ export async function createNotificationForWatchers(
       });
     }
 
+    // Send email notifications for users who have them enabled
+    await sendEmailNotificationsToWatchers(
+      watcherUsers,
+      notificationData,
+      excludeUserId
+    );
+
     return notifications.length;
   } catch (error) {
     console.error("Error creating notifications for watchers:", error);
     return 0;
+  }
+}
+
+async function sendEmailNotificationsToWatchers(
+  watcherUsers: Array<{
+    id: string;
+    email: string;
+    name?: string;
+    emailFrequency: string;
+  }>,
+  notificationData: NotificationData,
+  excludeUserId?: string
+) {
+  // Get additional context for email
+  const board = await db.board.findUnique({
+    where: { id: notificationData.boardId },
+    select: { title: true }
+  });
+
+  const card = notificationData.cardId ? await db.card.findUnique({
+    where: { id: notificationData.cardId },
+    select: { 
+      title: true,
+      list: {
+        select: {
+          title: true
+        }
+      }
+    }
+  }) : null;
+
+  const actionUser = excludeUserId ? await db.user.findUnique({
+    where: { id: excludeUserId },
+    select: { name: true, email: true }
+  }) : null;
+
+  // Send emails to users with immediate notifications
+  const immediateUsers = watcherUsers.filter(user => 
+    user.emailFrequency === "immediate" && user.id !== excludeUserId
+  );
+
+  for (const user of immediateUsers) {
+    try {
+      await sendWatchNotification(
+        user.email,
+        notificationData.type,
+        {
+          title: notificationData.title,
+          message: notificationData.message,
+          boardTitle: board?.title,
+          cardTitle: card?.title,
+          listTitle: card?.list?.title,
+          actionBy: actionUser?.name || actionUser?.email || 'Someone',
+          actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/boards/${notificationData.boardId}`
+        }
+      );
+    } catch (error) {
+      console.error(`Error sending email to ${user.email}:`, error);
+    }
   }
 }
 

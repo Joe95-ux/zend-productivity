@@ -22,6 +22,10 @@ model User {
   watches       Watch[]
   notifications Notification[]
   
+  // Email preferences
+  emailNotifications Boolean    @default(true)
+  emailFrequency     String     @default("immediate") // "immediate", "daily", "weekly"
+  
   // ✅ One-to-one relation (each user has at most one subscription)
   subscription  Subscription?  @relation(name: "UserSubscription")
 

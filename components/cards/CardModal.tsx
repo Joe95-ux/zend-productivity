@@ -495,6 +495,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                 </HoverHint>
                 
               </div>
+              {/* Watch indicator */}
+              {isWatching && (
+                <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -740,7 +744,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                 <TabsContent value="activity" className="p-4 space-y-4 flex-1 overflow-y-auto max-h-[70vh]">
                   {/* Comments Header */}
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                    <div className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-lg">
                       <MessageSquare className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
                     </div>
                     <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Comments and activity</h3>
@@ -808,7 +812,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     {card.comments.length > 0 && (
                       <div className="space-y-2">
                         {card.comments.map((comment) => (
-                          <div key={comment.id} className="flex gap-3 p-3 items-start border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800">
+                          <div key={comment.id} className="flex gap-3 p-3 items-start border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900">
                             <ConditionalUserProfile user={comment.user as UserWithAvatar} size="sm" />
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
@@ -1116,7 +1120,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
               {/* Comments Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-sm">
+                  <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm">
                     <MessageSquare className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                   </div>
                   <h3 className="font-semibold text-slate-900 dark:text-white">Comments and activity</h3>
@@ -1194,7 +1198,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   {card.comments.length > 0 && (
                     <div className="space-y-3">
                       {card.comments.map((comment) => (
-                        <div key={comment.id} className="flex gap-3 p-3 border items-start border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+                        <div key={comment.id} className="flex gap-3 p-3 border items-start border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900">
                           <ConditionalUserProfile user={comment.user as UserWithAvatar} size="md" />
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
