@@ -38,6 +38,7 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number) {
 export function DndProvider({ children, boardId }: DndProviderProps) {
   const queryClient = useQueryClient();
   const [orderedData, setOrderedData] = useState<Board | null>(null);
+  const [isDragInProgress, setIsDragInProgress] = useState(false);
 
   const updateListOrderMutation = useMutation({
     mutationFn: async ({ items, boardId }: { items: { id: string; position: number }[], boardId: string }) => {
@@ -51,10 +52,12 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     },
     onSuccess: () => {
       toast.success("List reordered");
+      setIsDragInProgress(false); // Clear drag in progress flag
       // Don't refetch - let optimistic update handle UI
     },
     onError: (error) => {
       toast.error(error.message);
+      setIsDragInProgress(false); // Clear drag in progress flag
       // Only refetch on error to revert to server state
       queryClient.refetchQueries({ queryKey: ["board", boardId] });
     },
@@ -75,10 +78,12 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     },
     onSuccess: () => {
       toast.success("Card reordered");
+      setIsDragInProgress(false); // Clear drag in progress flag
       // Don't refetch - let optimistic update handle UI
     },
     onError: (error) => {
       toast.error(error.message);
+      setIsDragInProgress(false); // Clear drag in progress flag
       // Only refetch on error to revert to server state
       queryClient.refetchQueries({ queryKey: ["board", boardId] });
     },
@@ -114,8 +119,8 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         // If we don't have orderedData yet, use boardData
         if (!prev) return boardData;
         
-        // If drag operations are pending, keep the optimistic state
-        if (updateListOrderMutation.isPending || updateCardOrderMutation.isPending) {
+        // If drag operations are pending or in progress, keep the optimistic state
+        if (updateListOrderMutation.isPending || updateCardOrderMutation.isPending || isDragInProgress) {
           return prev;
         }
         
@@ -123,19 +128,29 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         return boardData;
       });
     }
-  }, [boardData, updateListOrderMutation.isPending, updateCardOrderMutation.isPending]);
+  }, [boardData, updateListOrderMutation.isPending, updateCardOrderMutation.isPending, isDragInProgress]);
   
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, type } = result;
 
-    if (!destination) return;
-
-    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+    if (!destination) {
+      setIsDragInProgress(false);
       return;
     }
 
-    if (!orderedData) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+      setIsDragInProgress(false);
+      return;
+    }
+
+    if (!orderedData) {
+      setIsDragInProgress(false);
+      return;
+    }
+
+    // Set drag in progress to prevent useEffect from overriding optimistic updates
+    setIsDragInProgress(true);
 
     // User moves a list
     if (type === "list") {

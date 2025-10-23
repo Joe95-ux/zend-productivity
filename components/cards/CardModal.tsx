@@ -425,7 +425,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
           {/* Header */}
           <DialogHeader>
             <DialogTitle>
-            <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-t-lg">
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-t-lg">
             <div className="flex items-center gap-2 md:gap-3">
               <Badge variant="secondary" className="text-xs md:text-sm font-medium px-2 md:px-3 py-1 bg-slate-100 dark:bg-slate-700 text-strong dark:text-slate-300 border-slate-200 dark:border-slate-600">
                 {list.title}
@@ -869,7 +869,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
             {/* Desktop: Two Column Layout */}
             <div className="hidden md:flex flex-row min-h-0 flex-1">
               {/* Left Column */}
-              <div className="flex-1 p-8 space-y-8 overflow-y-auto">
+              <div className="flex-1 p-8 space-y-8 overflow-y-auto bg-slate-50 dark:bg-slate-900">
                 {/* Card Title with Check Radio */}
                 <div className="flex items-start gap-4">
                   <div 
@@ -1045,11 +1045,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                 )}
               </div>
 
-              {/* Vertical Separator Line */}
-              <Separator orientation="vertical" className="bg-slate-700 dark:bg-slate-200" />
 
             {/* Right Column */}
-            <div className="flex-1 p-8 space-y-6 overflow-y-auto bg-slate-50 dark:bg-[#0D1117]">
+            <div className="flex-1 p-8 space-y-6 overflow-y-auto border-l border-slate-400 dark:border-slate-800 bg-slate-200 dark:bg-[#0D1117]">
               {/* Comments Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

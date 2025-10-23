@@ -277,74 +277,79 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               <CardIndicators card={card} />
 
               {/* Action Buttons - Positioned absolutely on the right, aligned with title */}
-              <div className="absolute right-3 top-3 flex items-center gap-1">
-              {/* Edit Icon - Show on hover for large devices */}
-              {isHovered && (
-                <div className="hidden lg:block">
-                  <button
-                    data-action-button
-                    onClick={handleEdit}
-                    className={cn(
-                      "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out",
-                      "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
-                    )}
-                  >
-                    <Edit className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
-                  </button>
-                </div>
-              )}
-
-              {/* More Options Dropdown - Show on hover */}
-              {isHovered && (
-                <DropdownMenu onOpenChange={(open) => {
-                  setIsDropdownOpen(open);
-                  if (!open) {
-                    // Close hover state when dropdown closes, with shorter delay
-                    setTimeout(() => setIsHovered(false), 100);
-                  }
-                }}>
-                  <DropdownMenuTrigger asChild>
+              <div className="absolute right-3 top-3 flex items-center gap-1 z-50">
+                {/* Background blur overlay for action buttons */}
+                <div className="absolute inset-0 bg-white/80 dark:bg-[#0D1117]/80 backdrop-blur-sm rounded-md -m-1 z-0" />
+                
+                {/* Edit Icon - Show on hover for large devices */}
+                {isHovered && (
+                  <div className="hidden lg:block relative z-10">
                     <button
-                      data-dropdown-trigger
-                      onClick={(e) => e.stopPropagation()}
+                      data-action-button
+                      onClick={handleEdit}
                       className={cn(
                         "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out",
-                        "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105"
+                        "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105",
+                        "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm"
                       )}
                     >
-                      <MoreHorizontal className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
+                      <Edit className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48" data-dropdown-content>
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      setIsCopyModalOpen(true);
-                    }}>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy Card
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      setIsMoveModalOpen(true);
-                    }}>
-                      <Move className="h-4 w-4 mr-2" />
-                      Move Card
-                    </DropdownMenuItem>
-                    {isCompleted && (
-                      <DropdownMenuItem 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(e);
-                        }}
-                        className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                  </div>
+                )}
+
+                {/* More Options Dropdown - Show on hover */}
+                {isHovered && (
+                  <DropdownMenu onOpenChange={(open) => {
+                    setIsDropdownOpen(open);
+                    if (!open) {
+                      // Close hover state when dropdown closes, with shorter delay
+                      setTimeout(() => setIsHovered(false), 100);
+                    }
+                  }}>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        data-dropdown-trigger
+                        onClick={(e) => e.stopPropagation()}
+                        className={cn(
+                          "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out",
+                          "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105",
+                          "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm relative z-10"
+                        )}
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Card
+                        <MoreHorizontal className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 z-50" data-dropdown-content>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCopyModalOpen(true);
+                      }}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Card
                       </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMoveModalOpen(true);
+                      }}>
+                        <Move className="h-4 w-4 mr-2" />
+                        Move Card
+                      </DropdownMenuItem>
+                      {isCompleted && (
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(e);
+                          }}
+                          className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Card
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </CardContent>
           </Card>
