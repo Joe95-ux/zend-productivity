@@ -1,6 +1,27 @@
 import { db } from "./db";
 import { sendEmailNotification } from "./email";
 
+interface User {
+  id: string;
+  email: string;
+  name?: string | null;
+}
+
+interface NotificationWithActivity {
+  id: string;
+  message: string;
+  createdAt: Date;
+  type: string;
+  title: string;
+  boardId?: string | null;
+  cardId?: string | null;
+}
+
+interface DigestEmailData {
+  notifications: NotificationWithActivity[];
+  type: "daily" | "weekly";
+}
+
 export async function sendDailyDigest() {
   try {
     // Get all users who have daily email frequency
@@ -51,7 +72,7 @@ export async function sendWeeklyDigest() {
   }
 }
 
-async function sendUserDailyDigest(user: { id: string; email: string; name?: string }) {
+async function sendUserDailyDigest(user: User) {
   try {
     // Get yesterday's notifications for this user
     const yesterday = new Date();
@@ -69,23 +90,14 @@ async function sendUserDailyDigest(user: { id: string; email: string; name?: str
           lt: today
         }
       },
-      include: {
-        activity: {
-          include: {
-            user: true,
-            board: {
-              select: { title: true }
-            },
-            card: {
-              select: { 
-                title: true,
-                list: {
-                  select: { title: true }
-                }
-              }
-            }
-          }
-        }
+      select: {
+        id: true,
+        message: true,
+        createdAt: true,
+        type: true,
+        title: true,
+        boardId: true,
+        cardId: true
       },
       orderBy: { createdAt: "desc" }
     });
@@ -107,7 +119,7 @@ async function sendUserDailyDigest(user: { id: string; email: string; name?: str
   }
 }
 
-async function sendUserWeeklyDigest(user: { id: string; email: string; name?: string }) {
+async function sendUserWeeklyDigest(user: User) {
   try {
     // Get last week's notifications for this user
     const lastWeek = new Date();
@@ -125,23 +137,14 @@ async function sendUserWeeklyDigest(user: { id: string; email: string; name?: st
           lt: today
         }
       },
-      include: {
-        activity: {
-          include: {
-            user: true,
-            board: {
-              select: { title: true }
-            },
-            card: {
-              select: { 
-                title: true,
-                list: {
-                  select: { title: true }
-                }
-              }
-            }
-          }
-        }
+      select: {
+        id: true,
+        message: true,
+        createdAt: true,
+        type: true,
+        title: true,
+        boardId: true,
+        cardId: true
       },
       orderBy: { createdAt: "desc" }
     });
@@ -163,19 +166,14 @@ async function sendUserWeeklyDigest(user: { id: string; email: string; name?: st
   }
 }
 
-function generateDigestEmail(notifications: any[], type: "daily" | "weekly"): string {
+function generateDigestEmail(notifications: NotificationWithActivity[], type: "daily" | "weekly"): string {
   const period = type === "daily" ? "yesterday" : "this week";
   const notificationCount = notifications.length;
 
-  // Group notifications by board
-  const notificationsByBoard = notifications.reduce((acc, notification) => {
-    const boardTitle = notification.activity?.board?.title || "Unknown Board";
-    if (!acc[boardTitle]) {
-      acc[boardTitle] = [];
-    }
-    acc[boardTitle].push(notification);
-    return acc;
-  }, {} as Record<string, any[]>);
+  // Group notifications by board (simplified since we don't have board titles)
+  const notificationsByBoard = {
+    "Activity": notifications
+  };
 
   return `
     <!DOCTYPE html>
@@ -273,9 +271,8 @@ function generateDigestEmail(notifications: any[], type: "daily" | "weekly"): st
               <div class="notification-item">
                 <div class="notification-message">${notification.message}</div>
                 <div class="notification-meta">
-                  ${notification.activity?.user?.name || notification.activity?.user?.email || 'Someone'} • 
                   ${new Date(notification.createdAt).toLocaleString()}
-                  ${notification.cardId ? ` • Card: ${notification.activity?.card?.title || 'Unknown'}` : ''}
+                  ${notification.cardId ? ` • Card ID: ${notification.cardId}` : ''}
                 </div>
               </div>
             `).join('')}

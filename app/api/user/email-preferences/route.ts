@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
       where: { clerkId: userId },
       select: {
         emailNotifications: true,
-        emailFrequency: true
+        emailFrequency: true,
+        notifyOwnActions: true
       }
     });
 
@@ -46,7 +47,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { emailNotifications, emailFrequency } = await request.json();
+    const { emailNotifications, emailFrequency, notifyOwnActions } = await request.json();
 
     // Validate email frequency
     const validFrequencies = ["immediate", "daily", "weekly"];
@@ -60,11 +61,13 @@ export async function PUT(request: NextRequest) {
       where: { id: user.id },
       data: {
         emailNotifications: emailNotifications !== undefined ? emailNotifications : undefined,
-        emailFrequency: emailFrequency || undefined
+        emailFrequency: emailFrequency || undefined,
+        notifyOwnActions: notifyOwnActions !== undefined ? notifyOwnActions : undefined
       },
       select: {
         emailNotifications: true,
-        emailFrequency: true
+        emailFrequency: true,
+        notifyOwnActions: true
       }
     });
 

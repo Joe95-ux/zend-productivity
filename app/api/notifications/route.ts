@@ -23,19 +23,31 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    const notifications = await db.notification.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      skip: offset
-    });
-
-    const unreadCount = await db.notification.count({
-      where: { 
-        userId: user.id,
-        isRead: false 
-      }
-    });
+    // Use Promise.all to run queries in parallel for better performance
+    const [notifications, unreadCount] = await Promise.all([
+      db.notification.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          message: true,
+          isRead: true,
+          createdAt: true,
+          boardId: true,
+          cardId: true
+        }
+      }),
+      db.notification.count({
+        where: { 
+          userId: user.id,
+          isRead: false 
+        }
+      })
+    ]);
 
     return NextResponse.json({
       notifications,

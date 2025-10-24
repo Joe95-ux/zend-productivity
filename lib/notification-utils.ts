@@ -64,25 +64,37 @@ export async function createNotificationForWatchers(
         id: true,
         email: true,
         name: true,
-        emailFrequency: true
+        emailFrequency: true,
+        notifyOwnActions: true
       }
     });
 
-    // Create notifications for all watchers
-    const notifications = Array.from(allWatchers).map(userId => ({
-      userId,
-      type: notificationData.type,
-      title: notificationData.title,
-      message: notificationData.message,
-      boardId: notificationData.boardId,
-      cardId: notificationData.cardId,
-      activityId: notificationData.activityId,
-      isRead: false
-    }));
+    // Create notifications for all watchers, respecting user preferences
+    const notificationsToCreate = [];
+    
+    for (const userId of allWatchers) {
+      const isOwnAction = userId === excludeUserId;
+      const user = watcherUsers.find(u => u.id === userId);
+      
+      // Only create notification if user wants to be notified for their own actions
+      // or if it's not their own action
+      if (user && (user.notifyOwnActions || !isOwnAction)) {
+        notificationsToCreate.push({
+          userId,
+          type: notificationData.type,
+          title: notificationData.title,
+          message: notificationData.message,
+          boardId: notificationData.boardId,
+          cardId: notificationData.cardId,
+          activityId: notificationData.activityId,
+          isRead: false
+        });
+      }
+    }
 
-    if (notifications.length > 0) {
+    if (notificationsToCreate.length > 0) {
       await db.notification.createMany({
-        data: notifications
+        data: notificationsToCreate
       });
     }
 
@@ -93,7 +105,7 @@ export async function createNotificationForWatchers(
       excludeUserId
     );
 
-    return notifications.length;
+    return notificationsToCreate.length;
   } catch (error) {
     console.error("Error creating notifications for watchers:", error);
     return 0;
@@ -104,8 +116,9 @@ async function sendEmailNotificationsToWatchers(
   watcherUsers: Array<{
     id: string;
     email: string;
-    name?: string;
+    name?: string | null;
     emailFrequency: string;
+    notifyOwnActions: boolean;
   }>,
   notificationData: NotificationData,
   excludeUserId?: string
@@ -134,9 +147,13 @@ async function sendEmailNotificationsToWatchers(
   }) : null;
 
   // Send emails to users with immediate notifications
-  const immediateUsers = watcherUsers.filter(user => 
-    user.emailFrequency === "immediate" && user.id !== excludeUserId
-  );
+  // Filter based on user preference for own actions
+  const immediateUsers = watcherUsers.filter(user => {
+    const isOwnAction = user.id === excludeUserId;
+    const shouldNotify = user.emailFrequency === "immediate" && 
+      (user.notifyOwnActions || !isOwnAction);
+    return shouldNotify;
+  });
 
   for (const user of immediateUsers) {
     try {

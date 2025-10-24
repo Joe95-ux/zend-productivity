@@ -30,9 +30,10 @@ interface CardItemProps {
   };
   boardId: string;
   index: number;
+  isWatching?: boolean;
 }
 
-export function CardItem({ card, list, boardId, index }: CardItemProps) {
+export function CardItem({ card, list, boardId, index, isWatching = false }: CardItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
@@ -274,7 +275,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               </div>
 
               {/* Card Indicators */}
-              <CardIndicators card={card} />
+              <CardIndicators card={card} isWatching={isWatching} />
 
               {/* Action Buttons - Positioned absolutely on the right, aligned with title */}
               <div className="absolute right-3 top-3 flex items-center gap-1 z-50">

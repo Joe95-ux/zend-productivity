@@ -47,6 +47,30 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isMoveAllCardsOpen, setIsMoveAllCardsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Batch watch status query for all cards in this list
+  const { data: watchData } = useQuery({
+    queryKey: ["watch-batch", list.id],
+    queryFn: async () => {
+      const cardIds = list.cards?.map(card => card.id) || [];
+      const response = await fetch('/api/watch/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          cardIds,
+          listIds: [list.id],
+          boardId 
+        })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch watch status');
+      }
+      return response.json();
+    },
+    enabled: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Disable automatic refetching
+  });
   const [isWatching, setIsWatching] = useState(false);
   const [isWatchLoading, setIsWatchLoading] = useState(false);
   const queryClient = useQueryClient();
@@ -134,10 +158,19 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
     queryKey: ["watch", list.id],
     queryFn: async () => {
       const response = await fetch(`/api/watch/check?listId=${list.id}`);
-      if (!response.ok) throw new Error("Failed to check watch status");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to check watch status");
+      }
       return response.json();
     },
     enabled: true,
+    retry: (failureCount, error) => {
+      // Don't retry on 404 errors (list doesn't exist)
+      if (error.message.includes("not found")) return false;
+      return failureCount < 2;
+    },
+    retryDelay: 1000,
   });
 
   // Update watch state when data changes
@@ -357,12 +390,13 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                       )}
                     >
                       {displayCards.map((card: CardType, index: number) => (
-                        <CardItem
+                        <CardItemWithWatch
                           key={card.id}
                           card={card}
                           list={{ id: list.id, title: list.title }}
                           boardId={boardId}
                           index={index}
+                          watchMap={watchData?.watchMap}
                         />
                       ))}
                       {provided.placeholder}
@@ -441,5 +475,26 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
       />
 
     </>
+  );
+}
+
+// Component to fetch watch status for individual cards
+function CardItemWithWatch({ card, list, boardId, index, watchMap }: {
+  card: CardType;
+  list: { id: string; title: string };
+  boardId: string;
+  index: number;
+  watchMap?: Record<string, boolean>;
+}) {
+  const isWatching = watchMap?.[`card:${card.id}`] || false;
+
+  return (
+    <CardItem
+      card={card}
+      list={list}
+      boardId={boardId}
+      index={index}
+      isWatching={isWatching}
+    />
   );
 }

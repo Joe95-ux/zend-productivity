@@ -25,6 +25,7 @@ model User {
   // Email preferences
   emailNotifications Boolean    @default(true)
   emailFrequency     String     @default("immediate") // "immediate", "daily", "weekly"
+  notifyOwnActions   Boolean    @default(false) // Whether to receive notifications for own actions
   
   // ✅ One-to-one relation (each user has at most one subscription)
   subscription  Subscription?  @relation(name: "UserSubscription")
@@ -161,6 +162,10 @@ model Watch {
   createdAt DateTime @default(now())
   
   @@unique([userId, boardId, listId, cardId])
+  @@index([userId])
+  @@index([boardId])
+  @@index([listId])
+  @@index([cardId])
 }
 
 model Notification {
@@ -178,6 +183,12 @@ model Notification {
   activityId String? @db.ObjectId
   
   createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@index([boardId])
+  @@index([cardId])
 }
 
 //

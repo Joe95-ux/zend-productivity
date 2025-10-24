@@ -29,6 +29,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "At least one ID (boardId, listId, or cardId) is required" }, { status: 400 });
     }
 
+    // Check if the item exists first (for lists and cards)
+    if (listId) {
+      const list = await db.list.findUnique({
+        where: { id: listId },
+        select: { id: true }
+      });
+      if (!list) {
+        return NextResponse.json({ error: "List not found" }, { status: 404 });
+      }
+    }
+
+    if (cardId) {
+      const card = await db.card.findUnique({
+        where: { id: cardId },
+        select: { id: true }
+      });
+      if (!card) {
+        return NextResponse.json({ error: "Card not found" }, { status: 404 });
+      }
+    }
+
+    if (boardId) {
+      const board = await db.board.findUnique({
+        where: { id: boardId },
+        select: { id: true }
+      });
+      if (!board) {
+        return NextResponse.json({ error: "Board not found" }, { status: 404 });
+      }
+    }
+
     // Check if watch exists
     const watch = await db.watch.findFirst({
       where: {

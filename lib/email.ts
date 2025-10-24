@@ -54,7 +54,17 @@ export async function sendWatchNotification(
   });
 }
 
-function getEmailSubject(notificationType: string, data: any): string {
+interface NotificationData {
+  title: string;
+  message: string;
+  cardTitle?: string;
+  listTitle?: string;
+  boardTitle?: string;
+  actionBy?: string;
+  actionUrl?: string;
+}
+
+function getEmailSubject(notificationType: string, data: NotificationData): string {
   const baseSubject = 'Zend Productivity Notification';
   
   switch (notificationType) {
@@ -77,7 +87,7 @@ function getEmailSubject(notificationType: string, data: any): string {
   }
 }
 
-function generateEmailTemplate(notificationType: string, data: any): string {
+function generateEmailTemplate(notificationType: string, data: NotificationData): string {
   const actionBy = data.actionBy || 'Someone';
   const boardTitle = data.boardTitle || 'Board';
   const cardTitle = data.cardTitle || '';

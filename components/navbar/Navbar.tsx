@@ -22,6 +22,9 @@ import {
   Plus,
   Kanban,
   Layout,
+  Settings,
+  MoreHorizontal,
+  Clock,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -30,8 +33,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +46,9 @@ import {
 import { CreateBoardForm } from "@/components/boards/CreateBoardForm";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { HoverHint } from "@/components/HoverHint";
+import { SettingsDropdown } from "@/components/settings/SettingsDropdown";
+import { HelpDropdown } from "@/components/navbar/HelpDropdown";
+import { toast } from "sonner";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -52,6 +60,7 @@ export function Navbar() {
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isNotificationSettingsOpen, setIsNotificationSettingsOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const closeMobileMenu = () => {
@@ -59,15 +68,20 @@ export function Navbar() {
   };
 
   // Fetch notifications
-  const { data: notifications, isLoading: notificationsLoading } = useQuery({
+  const { data: notifications, isLoading: notificationsLoading, error: notificationsError } = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
       const response = await fetch("/api/notifications");
-      if (!response.ok) throw new Error("Failed to fetch notifications");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to fetch notifications");
+      }
       return response.json();
     },
     enabled: isSignedIn && isNotificationsOpen,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 60000, // Refetch every 60 seconds (WSL2 optimization)
+    retry: 2, // Retry failed requests up to 2 times
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   // Mark notifications as read
@@ -89,6 +103,92 @@ export function Navbar() {
   const handleMarkAllAsRead = () => {
     markAsReadMutation.mutate(undefined);
   };
+
+  // Fetch current email preferences for notification settings
+  const { data: notificationPreferences } = useQuery({
+    queryKey: ["email-preferences"],
+    queryFn: async () => {
+      const response = await fetch("/api/user/email-preferences");
+      if (!response.ok) throw new Error("Failed to fetch email preferences");
+      return response.json();
+    },
+    enabled: isNotificationSettingsOpen,
+  });
+
+  // Update email notifications mutation
+  const updateEmailNotificationsMutation = useMutation({
+    mutationFn: async (emailNotifications: boolean) => {
+      const response = await fetch("/api/user/email-preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailNotifications }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update email notifications");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Email notifications updated");
+      queryClient.invalidateQueries({ queryKey: ["email-preferences"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Update email frequency mutation
+  const updateEmailFrequencyMutation = useMutation({
+    mutationFn: async (emailFrequency: string) => {
+      const response = await fetch("/api/user/email-preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailFrequency }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update email frequency");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Email frequency updated");
+      queryClient.invalidateQueries({ queryKey: ["email-preferences"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Update notify own actions mutation
+  const updateNotifyOwnActionsMutation = useMutation({
+    mutationFn: async (notifyOwnActions: boolean) => {
+      const response = await fetch("/api/user/email-preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notifyOwnActions }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update notification preference");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Notification preference updated");
+      queryClient.invalidateQueries({ queryKey: ["email-preferences"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
 
   const pathname = usePathname();
   const isDashboardPage = pathname.startsWith("/dashboard");
@@ -337,22 +437,131 @@ export function Navbar() {
                           <div className="p-4 border-b">
                             <div className="flex items-center justify-between">
                               <h3 className="font-semibold">Notifications</h3>
-                              {notifications?.unreadCount > 0 && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMarkAllAsRead}
-                                  className="text-xs"
-                                >
-                                  Mark all as read
-                                </Button>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {notifications?.unreadCount > 0 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleMarkAllAsRead}
+                                    className="text-xs"
+                                  >
+                                    Mark all as read
+                                  </Button>
+                                )}
+                                <DropdownMenu open={isNotificationSettingsOpen} onOpenChange={setIsNotificationSettingsOpen}>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <HoverHint label="Notification Settings" side="bottom">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </HoverHint>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-80 p-0">
+                                    <div className="p-4">
+                                      <div className="flex items-center gap-2 mb-4">
+                                        <Settings className="h-4 w-4 text-slate-500" />
+                                        <span className="font-medium">Notification Settings</span>
+                                      </div>
+
+                                      {/* Email Notifications */}
+                                      <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                            <Bell className="h-4 w-4 text-slate-500" />
+                                            <span className="text-sm font-medium">Email Notifications</span>
+                                          </div>
+                                          <Switch
+                                            checked={notificationPreferences?.emailNotifications || false}
+                                            onCheckedChange={(checked) => updateEmailNotificationsMutation.mutate(checked)}
+                                            disabled={updateEmailNotificationsMutation.isPending}
+                                          />
+                                        </div>
+
+                                        {/* Email Frequency */}
+                                        {notificationPreferences?.emailNotifications && (
+                                          <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                              <Clock className="h-4 w-4 text-slate-500" />
+                                              <span className="text-sm font-medium">Frequency</span>
+                                            </div>
+                                            <Select
+                                              value={notificationPreferences?.emailFrequency || "immediate"}
+                                              onValueChange={(frequency) => updateEmailFrequencyMutation.mutate(frequency)}
+                                              disabled={updateEmailFrequencyMutation.isPending}
+                                            >
+                                              <SelectTrigger className="w-full h-8">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="immediate">
+                                                  <div className="flex items-center gap-2">
+                                                    <Bell className="h-3 w-3" />
+                                                    <span>Immediate</span>
+                                                  </div>
+                                                </SelectItem>
+                                                <SelectItem value="daily">
+                                                  <div className="flex items-center gap-2">
+                                                    <Clock className="h-3 w-3" />
+                                                    <span>Daily</span>
+                                                  </div>
+                                                </SelectItem>
+                                                <SelectItem value="weekly">
+                                                  <div className="flex items-center gap-2">
+                                                    <Clock className="h-3 w-3" />
+                                                    <span>Weekly</span>
+                                                  </div>
+                                                </SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        )}
+
+                                        {/* Notify Own Actions */}
+                                        {notificationPreferences?.emailNotifications && (
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                              <User className="h-4 w-4 text-slate-500" />
+                                              <span className="text-sm font-medium">Notify for My Actions</span>
+                                            </div>
+                                            <Switch
+                                              checked={notificationPreferences?.notifyOwnActions || false}
+                                              onCheckedChange={(checked) => updateNotifyOwnActionsMutation.mutate(checked)}
+                                              disabled={updateNotifyOwnActionsMutation.isPending}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <DropdownMenuSeparator className="my-3" />
+
+                                      {/* Quick Actions */}
+                                      <div className="space-y-1">
+                                        <DropdownMenuItem asChild>
+                                          <Link href="/settings" className="flex items-center gap-2">
+                                            <Settings className="h-4 w-4" />
+                                            <span>All Settings</span>
+                                          </Link>
+                                        </DropdownMenuItem>
+                                      </div>
+                                    </div>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </div>
                           </div>
-                          <ScrollArea className="h-80">
+                          {/* Notifications Content with Custom Scrollbar */}
+                          <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
                             {notificationsLoading ? (
                               <div className="p-4 text-center text-sm text-slate-500">
                                 Loading notifications...
+                              </div>
+                            ) : notificationsError ? (
+                              <div className="p-4 text-center text-sm text-red-500">
+                                Failed to load notifications. Please try again.
                               </div>
                             ) : notifications?.notifications?.length > 0 ? (
                               <div className="p-2">
@@ -401,21 +610,11 @@ export function Navbar() {
                                 No notifications yet
                               </div>
                             )}
-                          </ScrollArea>
+                          </div>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="cursor-pointer transition-all duration-200 hover:scale-105"
-                        asChild
-                      >
-                        <Link href="/settings">
-                          <HoverHint label="Settings" side="bottom">
-                            <Info className="h-4 w-4" />
-                          </HoverHint>
-                        </Link>
-                      </Button>
+                      <SettingsDropdown />
+                      <HelpDropdown />
 
                       <UserButton
                         afterSignOutUrl="/"
@@ -537,11 +736,19 @@ export function Navbar() {
                                       Notifications
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                                    <Info className="h-4 w-4 text-slate-400" />
-                                    <span className="text-sm font-normal">
-                                      Information
-                                    </span>
+                                  <div
+                                    className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                                    onClick={closeMobileMenu}
+                                  >
+                                    <Link
+                                      href="/settings"
+                                      className="flex items-center gap-3 w-full"
+                                    >
+                                      <Settings className="h-4 w-4 text-slate-400" />
+                                      <span className="text-sm font-normal">
+                                        Settings
+                                      </span>
+                                    </Link>
                                   </div>
                                   <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
                                     <Palette className="h-4 w-4 text-slate-400" />

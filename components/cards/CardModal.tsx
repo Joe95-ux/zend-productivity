@@ -636,11 +636,6 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     >
                       {card.title}
                     </h1>
-                    {isWatching && (
-                      <HoverHint label="Watching this card" side="top">
-                        <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      </HoverHint>
-                    )}
                   </div>
                 )}
               </div>
@@ -739,15 +734,26 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   </div>
                 </div>
               )}
+
                 </TabsContent>
                 
                 <TabsContent value="activity" className="p-4 space-y-4 flex-1 overflow-y-auto max-h-[70vh]">
                   {/* Comments Header */}
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-lg">
-                      <MessageSquare className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-lg">
+                        <MessageSquare className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                      </div>
+                      <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Comments and activity</h3>
                     </div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Comments and activity</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowDetails(!showDetails)}
+                      className="border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    >
+                      {showDetails ? "Hide details" : "Show details"}
+                    </Button>
                   </div>
 
                   {/* Add Comment Input */}
@@ -772,7 +778,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                   {...field} 
                                   rows={3}
                                   autoFocus
-                                  className="border-2 border-slate-300 dark:border-slate-600 focus:border-slate-500 dark:focus:border-slate-400 bg-white dark:bg-slate-700 rounded-lg resize-none text-sm"
+                                  className="border-2 border-slate-300 dark:border-slate-700 focus:border-slate-500 dark:focus:border-slate-400 bg-white dark:bg-slate-900 rounded-lg resize-none text-sm"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -1131,7 +1137,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   onClick={() => setShowDetails(!showDetails)}
                   className="border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
-                  Hide details
+                  {showDetails ? "Hide details" : "Show details"}
                 </Button>
               </div>
 
@@ -1157,7 +1163,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                               {...field} 
                               rows={4}
                               autoFocus
-                              className="border-2 border-slate-300 dark:border-slate-600 focus:border-slate-500 dark:focus:border-slate-400 bg-white dark:bg-slate-700 rounded-lg resize-none"
+                              className="border-2 border-slate-300 dark:border-slate-600 focus:border-slate-500 dark:focus:border-slate-400 bg-white dark:bg-slate-900 rounded-lg resize-none"
                             />
                           </FormControl>
                           <FormMessage />
@@ -1244,7 +1250,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                   value={editingCommentContent}
                                   onChange={(e) => setEditingCommentContent(e.target.value)}
                                   rows={3}
-                                  className="text-sm border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                                  className="text-sm border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
                                 />
                                 <div className="flex gap-2">
                                   <Button

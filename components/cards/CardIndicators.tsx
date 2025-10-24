@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, TextAlignStart, MessagesSquare, Paperclip, User } from "lucide-react";
+import { Clock, TextAlignStart, MessagesSquare, Paperclip, Eye } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { Card } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -8,9 +8,10 @@ import { HoverHint } from "@/components/HoverHint";
 
 interface CardIndicatorsProps {
   card: Card;
+  isWatching?: boolean;
 }
 
-export function CardIndicators({ card }: CardIndicatorsProps) {
+export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps) {
   const hasDescription = card.description && card.description.trim().length > 0;
   const hasComments = card.comments && card.comments.length > 0;
   const hasAttachments = false; // TODO: Add attachments field to Card type
@@ -82,6 +83,13 @@ export function CardIndicators({ card }: CardIndicatorsProps) {
                 0
               </span>
             </div>
+          </HoverHint>
+        )}
+
+        {/* Watch indicator */}
+        {isWatching && (
+          <HoverHint label="Watching this card" side="bottom">
+            <Eye className="w-4 h-4 cursor-pointer text-blue-600 dark:text-blue-400" />
           </HoverHint>
         )}
       </div>
