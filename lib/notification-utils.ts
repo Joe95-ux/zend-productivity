@@ -54,27 +54,30 @@ export async function createNotificationForWatchers(
       ...listWatchers.map(w => w.userId)
     ]);
 
-    // Get user details for email notifications
-    const watcherUsers = await db.user.findMany({
+    // Get user details for ALL watchers (for in-app notifications)
+    const allWatcherUsers = await db.user.findMany({
       where: {
-        id: { in: Array.from(allWatchers) },
-        emailNotifications: true
+        id: { in: Array.from(allWatchers) }
       },
       select: {
         id: true,
         email: true,
         name: true,
         emailFrequency: true,
-        notifyOwnActions: true
+        notifyOwnActions: true,
+        emailNotifications: true
       }
     });
+
+    // Get user details for email notifications (only those with email enabled)
+    const emailWatcherUsers = allWatcherUsers.filter(user => user.emailNotifications);
 
     // Create notifications for all watchers, respecting user preferences
     const notificationsToCreate = [];
     
     for (const userId of allWatchers) {
       const isOwnAction = userId === excludeUserId;
-      const user = watcherUsers.find(u => u.id === userId);
+      const user = allWatcherUsers.find(u => u.id === userId);
       
       // Only create notification if user wants to be notified for their own actions
       // or if it's not their own action
@@ -100,7 +103,7 @@ export async function createNotificationForWatchers(
 
     // Send email notifications for users who have them enabled
     await sendEmailNotificationsToWatchers(
-      watcherUsers,
+      emailWatcherUsers,
       notificationData,
       excludeUserId
     );

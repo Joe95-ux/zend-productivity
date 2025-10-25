@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, TextAlignStart, MessagesSquare, Paperclip, Eye } from "lucide-react";
+import { Clock, TextQuote, MessagesSquare, Paperclip, Eye } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { Card } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -58,7 +58,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
         {/* Description */}
         {hasDescription && (
           <HoverHint label="Has description" side="bottom">
-            <TextAlignStart className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
+            <TextQuote className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
           </HoverHint>
         )}
 

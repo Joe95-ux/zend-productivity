@@ -190,13 +190,12 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             className={cn(
-              "group cursor-pointer active:cursor-grabbing bg-white dark:bg-[#0D1117] border-slate-200 dark:border-slate-700 shadow-sm border rounded-md",
-              "transition-all duration-300 ease-out",
+              "group cursor-pointer bg-white dark:bg-[#0D1117] border-slate-200 dark:border-slate-700 shadow-sm border rounded-md",
+              "transition-all duration-200 ease-out",
               "hover:shadow-md hover:shadow-slate-900/20 hover:border-slate-300 dark:hover:border-slate-600",
-              "hover:scale-[1.005] hover:bg-slate-50/50 dark:hover:bg-slate-700/50",
-              "hover:-translate-y-0.5",
+              "hover:ring-2 hover:ring-slate-300 dark:hover:ring-slate-600",
               snapshot.isDragging && "opacity-90 scale-105 rotate-2 shadow-2xl z-50",
-              isCompleted && "opacity-60 bg-slate-100 dark:bg-slate-700",
+              isCompleted && "opacity-40 bg-slate-100 dark:bg-slate-700",
               // Removed loading state since we're doing optimistic updates
             )}
             onMouseEnter={() => setIsHovered(true)}
@@ -209,13 +208,13 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
           >
             <CardContent className="p-0 relative">
               {/* Card Header with Title and Radio Button */}
-              <div className="flex items-center min-h-12 px-3 relative">
+              <div className="flex items-center min-h-10 px-3 relative">
                 
                 {/* Radio Button - Always present, hidden behind title by default */}
                 <div 
                   className={cn(
-                    "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-200 ease-out absolute left-3 z-10",
-                    "cursor-pointer hover:scale-105",
+                    "hidden lg:flex flex-shrink-0 w-5 h-5 items-center justify-center transition-all duration-300 ease-in-out absolute left-3 z-10",
+                    "cursor-pointer hover:scale-110",
                     // Always visible but opacity changes based on state
                     (isCompleted || isHovered) 
                       ? "opacity-100" 
@@ -253,7 +252,7 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
                       </motion.div>
                     </motion.div>
                   ) : (
-                    <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-teal-600 transition-all duration-200"></div>
+                    <div className="w-5 h-5 border-2 border-slate-400 rounded-full hover:border-teal-600 transition-all duration-300 ease-in-out"></div>
                   )}
                   <ShootingStars 
                     isActive={showShootingStars} 
@@ -263,8 +262,8 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
 
                 {/* Card Title - Slides right on hover to reveal radio icon underneath */}
                 <h4 className={cn(
-                  "font-medium text-sm text-slate-900 dark:text-white transition-all duration-200 ease-out relative z-20",
-                  isCompleted && "line-through text-slate-500 dark:text-slate-400",
+                  "font-medium text-sm text-slate-900 dark:text-white transition-all duration-300 ease-in-out relative z-20",
+                  isCompleted && "line-through text-slate-600 dark:text-slate-300",
                   // Slide right on hover to reveal radio icon underneath
                   (isCompleted || isHovered) 
                     ? "translate-x-8" // Move right to reveal radio icon
@@ -280,18 +279,18 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
               {/* Action Buttons - Positioned absolutely on the right, aligned with title */}
               <div className="absolute right-3 top-3 flex items-center gap-1 z-50">
                 {/* Background blur overlay for action buttons */}
-                <div className="absolute inset-0 bg-white/80 dark:bg-[#0D1117]/80 backdrop-blur-sm rounded-md -m-1 z-0" />
+                <div className="absolute inset-0 bg-white/80 opacity-0 hover:opacity-100 dark:bg-[#0D1117] rounded-md -m-1 z-0" />
                 
                 {/* Edit Icon - Show on hover for large devices */}
                 {isHovered && (
-                  <div className="hidden lg:block relative z-10">
+                  <div className="hidden lg:block relative z-10 bg-white dark:bg-[#0D1117]">
                     <button
                       data-action-button
                       onClick={handleEdit}
                       className={cn(
                         "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out",
-                        "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105",
-                        "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm"
+                        "hover:bg-slate-200 dark:hover:bg-slate-600",
+                        "bg-white/50 dark:bg-slate-800/50"
                       )}
                     >
                       <Edit className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
@@ -299,8 +298,7 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
                   </div>
                 )}
 
-                {/* More Options Dropdown - Show on hover */}
-                {isHovered && (
+                {/* More Options Dropdown - Always visible on mobile, hover on desktop */}
                   <DropdownMenu onOpenChange={(open) => {
                     setIsDropdownOpen(open);
                     if (!open) {
@@ -313,15 +311,24 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
                         data-dropdown-trigger
                         onClick={(e) => e.stopPropagation()}
                         className={cn(
-                          "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out",
-                          "hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105",
-                          "bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm relative z-10"
+                          "w-6 h-6 flex items-center justify-center rounded transition-all duration-200 ease-out bg-white dark:bg-[#0D1117]",
+                          "hover:bg-slate-200 dark:hover:bg-slate-600",
+                        "bg-white/50 dark:bg-slate-800/50 relative z-10",
+                        // Always visible on mobile, hover on desktop
+                        "opacity-100 md:opacity-0 md:group-hover:opacity-100"
                         )}
                       >
                         <MoreHorizontal className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 z-50" data-dropdown-content>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(e);
+                    }}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Card
+                    </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => {
                         e.stopPropagation();
                         setIsCopyModalOpen(true);
@@ -336,7 +343,6 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
                         <Move className="h-4 w-4 mr-2" />
                         Move Card
                       </DropdownMenuItem>
-                      {isCompleted && (
                         <DropdownMenuItem 
                           onClick={(e) => {
                             e.stopPropagation();
@@ -347,10 +353,8 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete Card
                         </DropdownMenuItem>
-                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                )}
               </div>
             </CardContent>
           </Card>

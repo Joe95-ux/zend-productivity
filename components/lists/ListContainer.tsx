@@ -237,7 +237,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
           <div
             ref={provided.innerRef}
             {...provided.draggableProps}
-            className={`relative w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 h-max active:cursor-grabbing transition-all duration-300 ease-out ${
+            className={`relative w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0 h-max transition-all duration-300 ease-out ${
               snapshot.isDragging
                 ? "opacity-90 scale-[1.02] rotate-1 shadow-lg z-50"
                 : ""
@@ -367,7 +367,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                 </div>
               </CardHeader>
 
-              <CardContent className={cn("flex flex-col gap-2 px-3 pt-2 pb-0 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500", isCreateCardOpen && cardFormPosition === 'top' && "pb-3")}>
+              <CardContent className={cn("flex flex-col gap-2 px-3 pt-2 pb-1 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500", isCreateCardOpen && cardFormPosition === 'top' && "pb-3")}>
                 {isCreateCardOpen && cardFormPosition === 'top' && (
                   <CreateCardForm
                     listId={list.id}

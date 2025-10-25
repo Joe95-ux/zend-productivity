@@ -49,7 +49,7 @@ interface CopyListModalProps {
     id: string;
     title: string;
     position: number;
-    cards: any[];
+    cards: unknown[];
   };
   currentBoardId: string;
 }
@@ -206,7 +206,7 @@ export function CopyListModal({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {boards?.map((board: any) => (
+                        {boards?.map((board: { id: string; title: string }) => (
                           <SelectItem key={board.id} value={board.id}>
                             {board.title}
                           </SelectItem>
@@ -294,7 +294,7 @@ export function CopyListModal({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {targetBoardLists.map((targetList: any) => (
+                          {targetBoardLists.map((targetList: { id: string; title: string }) => (
                             <SelectItem key={targetList.id} value={targetList.id}>
                               {targetList.title}
                             </SelectItem>
