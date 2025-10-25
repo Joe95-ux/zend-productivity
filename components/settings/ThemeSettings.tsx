@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Palette, Moon, Sun, Monitor } from "lucide-react";
+import { Moon, Sun, Monitor } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export function ThemeSettings() {
@@ -120,6 +119,5 @@ export function ThemeSettings() {
             </div>
           </div>
         </div>
-    </div>
   );
 }

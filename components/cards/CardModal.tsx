@@ -176,7 +176,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
     },
     onSuccess: () => {
       // Just refetch to ensure server sync (cache already updated)
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Card updated successfully!");
     },
     onError: (error: Error) => {
@@ -239,7 +239,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
         };
       });
       
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Card updated successfully!");
       // Close the editing forms after successful update
       setIsEditingTitle(false);
@@ -272,7 +272,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       queryClient.invalidateQueries({ queryKey: ["comments"] });
       commentForm.reset();
       setIsCommentFormExpanded(false);
@@ -301,7 +301,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       setEditingCommentId(null);
       setEditingCommentContent("");
       toast.success("Comment updated successfully!");
@@ -325,7 +325,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Comment deleted successfully!");
     },
     onError: (error: Error) => {

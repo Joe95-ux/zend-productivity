@@ -24,7 +24,7 @@ export function CollapsibleCard({
   return (
     <Card>
       <CardHeader 
-        className="pt-8 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        className="py-6 cursor-pointer hover:bg-slate-50 rounded-xl dark:hover:bg-slate-800/50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center justify-between">
@@ -43,7 +43,7 @@ export function CollapsibleCard({
         </div>
       </CardHeader>
       {isExpanded && (
-        <CardContent className="py-8">
+        <CardContent className="pb-8 pt-2">
           {children}
         </CardContent>
       )}

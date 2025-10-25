@@ -141,6 +141,7 @@ export function MoveCardModal({ isOpen, onClose, card, currentBoardId, currentLi
     },
     onSuccess: (data, variables) => {
       console.log("Move card success:", data);
+      console.log("Move card variables:", variables);
       queryClient.invalidateQueries({ queryKey: ["board", currentBoardId] });
       queryClient.invalidateQueries({ queryKey: ["board", variables.targetBoardId] });
       toast.success("Card moved successfully!");

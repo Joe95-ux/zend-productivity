@@ -1,3 +1,5 @@
+"use client";
+
 import { EmailPreferences } from "@/components/settings/EmailPreferences";
 import { ThemeSettings } from "@/components/settings/ThemeSettings";
 import { DisplayPreferences } from "@/components/settings/DisplayPreferences";

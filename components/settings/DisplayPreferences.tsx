@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Eye, Calendar, Clock, Grid } from "lucide-react";
+import { Calendar, Clock, Grid } from "lucide-react";
 
 export function DisplayPreferences() {
   const [cardDensity, setCardDensity] = useState("comfortable");
@@ -14,18 +13,7 @@ export function DisplayPreferences() {
   const [compactMode, setCompactMode] = useState(false);
 
   return (
-    <Card>
-      <CardHeader className="pt-8">
-        <CardTitle className="flex items-center gap-2">
-          <Eye className="h-5 w-5" />
-          Display Preferences
-        </CardTitle>
-        <CardDescription>
-          Customize how content is displayed in your workspace
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="py-8">
-        <div className="space-y-6">
+    <div className="space-y-6">
           {/* Card Density */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -111,7 +99,5 @@ export function DisplayPreferences() {
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
   );
 }

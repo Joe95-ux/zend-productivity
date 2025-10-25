@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Settings, Shield, Key, Mail } from "lucide-react";
+import { User, Settings, Shield, Key, Mail } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { useUser } from "@clerk/nextjs";
 
@@ -119,6 +119,5 @@ export function UserProfile() {
             </div>
           </div>
         </div>
-    </div>
   );
 }

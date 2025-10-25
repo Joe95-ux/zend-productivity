@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("Move card API received:", body);
     const { cardId, targetBoardId, targetListId, position } = body;
+    console.log("Position received:", position, "Type:", typeof position);
 
     if (!cardId || !targetBoardId || !targetListId || position === undefined) {
       console.log("Missing fields:", { cardId, targetBoardId, targetListId, position });

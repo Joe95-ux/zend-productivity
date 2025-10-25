@@ -5,9 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mail, Bell, Clock } from "lucide-react";
+import { Bell, Clock } from "lucide-react";
 
 export function EmailPreferences() {
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -69,90 +68,67 @@ export function EmailPreferences() {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pt-8">
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Email Notifications
-          </CardTitle>
-          <CardDescription>
-            Configure how you receive email notifications for watched items
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="py-8">
-          <div className="space-y-6">
-            {/* Email Notifications Toggle Skeleton */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <div className="animate-pulse flex items-center gap-2">
-                  <div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                  <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                </div>
-                <div className="animate-pulse">
-                  <div className="h-4 w-64 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                </div>
-              </div>
-              <div className="animate-pulse">
-                <div className="h-6 w-11 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
-              </div>
+      <div className="space-y-6">
+        {/* Email Notifications Toggle Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="animate-pulse flex items-center gap-2">
+              <div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              <div className="h-5 w-32 bg-slate-200 dark:bg-slate-700 rounded"></div>
             </div>
-
-            {/* Frequency Dropdown Skeleton */}
-            <div className="space-y-3">
-              <div className="animate-pulse flex items-center gap-2">
-                <div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                <div className="h-5 w-40 bg-slate-200 dark:bg-slate-700 rounded"></div>
-              </div>
-              <div className="animate-pulse">
-                <div className="h-12 w-full bg-slate-200 dark:bg-slate-700 rounded-md"></div>
-              </div>
-            </div>
-
-            {/* Notify Own Actions Skeleton */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <div className="animate-pulse flex items-center gap-2">
-                  <div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                  <div className="h-5 w-36 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                </div>
-                <div className="animate-pulse">
-                  <div className="h-4 w-72 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                </div>
-              </div>
-              <div className="animate-pulse">
-                <div className="h-6 w-11 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
-              </div>
-            </div>
-
-            {/* Save Button Skeleton */}
-            <div className="flex justify-end">
-              <div className="animate-pulse">
-                <div className="h-10 w-24 bg-slate-200 dark:bg-slate-700 rounded-md"></div>
-              </div>
-            </div>
-
-            {/* Info Text Skeleton */}
             <div className="animate-pulse">
-              <div className="h-16 w-full bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+              <div className="h-4 w-64 bg-slate-200 dark:bg-slate-700 rounded"></div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="animate-pulse">
+            <div className="h-6 w-11 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+          </div>
+        </div>
+
+        {/* Frequency Dropdown Skeleton */}
+        <div className="space-y-3">
+          <div className="animate-pulse flex items-center gap-2">
+            <div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+            <div className="h-5 w-40 bg-slate-200 dark:bg-slate-700 rounded"></div>
+          </div>
+          <div className="animate-pulse">
+            <div className="h-12 w-full bg-slate-200 dark:bg-slate-700 rounded-md"></div>
+          </div>
+        </div>
+
+        {/* Notify Own Actions Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="animate-pulse flex items-center gap-2">
+              <div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              <div className="h-5 w-36 bg-slate-200 dark:bg-slate-700 rounded"></div>
+            </div>
+            <div className="animate-pulse">
+              <div className="h-4 w-72 bg-slate-200 dark:bg-slate-700 rounded"></div>
+            </div>
+          </div>
+          <div className="animate-pulse">
+            <div className="h-6 w-11 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+          </div>
+        </div>
+
+        {/* Save Button Skeleton */}
+        <div className="flex justify-end">
+          <div className="animate-pulse">
+            <div className="h-10 w-24 bg-slate-200 dark:bg-slate-700 rounded-md"></div>
+          </div>
+        </div>
+
+        {/* Info Text Skeleton */}
+        <div className="animate-pulse">
+          <div className="h-16 w-full bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="pt-8">
-        <CardTitle className="flex items-center gap-2">
-          <Mail className="h-5 w-5" />
-          Email Notifications
-        </CardTitle>
-        <CardDescription>
-          Configure how you receive email notifications for watched items
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 py-8">
+    <div className="space-y-6">
         {/* Email Notifications Toggle */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -233,7 +209,6 @@ export function EmailPreferences() {
             You can watch cards, lists, or entire boards by using the watch feature in the app.
           </p>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

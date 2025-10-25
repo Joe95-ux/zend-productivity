@@ -15,18 +15,7 @@ export function AccessibilitySettings() {
   const [cursorSize, setCursorSize] = useState("normal");
 
   return (
-    <Card>
-      <CardHeader className="pt-8">
-        <CardTitle className="flex items-center gap-2">
-          <Accessibility className="h-5 w-5" />
-          Accessibility
-        </CardTitle>
-        <CardDescription>
-          Customize the interface for better accessibility and usability
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="py-8">
-        <div className="space-y-6">
+    <div className="space-y-6">
           {/* Visual Settings */}
           <div className="space-y-4">
             <h4 className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -144,7 +133,5 @@ export function AccessibilitySettings() {
             </ul>
           </div>
         </div>
-      </CardContent>
-    </Card>
   );
 }

@@ -119,9 +119,9 @@ export function CopyListModal({
     },
     onSuccess: (data, variables) => {
       toast.success("List copied successfully!");
-      queryClient.refetchQueries({ queryKey: ["board", variables.targetBoardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", variables.targetBoardId] });
       if (variables.targetBoardId !== currentBoardId) {
-        queryClient.refetchQueries({ queryKey: ["board", currentBoardId] });
+        queryClient.invalidateQueries({ queryKey: ["board", currentBoardId] });
       }
       onClose();
     },

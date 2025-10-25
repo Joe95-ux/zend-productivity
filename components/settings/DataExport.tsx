@@ -48,18 +48,7 @@ export function DataExport() {
   };
 
   return (
-    <Card>
-      <CardHeader className="pt-8">
-        <CardTitle className="flex items-center gap-2">
-          <Download className="h-5 w-5" />
-          Data Export
-        </CardTitle>
-        <CardDescription>
-          Export your boards, cards, and data in various formats
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="py-8">
-        <div className="space-y-6">
+    <div className="space-y-6">
           {/* Export Format */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -150,7 +139,5 @@ export function DataExport() {
             </p>
           </div>
         </div>
-      </CardContent>
-    </Card>
   );
 }

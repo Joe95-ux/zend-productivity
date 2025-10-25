@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, createContext, useContext } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -37,11 +37,36 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number) {
 
 export function DndProvider({ children, boardId }: DndProviderProps) {
   const queryClient = useQueryClient();
-  const [orderedData, setOrderedData] = useState<Board | null>(null);
-  const [isDragInProgress, setIsDragInProgress] = useState(false);
+  // Use useQuery to fetch board data - this will be the single source of truth
+  const {
+    data: serverData,
+    isLoading,
+    error,
+  } = useQuery<Board>({
+    queryKey: ["board", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/boards/${boardId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch board");
+      }
+      return response.json();
+    },
+    enabled: !!boardId,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const [optimisticData, setOptimisticData] = useState<Board | null>(null);
+  const isDragInProgressRef = useRef(false);
 
   const updateListOrderMutation = useMutation({
-    mutationFn: async ({ items, boardId }: { items: { id: string; position: number }[], boardId: string }) => {
+    mutationFn: async ({
+      items,
+      boardId,
+    }: {
+      items: { id: string; position: number }[];
+      boardId: string;
+    }) => {
       const response = await fetch("/api/lists/reorder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,21 +77,25 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     },
     onSuccess: () => {
       toast.success("List reordered");
-      setIsDragInProgress(false); // Clear drag in progress flag
-      // Don't refetch - let optimistic update handle UI
+      isDragInProgressRef.current = false;
+      // Server data will update automatically, no need to invalidate
     },
     onError: (error) => {
-      toast.error(error.message);
-      setIsDragInProgress(false); // Clear drag in progress flag
-      // Only refetch on error to revert to server state
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      console.error("List reorder error:", error);
+      toast.error(`Failed to reorder lists: ${error.message}`);
+      isDragInProgressRef.current = false;
+      // Revert optimistic updates on error
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
     },
   });
 
   const updateCardOrderMutation = useMutation({
-    mutationFn: async ({ items, boardId }: { 
-      items: { id: string; position: number; listId: string }[], 
-      boardId: string 
+    mutationFn: async ({
+      items,
+      boardId,
+    }: {
+      items: { id: string; position: number; listId: string }[];
+      boardId: string;
     }) => {
       const response = await fetch("/api/cards/reorder", {
         method: "POST",
@@ -78,149 +107,189 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     },
     onSuccess: () => {
       toast.success("Card reordered");
-      setIsDragInProgress(false); // Clear drag in progress flag
-      // Don't refetch - let optimistic update handle UI
+      isDragInProgressRef.current = false;
+      // Server data will update automatically, no need to invalidate
     },
     onError: (error) => {
-      toast.error(error.message);
-      setIsDragInProgress(false); // Clear drag in progress flag
-      // Only refetch on error to revert to server state
-      queryClient.refetchQueries({ queryKey: ["board", boardId] });
+      console.error("Card reorder error:", error);
+      toast.error(`Failed to reorder cards: ${error.message}`);
+      isDragInProgressRef.current = false;
+      // Revert optimistic updates on error
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
     },
   });
-  
 
-  // Use useQuery to ensure reactive updates
-  const { data: boardData, isLoading, error } = useQuery<Board>({
-    queryKey: ["board", boardId],
-    queryFn: async () => {
-      const response = await fetch(`/api/boards/${boardId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch board");
-      }
-      return response.json();
-    },
-    enabled: !!boardId,
-    refetchOnWindowFocus: false, // Prevent automatic refetches
-    refetchOnMount: false, // Prevent refetch on component mount
-  });
-
-  // useEffect(() => {
-  //   if (boardData && !orderedData) {
-  //     setOrderedData(boardData);
-  //   }
-  // }, [boardData, orderedData]);
-
-  // Update ordered data when board data changes, but not during pending mutations
+  // Initialize local state with server data when it changes, but not during drag operations
   useEffect(() => {
-    if (boardData) {
-      // Update orderedData when boardData changes, but be smart about it
-      setOrderedData(prev => {
-        // If we don't have orderedData yet, use boardData
-        if (!prev) return boardData;
-        
-        // If drag operations are pending or in progress, keep the optimistic state
-        if (updateListOrderMutation.isPending || updateCardOrderMutation.isPending || isDragInProgress) {
-          return prev;
-        }
-        
-        // Otherwise, update with fresh data (for button operations)
-        return boardData;
-      });
+    if (serverData && !isDragInProgressRef.current) {
+      setOptimisticData(serverData);
     }
-  }, [boardData, updateListOrderMutation.isPending, updateCardOrderMutation.isPending, isDragInProgress]);
+  }, [serverData]);
   
+
+  // Use local state if available, otherwise use server data
+  const orderedData = optimisticData || serverData;
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, type } = result;
 
     if (!destination) {
-      setIsDragInProgress(false);
       return;
     }
 
-    if (destination.droppableId === source.droppableId && destination.index === source.index) {
-      setIsDragInProgress(false);
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
       return;
     }
 
     if (!orderedData) {
-      setIsDragInProgress(false);
       return;
     }
 
     // Set drag in progress to prevent useEffect from overriding optimistic updates
-    setIsDragInProgress(true);
+    isDragInProgressRef.current = true;
 
     // User moves a list
     if (type === "list") {
-      const items = reorder(orderedData.lists, source.index, destination.index)
-        .map((item, index) => ({ ...item, position: index }));
+      const reorderedLists = reorder(
+        orderedData.lists,
+        source.index,
+        destination.index
+      );
+      const items = reorderedLists.map((item, index) => ({ ...item, position: index + 1 }));
 
-      setOrderedData({ ...orderedData, lists: items });
+      // Immediately update optimistic state
+      setOptimisticData({
+        ...orderedData,
+        lists: reorderedLists
+      });
+
       updateListOrderMutation.mutate({ items, boardId });
     }
 
     // User moves a card
     if (type === "card") {
-      const newOrderedData = { ...orderedData };
-
-      const sourceList = newOrderedData.lists.find(list => list.id === source.droppableId);
-      const destList = newOrderedData.lists.find(list => list.id === destination.droppableId);
+      const sourceList = orderedData.lists.find(
+        (list) => list.id === source.droppableId
+      );
+      const destList = orderedData.lists.find(
+        (list) => list.id === destination.droppableId
+      );
 
       if (!sourceList || !destList) return;
 
       // Moving the card in the same list
       if (source.droppableId === destination.droppableId) {
-        const reorderedCards = reorder(sourceList.cards, source.index, destination.index);
-        reorderedCards.forEach((card, idx) => {
-          card.position = idx + 1; // Use 1-based indexing for server
-        });
-        sourceList.cards = reorderedCards;
+        const reorderedCards = reorder(
+          sourceList.cards,
+          source.index,
+          destination.index
+        );
+        
+        // Create new card objects with updated positions
+        const updatedCards = reorderedCards.map((card, idx) => ({
+          ...card,
+          position: idx + 1 // Use 1-based indexing for server
+        }));
 
-        setOrderedData(newOrderedData);
-        updateCardOrderMutation.mutate({ 
+        // Immediately update optimistic state
+        const updatedLists = orderedData.lists.map(list => 
+          list.id === sourceList.id 
+            ? { ...list, cards: updatedCards }
+            : list
+        );
+        setOptimisticData({
+          ...orderedData,
+          lists: updatedLists
+        });
+
+        const mutationData = { 
           boardId, 
-          items: reorderedCards.map(card => ({ 
+          items: updatedCards.map((card) => ({
             id: card.id, 
             position: card.position, 
-            listId: card.listId || source.droppableId 
-          })) 
-        });
+            listId: card.listId || source.droppableId,
+          })),
+        };
+        
+        // Validate data before sending
+        if (!mutationData.boardId || !mutationData.items || mutationData.items.length === 0) {
+          console.error("Invalid mutation data:", mutationData);
+          toast.error("Invalid card data. Please try again.");
+          isDragInProgressRef.current = false;
+          return;
+        }
+        
+        console.log("Card reorder mutation data:", mutationData);
+        updateCardOrderMutation.mutate(mutationData);
       } else {
-        // Remove card from the source list
-        const [movedCard] = sourceList.cards.splice(source.index, 1);
-        movedCard.listId = destination.droppableId;
+        // For cross-list moves, we need to handle both source and destination lists
+        const sourceCards = Array.from(sourceList.cards);
+        const destCards = Array.from(destList.cards);
 
-        // Add card to the destination list
-        destList.cards.splice(destination.index, 0, movedCard);
+        // Remove card from source
+        const [movedCard] = sourceCards.splice(source.index, 1);
+        const updatedMovedCard = { ...movedCard, listId: destination.droppableId };
 
-        sourceList.cards.forEach((card, idx) => {
-          card.position = idx + 1; // Use 1-based indexing for server
+        // Add card to destination
+        destCards.splice(destination.index, 0, updatedMovedCard);
+
+        // Update positions for both lists (create new card objects)
+        const updatedSourceCards = sourceCards.map((card, idx) => ({
+          ...card,
+          position: idx + 1
+        }));
+
+        const updatedDestCards = destCards.map((card, idx) => ({
+          ...card,
+          position: idx + 1
+        }));
+
+        // Immediately update optimistic state
+        const updatedLists = orderedData.lists.map(list => {
+          if (list.id === sourceList.id) {
+            return { ...list, cards: updatedSourceCards };
+          } else if (list.id === destList.id) {
+            return { ...list, cards: updatedDestCards };
+          }
+          return list;
+        });
+        setOptimisticData({
+          ...orderedData,
+          lists: updatedLists
         });
 
-        destList.cards.forEach((card, idx) => {
-          card.position = idx + 1; // Use 1-based indexing for server
-        });
-
-        setOrderedData(newOrderedData);
-        updateCardOrderMutation.mutate({ 
+        // Send all cards from destination list to update their positions
+        const mutationData = { 
           boardId, 
-          items: destList.cards.map(card => ({ 
+          items: updatedDestCards.map((card) => ({
             id: card.id, 
             position: card.position, 
-            listId: card.listId || destination.droppableId 
-          })) 
-        });
+            listId: card.listId || destination.droppableId,
+          })),
+        };
+        
+        // Validate data before sending
+        if (!mutationData.boardId || !mutationData.items || mutationData.items.length === 0) {
+          console.error("Invalid cross-list mutation data:", mutationData);
+          toast.error("Invalid card data. Please try again.");
+          isDragInProgressRef.current = false;
+          return;
+        }
+        
+        console.log("Cross-list card reorder mutation data:", mutationData);
+        updateCardOrderMutation.mutate(mutationData);
       }
     }
   };
 
   return (
-    <DndContext.Provider value={{ orderedData, isLoading, error }}>
-      <DragDropContext onDragEnd={onDragEnd}>
-        {children}
-      </DragDropContext>
+    <DndContext.Provider
+      value={{ orderedData: orderedData || null, isLoading, error }}
+    >
+      <DragDropContext onDragEnd={onDragEnd}>{children}</DragDropContext>
     </DndContext.Provider>
   );
 }

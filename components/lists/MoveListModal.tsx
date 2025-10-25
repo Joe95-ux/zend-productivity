@@ -99,8 +99,8 @@ export function MoveListModal({ isOpen, onClose, list, currentBoardId }: MoveLis
       return response.json();
     },
     onSuccess: (data, variables) => {
-      queryClient.refetchQueries({ queryKey: ["board", currentBoardId] });
-      queryClient.refetchQueries({ queryKey: ["board", variables.targetBoardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", currentBoardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", variables.targetBoardId] });
       toast.success("List moved successfully!");
       onClose();
     },

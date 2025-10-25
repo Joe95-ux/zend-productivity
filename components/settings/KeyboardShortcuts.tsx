@@ -43,18 +43,7 @@ export function KeyboardShortcuts() {
   ];
 
   return (
-    <Card>
-      <CardHeader className="pt-8">
-        <CardTitle className="flex items-center gap-2">
-          <Keyboard className="h-5 w-5" />
-          Keyboard Shortcuts
-        </CardTitle>
-        <CardDescription>
-          Learn the keyboard shortcuts to work more efficiently
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="py-8">
-        <div className="space-y-6">
+    <div className="space-y-6">
           {shortcuts.map((category, categoryIndex) => (
             <div key={categoryIndex} className="space-y-3">
               <h4 className="font-medium text-slate-900 dark:text-slate-100">
@@ -95,7 +84,5 @@ export function KeyboardShortcuts() {
             </ul>
           </div>
         </div>
-      </CardContent>
-    </Card>
   );
 }
