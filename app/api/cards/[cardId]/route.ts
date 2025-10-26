@@ -32,10 +32,10 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
     }
 
-    const { title, description, position, listId, isCompleted } = body;
+    const { title, description, position, listId, isCompleted, startDate, dueDate, isRecurring, recurringType, reminderType } = body;
     
     console.log(`PUT /api/cards/${cardId} - Received data:`, {
-      title, description, position, listId, isCompleted
+      title, description, position, listId, isCompleted, startDate, dueDate, isRecurring, recurringType, reminderType
     });
 
     // Check if user has access to the card
@@ -83,6 +83,11 @@ export async function PUT(
     if (position !== undefined && position !== null) updateData.position = position;
     if (listId !== undefined && listId !== null) updateData.listId = listId;
     if (isCompleted !== undefined && isCompleted !== null) updateData.isCompleted = isCompleted;
+    if (startDate !== undefined) updateData.startDate = startDate;
+    if (dueDate !== undefined) updateData.dueDate = dueDate;
+    if (isRecurring !== undefined) updateData.isRecurring = isRecurring;
+    if (recurringType !== undefined) updateData.recurringType = recurringType;
+    if (reminderType !== undefined) updateData.reminderType = reminderType;
     
     // If no valid data to update, return early
     if (Object.keys(updateData).length === 0) {

@@ -14,8 +14,8 @@ interface ChecklistProps {
     title: string;
     items: Array<{
       id: string;
-      text: string;
-      completed: boolean;
+      content: string;
+      isCompleted: boolean;
       position: number;
     }>;
   };
@@ -37,7 +37,7 @@ export function Checklist({ checklist, cardId }: ChecklistProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          text,
+          content: text,
           checklistId: checklist.id,
           position: checklist.items.length,
         }),
@@ -129,7 +129,7 @@ export function Checklist({ checklist, cardId }: ChecklistProps) {
     }
   };
 
-  const completedCount = checklist.items.filter(item => item.completed).length;
+  const completedCount = checklist.items.filter(item => item.isCompleted).length;
   const totalCount = checklist.items.length;
   const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 

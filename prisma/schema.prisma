@@ -85,6 +85,10 @@ model Card {
   activities  Activity[]
   watches     Watch[]
   dueDate     DateTime?
+  startDate   DateTime?
+  isRecurring Boolean     @default(false)
+  recurringType String?   // "daily", "weekly", "monthly", "yearly"
+  reminderType String?    // "none", "at_due", "1_day", "2_days", "1_week"
   assignedTo  String?     // userId reference (optional)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

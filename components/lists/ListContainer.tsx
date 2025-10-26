@@ -48,29 +48,8 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [isMoveAllCardsOpen, setIsMoveAllCardsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Batch watch status query for all cards in this list
-  const { data: watchData } = useQuery({
-    queryKey: ["watch-batch", list.id],
-    queryFn: async () => {
-      const cardIds = list.cards?.map(card => card.id) || [];
-      const response = await fetch('/api/watch/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          cardIds,
-          listIds: [list.id],
-          boardId 
-        })
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch watch status');
-      }
-      return response.json();
-    },
-    enabled: true,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: false, // Disable automatic refetching
-  });
+  // Get watch data from DndProvider context
+  const { watchMap } = useDndContext();
   const [isWatching, setIsWatching] = useState(false);
   const [isWatchLoading, setIsWatchLoading] = useState(false);
   const queryClient = useQueryClient();
@@ -396,7 +375,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                           list={{ id: list.id, title: list.title }}
                           boardId={boardId}
                           index={index}
-                          watchMap={watchData?.watchMap}
+                          watchMap={watchMap || undefined}
                         />
                       ))}
                       {provided.placeholder}
@@ -472,6 +451,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
         description="Are you sure you want to delete this list? This action cannot be undone."
         itemName={list.title}
         isLoading={deleteListMutation.isPending}
+        variant="list"
       />
 
     </>

@@ -16,6 +16,7 @@ import {
   Filter,
   MessageSquare,
   Bell,
+  Megaphone,
   Info,
   Palette,
   LogOut,
@@ -413,7 +414,7 @@ export function Navbar() {
                         onClick={() => setIsFeedbackOpen(true)}
                       >
                         <HoverHint label="Feedback" side="bottom">
-                          <MessageSquare className="h-4 w-4" />
+                          <Megaphone className="h-4 w-4" />
                         </HoverHint>
                       </Button>
                       <DropdownMenu open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>

@@ -9,7 +9,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { cardIds, listIds, boardId } = await request.json();
+    let requestBody;
+    try {
+      const bodyText = await request.text();
+      console.log("Raw request body:", bodyText);
+      
+      if (!bodyText || bodyText.trim() === '') {
+        console.error("Empty request body received");
+        return NextResponse.json({ error: "Empty request body" }, { status: 400 });
+      }
+      
+      requestBody = JSON.parse(bodyText);
+    } catch (jsonError) {
+      console.error("Error parsing request JSON:", jsonError);
+      return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+    }
+
+    const { cardIds, listIds, boardId } = requestBody;
 
     if (!cardIds && !listIds && !boardId) {
       return NextResponse.json({ error: "No items to check" }, { status: 400 });

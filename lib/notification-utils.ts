@@ -15,6 +15,15 @@ export async function createNotificationForWatchers(
   excludeUserId?: string
 ) {
   try {
+    console.log("Creating notifications for watchers:", {
+      notificationData,
+      excludeUserId
+    });
+
+    // Debug: Check if there are any watchers in the database at all
+    const totalWatchers = await db.watch.count();
+    console.log("Total watchers in database:", totalWatchers);
+
     // Find all users watching the board
     const boardWatchers = await db.watch.findMany({
       where: {
@@ -23,6 +32,9 @@ export async function createNotificationForWatchers(
       },
       select: { userId: true }
     });
+    
+    console.log("Board watchers found:", boardWatchers.length);
+    console.log("Board ID being searched:", notificationData.boardId);
 
     // Find all users watching the card (if applicable)
     const cardWatchers = notificationData.cardId ? await db.watch.findMany({
@@ -32,20 +44,31 @@ export async function createNotificationForWatchers(
       },
       select: { userId: true }
     }) : [];
+    
+    console.log("Card watchers found:", cardWatchers.length);
+    console.log("Card ID being searched:", notificationData.cardId);
 
     // Find all users watching the list (if we have a card)
-    const listWatchers = notificationData.cardId ? await db.watch.findMany({
-      where: {
-        listId: {
-          in: await db.card.findUnique({
-            where: { id: notificationData.cardId },
-            select: { listId: true }
-          }).then(card => card ? [card.listId] : [])
-        },
-        userId: excludeUserId ? { not: excludeUserId } : undefined
-      },
-      select: { userId: true }
-    }) : [];
+    let listWatchers: { userId: string }[] = [];
+    if (notificationData.cardId) {
+      // First get the card's listId
+      const card = await db.card.findUnique({
+        where: { id: notificationData.cardId },
+        select: { listId: true }
+      });
+      
+      if (card?.listId) {
+        listWatchers = await db.watch.findMany({
+          where: {
+            listId: card.listId,
+            userId: excludeUserId ? { not: excludeUserId } : undefined
+          },
+          select: { userId: true }
+        });
+      }
+    }
+    
+    console.log("List watchers found:", listWatchers.length);
 
     // Combine all watchers and remove duplicates
     const allWatchers = new Set([
@@ -53,6 +76,8 @@ export async function createNotificationForWatchers(
       ...cardWatchers.map(w => w.userId),
       ...listWatchers.map(w => w.userId)
     ]);
+    
+    console.log("Total unique watchers:", allWatchers.size);
 
     // Get user details for ALL watchers (for in-app notifications)
     const allWatcherUsers = await db.user.findMany({
@@ -95,10 +120,15 @@ export async function createNotificationForWatchers(
       }
     }
 
+    console.log("Notifications to create:", notificationsToCreate.length);
+    
     if (notificationsToCreate.length > 0) {
       await db.notification.createMany({
         data: notificationsToCreate
       });
+      console.log("Created notifications successfully");
+    } else {
+      console.log("No notifications to create");
     }
 
     // Send email notifications for users who have them enabled

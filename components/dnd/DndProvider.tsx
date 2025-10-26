@@ -15,6 +15,7 @@ interface DndContextType {
   orderedData: Board | null;
   isLoading: boolean;
   error: Error | null;
+  watchMap: Record<string, boolean> | null;
 }
 
 const DndContext = createContext<DndContextType | undefined>(undefined);
@@ -54,6 +55,37 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     enabled: !!boardId,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+  });
+
+  // Batch watch query for the entire board
+  const { data: watchData } = useQuery({
+    queryKey: ["watch-batch", boardId],
+    queryFn: async () => {
+      if (!serverData) return null;
+      
+      const cardIds = serverData.lists?.flatMap(list => list.cards?.map(card => card.id) || []) || [];
+      const listIds = serverData.lists?.map(list => list.id) || [];
+      
+      const requestBody = { 
+        cardIds,
+        listIds,
+        boardId 
+      };
+      
+      const response = await fetch('/api/watch/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch watch status');
+      }
+      return response.json();
+    },
+    enabled: !!serverData,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Disable automatic refetching
   });
 
   const [optimisticData, setOptimisticData] = useState<Board | null>(null);
@@ -287,7 +319,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
   return (
     <DndContext.Provider
-      value={{ orderedData: orderedData || null, isLoading, error }}
+      value={{ orderedData: orderedData || null, isLoading, error, watchMap: watchData?.watchMap || null }}
     >
       <DragDropContext onDragEnd={onDragEnd}>{children}</DragDropContext>
     </DndContext.Provider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, TextQuote, MessagesSquare, Paperclip, Eye } from "lucide-react";
+import { Clock, TextQuote, MessagesSquare, Paperclip, Eye, CheckSquare } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { Card } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
   const hasAttachments = false; // TODO: Add attachments field to Card type
   const hasDueDate = card.dueDate;
   const hasAssignedTo = card.assignedTo;
+  const hasChecklists = card.checklists && card.checklists.length > 0;
 
   // Format due date
   const formatDueDate = (dateString: string) => {
@@ -28,6 +29,13 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
 
   // Check if due date is overdue
   const isOverdue = hasDueDate && new Date(card.dueDate!) < new Date();
+  
+  // Check if due date is due soon (within 24 hours)
+  const isDueSoon = hasDueDate && !isOverdue && (() => {
+    const timeDiff = new Date(card.dueDate!).getTime() - new Date().getTime();
+    const hoursDiff = timeDiff / (1000 * 3600);
+    return hoursDiff <= 24;
+  })();
 
   return (
     <div className="flex items-center justify-between px-3 pb-2">
@@ -35,18 +43,26 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
       <div className="flex items-center gap-3">
         {/* Due Date */}
         {hasDueDate && (
-          <HoverHint label={isOverdue ? "Overdue" : "Due date"} side="bottom">
+          <HoverHint label={
+            isOverdue ? "Overdue" : 
+            isDueSoon ? "Due soon" : 
+            "Due date"
+          } side="bottom">
             <div className="flex items-center gap-1">
               <Clock className={cn(
                 "w-4 h-4 cursor-pointer",
                 isOverdue 
                   ? "text-red-600 dark:text-red-400" 
-                  : " text-slate-900 dark:text-slate-300"
+                  : isDueSoon
+                  ? "text-orange-600 dark:text-orange-400"
+                  : "text-slate-900 dark:text-slate-300"
               )} />
               <span className={cn(
                 "text-xs font-medium",
                 isOverdue 
                   ? "text-red-600 dark:text-red-400" 
+                  : isDueSoon
+                  ? "text-orange-600 dark:text-orange-400"
                   : "text-slate-900 dark:text-slate-300"
               )}>
                 {formatDueDate(card.dueDate!)}
@@ -69,6 +85,18 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
               <MessagesSquare className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
               <span className="text-xs font-medium text-slate-900 dark:text-slate-300">
                 {card.comments.length}
+              </span>
+            </div>
+          </HoverHint>
+        )}
+
+        {/* Checklists */}
+        {hasChecklists && (
+          <HoverHint label="Has checklists" side="bottom">
+            <div className="flex items-center gap-1">
+              <CheckSquare className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
+              <span className="text-xs font-medium text-slate-900 dark:text-slate-300">
+                {card.checklists?.length || 0}
               </span>
             </div>
           </HoverHint>

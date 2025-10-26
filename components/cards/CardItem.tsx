@@ -393,6 +393,7 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
         description="Are you sure you want to delete this card? This action cannot be undone."
         itemName={card.title}
         isLoading={deleteCardMutation.isPending}
+        variant="card"
       />
     </>
   );
