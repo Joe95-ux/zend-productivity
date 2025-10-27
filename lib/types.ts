@@ -34,6 +34,15 @@ export interface Comment {
   createdAt: string;
 }
 
+// Attachment types
+export interface Attachment {
+  id: string;
+  url: string;
+  type?: string;
+  cardId: string;
+  createdAt: string;
+}
+
 // Card types
 export interface Card {
   id: string;
@@ -45,6 +54,7 @@ export interface Card {
   labels: Label[];
   checklists: Checklist[];
   comments: Comment[];
+  attachments: Attachment[];
   dueDate?: string;
   assignedTo?: string;
   createdAt: string;

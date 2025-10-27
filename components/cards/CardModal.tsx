@@ -11,23 +11,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
+import { UserButton } from "@clerk/nextjs";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock, Eye, EyeOff, Calendar, Users, Paperclip, RotateCcw, SquareCheckBig } from "lucide-react";
+import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock, Eye, EyeOff, Calendar, Paperclip, RotateCcw, SquareCheckBig, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { HoverHint } from "@/components/HoverHint";
 import { ShootingStars } from "@/components/ui/ShootingStars";
 import { motion, AnimatePresence } from "framer-motion";
-import { Board, List, Card as CardType, Checklist } from "@/lib/types";
+import { Board, List, Card as CardType, Checklist, Attachment } from "@/lib/types";
 import { DueDateDropdown } from "./DueDateDropdown";
 import { ChecklistDropdown } from "./ChecklistDropdown";
 import { LabelDropdown } from "./LabelDropdown";
+import { MembersDropdown } from "./MembersDropdown";
 import { CopyChecklistModal } from "./CopyChecklistModal";
 import { ChecklistItemDndProvider } from "@/components/dnd/ChecklistItemDndProvider";
 import { DraggableChecklistItem } from "./DraggableChecklistItem";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { ChecklistConfirmationModal } from "@/components/ui/ChecklistConfirmationModal";
+import { Attachments } from "./Attachments";
+import { CommentContent } from "./CommentContent";
 
 const updateCardSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -35,7 +40,18 @@ const updateCardSchema = z.object({
 });
 
 const commentSchema = z.object({
-  content: z.string().min(1, "Comment cannot be empty").max(500, "Comment must be less than 500 characters"),
+  content: z.string()
+    .min(1, "Comment cannot be empty")
+    .refine((content) => {
+      // Remove HTML tags and check if there's actual text content
+      const cleanContent = content.replace(/<[^>]*>/g, '').trim();
+      return cleanContent.length > 0;
+    }, "Comment cannot be empty")
+    .refine((content) => {
+      // Remove HTML tags and check text content length (not HTML length)
+      const cleanContent = content.replace(/<[^>]*>/g, '').trim();
+      return cleanContent.length <= 500;
+    }, "Comment must be less than 500 characters"),
 });
 
 type UpdateCardFormData = z.infer<typeof updateCardSchema>;
@@ -59,6 +75,7 @@ interface CardModalProps {
     isRecurring?: boolean;
     recurringType?: string;
     reminderType?: string;
+    assignedTo?: string;
     labels: Array<{
       id: string;
       name: string;
@@ -73,6 +90,13 @@ interface CardModalProps {
         email: string;
         avatarUrl?: string;
       };
+      createdAt: string;
+    }>;
+    attachments?: Array<{
+      id: string;
+      url: string;
+      type?: string;
+      cardId: string;
       createdAt: string;
     }>;
   };
@@ -93,6 +117,8 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
+  const [isDeleteCommentModalOpen, setIsDeleteCommentModalOpen] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("details");
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
   const [showShootingStars, setShowShootingStars] = useState(false);
@@ -128,6 +154,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   const [showCompletionAnimation, setShowCompletionAnimation] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const queryClient = useQueryClient();
+
 
   // Checklist mutations
   const updateChecklistMutation = useMutation({
@@ -232,7 +259,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   });
 
   // Get the current card data from query cache to stay in sync
-  const { data: boardData } = useQuery({
+  const { data: boardDataFromCache } = useQuery({
     queryKey: ["board", boardId],
     queryFn: async () => {
       const response = await fetch(`/api/boards/${boardId}`);
@@ -244,8 +271,8 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
 
   // Sync local state with query cache updates
   useEffect(() => {
-    if (boardData) {
-      const updatedCard = boardData.lists
+    if (boardDataFromCache) {
+      const updatedCard = boardDataFromCache.lists
         ?.find((l: List) => l.id === list.id)
         ?.cards?.find((c: CardType) => c.id === card.id);
       
@@ -253,7 +280,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
         setIsCompleted(updatedCard.isCompleted);
       }
     }
-  }, [boardData, list.id, card.id, isCompleted]);
+  }, [boardDataFromCache, list.id, card.id, isCompleted]);
 
   // Fetch activities for this card
   const { data: activities, isLoading: activitiesLoading } = useQuery({
@@ -504,6 +531,17 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
 
 
   const handleAddComment = (data: CommentFormData) => {
+    // Check if content is empty or only contains whitespace/HTML tags
+    const cleanContent = data.content?.replace(/<[^>]*>/g, '').trim();
+    if (!cleanContent) {
+      toast.error("Please enter a comment");
+      return;
+    }
+    // Check text content length (not HTML length)
+    if (cleanContent.length > 500) {
+      toast.error("Comment must be less than 500 characters");
+      return;
+    }
     addCommentMutation.mutate(data);
   };
 
@@ -522,9 +560,21 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   };
 
   const handleDeleteComment = (commentId: string) => {
-    if (confirm("Are you sure you want to delete this comment?")) {
-      deleteCommentMutation.mutate(commentId);
+    setCommentToDelete(commentId);
+    setIsDeleteCommentModalOpen(true);
+  };
+
+  const confirmDeleteComment = () => {
+    if (commentToDelete) {
+      deleteCommentMutation.mutate(commentToDelete);
+      setIsDeleteCommentModalOpen(false);
+      setCommentToDelete(null);
     }
+  };
+
+  const cancelDeleteComment = () => {
+    setIsDeleteCommentModalOpen(false);
+    setCommentToDelete(null);
   };
 
   const handleCancelEdit = () => {
@@ -1057,14 +1107,12 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   card={card}
                   boardId={boardId}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Members
-                </Button>
+                {!card.assignedTo && (
+                  <MembersDropdown
+                    card={card}
+                    boardId={boardId}
+                  />
+                )}
                 <LabelDropdown
                   card={card}
                   boardId={boardId}
@@ -1082,6 +1130,95 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   <Paperclip className="w-4 h-4 mr-2" />
                   Attachment
                 </Button>
+              </div>
+
+              {/* Attachments */}
+              <Attachments 
+                attachments={(card.attachments || []).map(att => ({ ...att, cardId: card.id })) as Attachment[]} 
+                cardId={card.id} 
+                boardId={boardId} 
+              />
+
+              {/* Members */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-slate-900 dark:text-white">Members</h3>
+                <div className="flex items-center gap-2">
+                  {card.assignedTo ? (
+                    <div className="flex items-center gap-2">
+                      <UserButton 
+                        afterSignOutUrl="/"
+                        appearance={{
+                          elements: {
+                            avatarBox: "w-8 h-8"
+                          }
+                        }}
+                      />
+                      <MembersDropdown
+                        card={card}
+                        boardId={boardId}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <MembersDropdown
+                      card={card}
+                      boardId={boardId}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Labels */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-slate-900 dark:text-white">Labels</h3>
+                <div className="flex flex-wrap gap-2">
+                  {card.labels.map((label) => (
+                    <LabelDropdown
+                      key={label.id}
+                      card={card}
+                      boardId={boardId}
+                      trigger={
+                        <Badge 
+                          variant="secondary"
+                          style={{ backgroundColor: label.color }}
+                          className="px-3 py-1.5 text-sm font-medium rounded-sm border-0 text-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
+                        >
+                          {label.name}
+                        </Badge>
+                      }
+                    />
+                  ))}
+                  <LabelDropdown
+                    card={card}
+                    boardId={boardId}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    }
+                  />
+                </div>
               </div>
 
               {/* Description */}
@@ -1114,11 +1251,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Textarea 
-                                {...field} 
-                                rows={4} 
-                                placeholder="Add a description..." 
-                                className="border-2 border-blue-200 dark:border-blue-800 focus:border-blue-500 dark:focus:border-blue-400 bg-slate-50 dark:bg-slate-800 rounded-lg resize-none"
+                              <RichTextEditor
+                                content={field.value || ""}
+                                onChange={field.onChange}
+                                placeholder="Add a description..."
+                                minHeight="2.5rem"
+                                maxHeight="20rem"
+                                showToolbar={true}
+                                className="border-2 border-blue-200 dark:border-blue-800 focus-within:border-blue-500 dark:focus-within:border-blue-400"
                               />
                             </FormControl>
                             <FormMessage />
@@ -1148,11 +1288,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   </Form>
                 ) : (
                   <div 
-                    className="min-h-[120px] p-4 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                    className="min-h-[2.5rem] p-4 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-600"
                     onClick={handleDescriptionEdit}
                   >
                     {card.description ? (
-                      <p className="text-sm whitespace-pre-wrap text-strong dark:text-slate-300 leading-relaxed">{card.description}</p>
+                      <div 
+                        className="text-sm text-slate-900 dark:text-slate-300 leading-relaxed prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: card.description }}
+                      />
                     ) : (
                       <p className="text-sm text-slate-500 dark:text-slate-400 italic">Click to add a description...</p>
                     )}
@@ -1627,24 +1770,6 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                 </div>
               )}
 
-              {/* Labels */}
-              {card.labels.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Labels</h3>
-                  <div className="flex flex-wrap gap-3">
-                    {card.labels.map((label) => (
-                      <Badge 
-                        key={label.id} 
-                        variant="secondary"
-                        style={{ backgroundColor: label.color }}
-                        className="px-3 py-1.5 text-sm font-medium rounded-full border-0 text-white shadow-sm"
-                      >
-                        {label.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
 
                 </TabsContent>
                 
@@ -1684,12 +1809,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Textarea 
-                                  placeholder="Write a comment..." 
-                                  {...field} 
-                                  rows={3}
-                                  autoFocus
-                                  className="border-2 border-slate-300 dark:border-slate-700 focus:border-slate-500 dark:focus:border-slate-400 bg-white dark:bg-slate-900 rounded-lg resize-none text-sm"
+                                <RichTextEditor
+                                  content={field.value || ""}
+                                  onChange={field.onChange}
+                                  placeholder="Write a comment..."
+                                  minHeight="2.5rem"
+                                  maxHeight="15rem"
+                                  showToolbar={true}
+                                  className="border-2 border-slate-300 dark:border-slate-700 focus-within:border-slate-500 dark:focus-within:border-slate-400"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -1770,12 +1897,15 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                 </DropdownMenu>
                               </div>
                               {editingCommentId === comment.id ? (
-                                <div className="space-y-1">
-                                  <Textarea
-                                    value={editingCommentContent}
-                                    onChange={(e) => setEditingCommentContent(e.target.value)}
-                                    rows={2}
-                                    className="text-xs border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                                <div className="space-y-2">
+                                  <RichTextEditor
+                                    content={editingCommentContent}
+                                    onChange={setEditingCommentContent}
+                                    placeholder="Edit comment..."
+                                    minHeight="2.5rem"
+                                    maxHeight="10rem"
+                                    showToolbar={true}
+                                    className="border-slate-300 dark:border-slate-600"
                                   />
                                   <div className="flex gap-1">
                                     <Button
@@ -1797,9 +1927,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                   </div>
                                 </div>
                               ) : (
-                                <p className="text-sm text-strong dark:text-slate-300 leading-relaxed">
-                                  {comment.content}
-                                </p>
+                                <CommentContent content={comment.content} />
                               )}
                             </div>
                           </div>
@@ -1941,14 +2069,12 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     card={card}
                     boardId={boardId}
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-4 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Members
-                  </Button>
+                  {!card.assignedTo && (
+                    <MembersDropdown
+                      card={card}
+                      boardId={boardId}
+                    />
+                  )}
                   <LabelDropdown
                     card={card}
                     boardId={boardId}
@@ -1966,6 +2092,95 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     <Paperclip className="w-4 h-4 mr-2" />
                     Attachment
                   </Button>
+                </div>
+
+                {/* Attachments */}
+                <Attachments 
+                  attachments={(card.attachments || []).map(att => ({ ...att, cardId: card.id })) as Attachment[]} 
+                  cardId={card.id} 
+                  boardId={boardId} 
+                />
+
+                {/* Members */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Members</h3>
+                  <div className="flex items-center gap-2">
+                    {card.assignedTo ? (
+                      <div className="flex items-center gap-2">
+                        <UserButton 
+                          afterSignOutUrl="/"
+                          appearance={{
+                            elements: {
+                              avatarBox: "w-8 h-8"
+                            }
+                          }}
+                        />
+                        <MembersDropdown
+                          card={card}
+                          boardId={boardId}
+                          trigger={
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <MembersDropdown
+                        card={card}
+                        boardId={boardId}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        }
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Labels */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Labels</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {card.labels.map((label) => (
+                      <LabelDropdown
+                        key={label.id}
+                        card={card}
+                        boardId={boardId}
+                        trigger={
+                          <Badge 
+                            variant="secondary"
+                            style={{ backgroundColor: label.color }}
+                            className="px-3 py-1.5 text-sm font-medium rounded-sm border-0 text-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
+                          >
+                            {label.name}
+                          </Badge>
+                        }
+                      />
+                    ))}
+                    <LabelDropdown
+                      card={card}
+                      boardId={boardId}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      }
+                    />
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -1998,11 +2213,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Textarea 
-                                  {...field} 
-                                  rows={4} 
-                                  placeholder="Add a description..." 
-                                  className="border-2 border-slate-300 dark:border-slate-600 focus:border-slate-500 dark:focus:border-slate-400 bg-slate-50 dark:bg-slate-800 rounded-lg resize-none"
+                                <RichTextEditor
+                                  content={field.value || ""}
+                                  onChange={field.onChange}
+                                  placeholder="Add a description..."
+                                  minHeight="2.5rem"
+                                  maxHeight="20rem"
+                                  showToolbar={true}
+                                  className="border-2 border-slate-300 dark:border-slate-600 focus-within:border-slate-500 dark:focus-within:border-slate-400"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -2032,11 +2250,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     </Form>
                   ) : (
                     <div 
-                      className="min-h-[120px] p-4 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                      className="min-h-[2.5rem] p-4 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-600"
                       onClick={handleDescriptionEdit}
                     >
                       {card.description ? (
-                        <p className="text-sm whitespace-pre-wrap text-strong dark:text-slate-300 leading-relaxed">{card.description}</p>
+                        <div 
+                          className="text-sm text-slate-900 dark:text-slate-300 leading-relaxed prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: card.description }}
+                        />
                       ) : (
                         <p className="text-sm text-slate-500 dark:text-slate-400 italic">Click to add a description...</p>
                       )}
@@ -2447,24 +2668,6 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   </div>
                 )}
 
-                {/* Labels */}
-                {card.labels.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">Labels</h3>
-                    <div className="flex flex-wrap gap-3">
-                      {card.labels.map((label) => (
-                        <Badge 
-                          key={label.id} 
-                          variant="secondary"
-                          style={{ backgroundColor: label.color }}
-                          className="px-3 py-1.5 text-sm font-medium rounded-full border-0 text-white shadow-sm"
-                        >
-                          {label.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
 
@@ -2505,12 +2708,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Textarea 
-                              placeholder="Write a comment..." 
-                              {...field} 
-                              rows={4}
-                              autoFocus
-                              className="border-2 border-slate-300 dark:border-slate-600 focus:border-slate-500 dark:focus:border-slate-400 bg-white dark:bg-slate-900 rounded-lg resize-none"
+                            <RichTextEditor
+                              content={field.value || ""}
+                              onChange={field.onChange}
+                              placeholder="Write a comment..."
+                              minHeight="2.5rem"
+                              maxHeight="15rem"
+                              showToolbar={true}
+                              className="border-2 border-slate-300 dark:border-slate-600 focus-within:border-slate-500 dark:focus-within:border-slate-400"
                             />
                           </FormControl>
                           <FormMessage />
@@ -2592,11 +2797,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                             </div>
                             {editingCommentId === comment.id ? (
                               <div className="space-y-2">
-                                <Textarea
-                                  value={editingCommentContent}
-                                  onChange={(e) => setEditingCommentContent(e.target.value)}
-                                  rows={3}
-                                  className="text-sm border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                                <RichTextEditor
+                                  content={editingCommentContent}
+                                  onChange={setEditingCommentContent}
+                                  placeholder="Edit comment..."
+                                  minHeight="2.5rem"
+                                  maxHeight="10rem"
+                                  showToolbar={true}
+                                  className="border-slate-300 dark:border-slate-700"
                                 />
                                 <div className="flex gap-2">
                                   <Button
@@ -2618,9 +2826,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-sm text-strong dark:text-slate-300 leading-relaxed">
-                                {comment.content}
-                              </p>
+                              <CommentContent content={comment.content} />
                             )}
                           </div>
                         </div>
@@ -2798,6 +3004,16 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Comment Delete Confirmation Modal */}
+      <ChecklistConfirmationModal
+        isOpen={isDeleteCommentModalOpen}
+        onClose={cancelDeleteComment}
+        onConfirm={confirmDeleteComment}
+        title="Delete Comment"
+        description="Are you sure you want to delete this comment? This action cannot be undone."
+        isLoading={deleteCommentMutation.isPending}
+      />
     </>
   );
 }

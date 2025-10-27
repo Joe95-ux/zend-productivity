@@ -51,7 +51,8 @@ export async function GET(
                   include: {
                     items: true
                   }
-                }
+                },
+                attachments: true
               }
             }
           }

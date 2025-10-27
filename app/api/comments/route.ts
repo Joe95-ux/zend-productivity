@@ -126,6 +126,31 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Extract images from comment content and create attachments
+    try {
+      const imageRegex = /<img[^>]+src="([^"]+)"[^>]*>/g;
+      const images = [];
+      let match;
+      
+      while ((match = imageRegex.exec(content)) !== null) {
+        images.push(match[1]);
+      }
+
+      // Create attachments for each image
+      for (const imageUrl of images) {
+        await db.attachment.create({
+          data: {
+            url: imageUrl,
+            type: 'image',
+            cardId
+          }
+        });
+      }
+    } catch (attachmentError) {
+      console.error("Error creating attachments from comment images:", attachmentError);
+      // Don't fail the comment creation if attachment creation fails
+    }
+
     // Create activity log with notifications (with error handling)
     try {
       console.log("Creating activity for comment:", {

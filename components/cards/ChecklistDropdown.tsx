@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 import { ListTodo, X } from "lucide-react";
 import { toast } from "sonner";
 import { Checklist } from "@/lib/types";
+import { Label } from "../ui/label";
 
 interface ChecklistDropdownProps {
   cardId: string;
@@ -118,10 +119,10 @@ export function ChecklistDropdown({
         
         <div className="p-4 space-y-4">
           {/* Title Input */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Title
-            </label>
+            </Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -133,10 +134,10 @@ export function ChecklistDropdown({
           </div>
 
           {/* Copy Items From Dropdown */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Copy items from...
-            </label>
+            </Label>
             <Select value={copyFromChecklistId} onValueChange={setCopyFromChecklistId}>
               <SelectTrigger className="w-full h-10 rounderd-sm">
                 <SelectValue placeholder="Select a checklist to copy from" />

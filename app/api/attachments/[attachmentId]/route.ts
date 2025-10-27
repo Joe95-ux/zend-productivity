@@ -1,0 +1,60 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ attachmentId: string }> }
+) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const { attachmentId } = await params;
+
+    // Verify the user has access to the attachment's card
+    const attachment = await db.attachment.findFirst({
+      where: { id: attachmentId },
+      include: {
+        card: {
+          include: {
+            list: {
+              include: {
+                board: {
+                  include: {
+                    members: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!attachment) {
+      return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
+    }
+
+    // Check if user has access to the card
+    const hasAccess = 
+      attachment.card.list.board.ownerId === user.id ||
+      attachment.card.list.board.members.some(member => member.userId === user.id);
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Delete the attachment
+    await db.attachment.delete({
+      where: { id: attachmentId }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting attachment:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { commentId: string } }
+  { params }: { params: Promise<{ commentId: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -12,7 +12,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { commentId } = params;
+    const { commentId } = await params;
     const body = await request.json();
     const { content } = body;
 
@@ -90,7 +90,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { commentId: string } }
+  { params }: { params: Promise<{ commentId: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -98,7 +98,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { commentId } = params;
+    const { commentId } = await params;
 
     // Check if comment exists and user owns it
     const existingComment = await db.comment.findFirst({

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Calendar, Clock, RotateCcw, Bell, X } from "lucide-react";
 import { toast } from "sonner";
-import { format, addDays, addWeeks, addMonths, addYears } from "date-fns";
+import { format, addDays, addWeeks, addMonths } from "date-fns";
 
 interface DueDateDropdownProps {
   card: {
@@ -169,7 +169,7 @@ export function DueDateDropdown({ card, boardId }: DueDateDropdownProps) {
           {getDisplayText()}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-80 p-0">
+      <DropdownMenuContent align="start" className="w-80 p-0 dark:bg-[#0D1117]">
         {/* Header */}
         <div className="flex items-center justify-between p-4">
           <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">

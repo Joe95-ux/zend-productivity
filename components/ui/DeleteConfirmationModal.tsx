@@ -20,7 +20,7 @@ interface DeleteConfirmationModalProps {
   description: string;
   itemName: string;
   isLoading?: boolean;
-  variant?: "card" | "list";
+  variant?: "card" | "list" | "comment";
 }
 
 export function DeleteConfirmationModal({
@@ -34,10 +34,8 @@ export function DeleteConfirmationModal({
   variant = "card",
 }: DeleteConfirmationModalProps) {
   const isList = variant === "list";
-  const destructiveText = isList ? "Delete List" : "Delete Card";
-  const warningText = isList 
-    ? "This will permanently delete the list and all its cards. This action cannot be undone."
-    : "This will permanently delete the card. This action cannot be undone.";
+  const isComment = variant === "comment";
+  const destructiveText = isList ? "Delete List" : isComment ? "Delete Comment" : "Delete Card";
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
@@ -54,7 +52,7 @@ export function DeleteConfirmationModal({
         
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
           <p className="text-sm text-red-700 dark:text-red-300 font-medium">
-            ⚠️ {warningText}
+            ⚠️ {description}
           </p>
         </div>
 
