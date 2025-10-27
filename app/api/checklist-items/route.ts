@@ -57,12 +57,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     console.log("Checklist found:", checklist.title);
-    console.log("Board owner:", checklist.card.list.board.ownerId);
+    console.log("Board owner:", checklist?.card?.list?.board?.ownerId);
     console.log("User ID:", user.id);
 
     // Check if user has access to the board
-    const hasAccess = checklist.card.list.board.ownerId === user.id || 
-      checklist.card.list.board.members.some(member => member.userId === user.id);
+    const hasAccess = checklist?.card?.list?.board?.ownerId === user.id || 
+      checklist?.card?.list?.board?.members?.some(member => member.userId === user.id);
 
     console.log("Has access:", hasAccess);
     if (!hasAccess) {
@@ -85,9 +85,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.log("Creating activity with notifications");
       await createActivityWithNotifications({
         type: "added_checklist_item",
-        message: `Added item "${content}" to checklist "${checklist.title}"`,
-        boardId: checklist.card.list.boardId,
-        cardId: checklist.cardId,
+        message: `Added item "${content}" to checklist "${checklist?.title}"`,
+        boardId: checklist?.card?.list?.boardId || "",
+        cardId: checklist?.cardId,
         userId: user.id
       });
       console.log("Activity created successfully");

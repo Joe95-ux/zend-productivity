@@ -15,15 +15,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock, Eye, EyeOff, Calendar, Users, Tag, Paperclip, ListTodo, RotateCcw, SquareCheckBig } from "lucide-react";
+import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock, Eye, EyeOff, Calendar, Users, Tag, Paperclip, RotateCcw, SquareCheckBig } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { HoverHint } from "@/components/HoverHint";
 import { ShootingStars } from "@/components/ui/ShootingStars";
 import { motion, AnimatePresence } from "framer-motion";
 import { Board, List, Card as CardType, Checklist } from "@/lib/types";
-import { DueDateModal } from "./DueDateModal";
-import { ChecklistModal } from "./ChecklistModal";
+import { DueDateDropdown } from "./DueDateDropdown";
+import { ChecklistDropdown } from "./ChecklistDropdown";
 import { CopyChecklistModal } from "./CopyChecklistModal";
 import { ChecklistItemDndProvider } from "@/components/dnd/ChecklistItemDndProvider";
 import { DraggableChecklistItem } from "./DraggableChecklistItem";
@@ -97,8 +97,6 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   const [showShootingStars, setShowShootingStars] = useState(false);
   const [isWatching, setIsWatching] = useState(false);
   const [isWatchLoading, setIsWatchLoading] = useState(false);
-  const [isDueDateModalOpen, setIsDueDateModalOpen] = useState(false);
-  const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
   const [isCopyChecklistOpen, setIsCopyChecklistOpen] = useState(false);
   const [checklistToCopy, setChecklistToCopy] = useState<Checklist | null>(null);
   
@@ -1054,15 +1052,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
 
               {/* Action Buttons - Trello Style */}
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsDueDateModalOpen(true)}
-                  className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Due Date
-                </Button>
+                <DueDateDropdown
+                  card={card}
+                  boardId={boardId}
+                />
                 <Button
                   variant="outline"
                   size="sm"
@@ -1079,15 +1072,11 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   <Tag className="w-4 h-4 mr-2" />
                   Labels
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsChecklistModalOpen(true)}
-                  className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                >
-                  <ListTodo className="w-4 h-4 mr-2" />
-                  Checklist
-                </Button>
+                <ChecklistDropdown
+                  cardId={card.id}
+                  boardId={boardId}
+                  existingChecklists={card.checklists || []}
+                />
                 <Button
                   variant="outline"
                   size="sm"
@@ -1375,16 +1364,17 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                               <ChecklistItemDndProvider 
                                 checklistId={checklist.id} 
                                 boardId={boardId} 
-                                items={visibleItems.slice(0, expandedChecklists.has(checklist.id) ? visibleItems.length : 3)}
+                                items={visibleItems}
                               >
-                                {visibleItems.slice(0, expandedChecklists.has(checklist.id) ? visibleItems.length : 3).map((item, index) => {
+                                {visibleItems.slice(0, expandedChecklists.has(checklist.id) ? visibleItems.length : 3).map((item) => {
+                                  const actualIndex = visibleItems.findIndex(visibleItem => visibleItem.id === item.id);
                                 const optimisticState = optimisticItemStates.get(item.id);
                                 const isCompleted = optimisticState !== undefined ? optimisticState : item.isCompleted;
                                 
                                 const priority = itemPriorities.get(item.id) || 'medium';
                                 
                                 return (
-                                  <DraggableChecklistItem key={item.id} item={item} index={index}>
+                                  <DraggableChecklistItem key={item.id} item={item} index={actualIndex}>
                                     <div 
                                       className={`flex items-center gap-2 text-xs border-l-4 ${getPriorityColor(priority)} bg-slate-50 dark:bg-slate-800 rounded p-1`}
                                       onTouchStart={(e) => handleSwipeStart(e, item.id)}
@@ -1868,7 +1858,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
             {/* Desktop: Two Column Layout */}
             <div className="hidden md:flex flex-row min-h-0 flex-1">
               {/* Left Column */}
-              <div className="flex-1 p-8 space-y-8 overflow-y-auto bg-slate-50 dark:bg-slate-900 min-h-0">
+              <div className="flex-1 p-8 space-y-8 overflow-y-auto scrollbar-thin bg-slate-50 dark:bg-slate-900 min-h-0">
                 {/* Card Title with Check Radio */}
                 <div className="flex items-start gap-4">
                   <div 
@@ -1950,15 +1940,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
 
                 {/* Action Buttons - Trello Style */}
                 <div className="flex flex-wrap gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsDueDateModalOpen(true)}
-                    className="h-9 px-4 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Due Date
-                  </Button>
+                  <DueDateDropdown
+                    card={card}
+                    boardId={boardId}
+                  />
                   <Button
                     variant="outline"
                     size="sm"
@@ -1975,15 +1960,11 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     <Tag className="w-4 h-4 mr-2" />
                     Labels
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsChecklistModalOpen(true)}
-                    className="h-9 px-4 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                  >
-                    <ListTodo className="w-4 h-4 mr-2" />
-                    Checklist
-                  </Button>
+                  <ChecklistDropdown
+                    cardId={card.id}
+                    boardId={boardId}
+                    existingChecklists={card.checklists || []}
+                  />
                   <Button
                     variant="outline"
                     size="sm"
@@ -2243,16 +2224,17 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                                 <ChecklistItemDndProvider 
                                   checklistId={checklist.id} 
                                   boardId={boardId} 
-                                  items={visibleItems.slice(0, expandedChecklists.has(checklist.id) ? visibleItems.length : 5)}
+                                  items={visibleItems}
                                 >
-                                  {visibleItems.slice(0, expandedChecklists.has(checklist.id) ? visibleItems.length : 5).map((item, index) => {
+                                  {visibleItems.slice(0, expandedChecklists.has(checklist.id) ? visibleItems.length : 5).map((item) => {
+                                  const actualIndex = visibleItems.findIndex(visibleItem => visibleItem.id === item.id);
                                   const optimisticState = optimisticItemStates.get(item.id);
                                   const isCompleted = optimisticState !== undefined ? optimisticState : item.isCompleted;
                                   
                                   const priority = itemPriorities.get(item.id) || 'medium';
                                   
                                   return (
-                                    <DraggableChecklistItem key={item.id} item={item} index={index}>
+                                    <DraggableChecklistItem key={item.id} item={item} index={actualIndex}>
                                       <div className={`flex items-center gap-3 text-sm border-l-4 ${getPriorityColor(priority)} bg-slate-50 dark:bg-slate-800 rounded p-1`}>
                                     {editingItemId === item.id ? (
                                       <div className="flex items-center gap-2 w-full">
@@ -2494,7 +2476,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
 
 
             {/* Right Column */}
-            <div className="flex-1 p-8 space-y-6 overflow-y-auto border-l border-slate-400 dark:border-slate-800 bg-slate-200 dark:bg-[#0D1117]">
+            <div className="flex-1 p-8 space-y-6 overflow-y-auto scrollbar-thin border-l border-slate-400 dark:border-slate-800 bg-slate-200 dark:bg-[#0D1117]">
               {/* Comments Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -2733,21 +2715,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
         onClose={() => setIsFeedbackOpen(false)} 
       />
 
-      {/* Due Date Modal */}
-      <DueDateModal
-        isOpen={isDueDateModalOpen}
-        onClose={() => setIsDueDateModalOpen(false)}
-        card={card}
-        boardId={boardId}
-      />
 
-      {/* Checklist Modal */}
-      <ChecklistModal
-        isOpen={isChecklistModalOpen}
-        onClose={() => setIsChecklistModalOpen(false)}
-        card={card}
-        boardId={boardId}
-      />
 
       {/* Copy Checklist Modal */}
       {checklistToCopy && (

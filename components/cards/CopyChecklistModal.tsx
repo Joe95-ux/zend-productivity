@@ -78,15 +78,15 @@ export function CopyChecklistModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md p-0 gap-0">
+      <DialogContent showCloseButton={false} className="bg-background dark:bg-[#0D1117] sm:max-w-sm p-0 gap-0">
         {/* Custom Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white">
+        <div className="flex items-center justify-between p-6">
+          <h2 className="text-[16px] mx-auto font-semibold text-slate-900 dark:text-white">
             Copy Checklist
           </h2>
           <button
             onClick={handleClose}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-sm transition-colors"
           >
             <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
           </button>
@@ -98,7 +98,7 @@ export function CopyChecklistModal({
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Enter checklist title..."
-              className="w-full"
+              className="w-full h-10"
               autoFocus
             />
           </div>
@@ -119,10 +119,10 @@ export function CopyChecklistModal({
             <Button
               onClick={handleCopy}
               disabled={copyChecklistMutation.isPending || !newTitle.trim()}
-              className="px-4 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900"
+              className="px-4 bg-teal-700 hover:bg-teal-900 text-slate-100"
             >
               {copyChecklistMutation.isPending ? (
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-slate-100 border-t-transparent mr-2" />
               ) : null}
               {copyChecklistMutation.isPending ? "Copying..." : "Copy"}
             </Button>

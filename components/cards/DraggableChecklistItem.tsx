@@ -17,7 +17,27 @@ export function DraggableChecklistItem({ item, index, children }: DraggableCheck
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`transition-all duration-200 ${snapshot.isDragging ? 'opacity-90 scale-105 rotate-2 shadow-2xl z-50' : ''}`}
+          className={`
+            transition-all duration-200 ease-out
+            ${snapshot.isDragging 
+              ? 'opacity-90 scale-105 rotate-1 shadow-2xl z-50 bg-white dark:bg-slate-800 rounded-md border-2 border-blue-300 dark:border-blue-600' 
+              : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md'
+            }
+            ${snapshot.draggingOver 
+              ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-blue-300 dark:border-blue-600' 
+              : ''
+            }
+            ${snapshot.isDropAnimating 
+              ? 'transform-gpu' 
+              : ''
+            }
+          `}
+          style={{
+            ...provided.draggableProps.style,
+            ...(snapshot.isDragging && {
+              transform: provided.draggableProps.style?.transform,
+            }),
+          }}
         >
           {children}
         </div>

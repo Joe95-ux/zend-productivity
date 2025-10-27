@@ -114,6 +114,7 @@ model ChecklistItem {
   id           String      @id @default(auto()) @map("_id") @db.ObjectId
   content      String
   isCompleted  Boolean     @default(false)
+  position     Int         @default(0)
   checklistId  String      @db.ObjectId
   checklist    Checklist?  @relation(fields: [checklistId], references: [id])
 }

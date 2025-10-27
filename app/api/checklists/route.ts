@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/auth";;
 import { db } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
-    if (!userId) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has access to the board
-    const hasAccess = card.list.board.ownerId === userId || 
-      card.list.board.members.some(member => member.userId === userId);
+    const hasAccess = card.list?.board?.ownerId === user.id || 
+      card.list?.board?.members?.some(member => member.userId === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -51,9 +51,10 @@ export async function POST(request: NextRequest) {
         title,
         cardId,
         items: {
-          create: items?.map((item: any) => ({
+          create: items?.map((item: { content: string; isCompleted?: boolean }, index: number) => ({
             content: item.content,
-            isCompleted: item.isCompleted || false
+            isCompleted: item.isCompleted || false,
+            position: index
           })) || []
         }
       },

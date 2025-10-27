@@ -201,6 +201,84 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
       updateListOrderMutation.mutate({ items, boardId });
     }
 
+    // User moves a checklist item
+    if (type === "checklist-item") {
+      // Find the checklist that contains this item
+      const checklist = orderedData.lists
+        .flatMap(list => list.cards)
+        .flatMap(card => card.checklists || [])
+        .find(checklist => checklist.id === source.droppableId);
+
+      if (!checklist) {
+        console.error("Checklist not found for droppableId:", source.droppableId);
+        return;
+      }
+
+      // Get the item being moved
+      const itemToMove = checklist.items[source.index];
+      if (!itemToMove) {
+        console.error("Item not found at source index:", source.index);
+        return;
+      }
+
+      const reorderedItems = reorder(
+        checklist.items,
+        source.index,
+        destination.index
+      );
+
+      // Update the checklist items with new positions
+      const updatedItems = reorderedItems.map((item, idx) => ({
+        ...item,
+        position: idx
+      }));
+
+      // Immediately update optimistic state
+      const updatedLists = orderedData.lists.map(list => ({
+        ...list,
+        cards: list.cards.map(card => ({
+          ...card,
+          checklists: card.checklists?.map(c => 
+            c.id === checklist.id 
+              ? { ...c, items: updatedItems }
+              : c
+          )
+        }))
+      }));
+
+      setOptimisticData({
+        ...orderedData,
+        lists: updatedLists
+      });
+
+      // Call the reorder API
+      fetch(`/api/checklist-items/${itemToMove.id}/reorder`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          checklistId: checklist.id,
+          itemId: itemToMove.id,
+          newPosition: destination.index
+        }),
+      })
+      .then(response => {
+        if (!response.ok) throw new Error("Failed to reorder items");
+        return response.json();
+      })
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      })
+      .catch(error => {
+        console.error("Error reordering checklist item:", error);
+        toast.error("Failed to reorder item");
+      })
+      .finally(() => {
+        isDragInProgressRef.current = false;
+      });
+      
+      return;
+    }
+
     // User moves a card
     if (type === "card") {
       const sourceList = orderedData.lists.find(

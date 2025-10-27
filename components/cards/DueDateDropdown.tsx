@@ -1,20 +1,17 @@
-//legacy modal
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Calendar, Clock, RotateCcw, Bell, X } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, addYears } from "date-fns";
 
-interface DueDateModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface DueDateDropdownProps {
   card: {
     id: string;
     title: string;
@@ -27,7 +24,7 @@ interface DueDateModalProps {
   boardId: string;
 }
 
-export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalProps) {
+export function DueDateDropdown({ card, boardId }: DueDateDropdownProps) {
   const [startDate, setStartDate] = useState(card.startDate ? format(new Date(card.startDate), "yyyy-MM-dd") : "");
   const [dueDate, setDueDate] = useState(card.dueDate ? format(new Date(card.dueDate), "yyyy-MM-dd") : "");
   const [startTime, setStartTime] = useState(card.startDate ? format(new Date(card.startDate), "HH:mm") : "");
@@ -35,6 +32,7 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
   const [isRecurring, setIsRecurring] = useState(card.isRecurring || false);
   const [recurringType, setRecurringType] = useState(card.recurringType || "weekly");
   const [reminderType, setReminderType] = useState(card.reminderType || "1_day");
+  const [isOpen, setIsOpen] = useState(false);
   
   const queryClient = useQueryClient();
 
@@ -46,16 +44,14 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
       recurringType?: string;
       reminderType?: string;
     }) => {
-      console.log("DueDateModal: Sending request to update due date:", data);
       const response = await fetch(`/api/cards/${card.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      console.log("DueDateModal: Response status:", response.status);
+      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("DueDateModal: Error response:", errorText);
         throw new Error(`Failed to update due date: ${response.status} ${errorText}`);
       }
       return response.json();
@@ -63,7 +59,7 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Due date updated successfully!");
-      onClose();
+      setIsOpen(false);
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -72,7 +68,6 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
 
   const removeDueDateMutation = useMutation({
     mutationFn: async () => {
-      console.log("DueDateModal: Removing due date for card:", card.id);
       const response = await fetch(`/api/cards/${card.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -84,10 +79,9 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
           reminderType: null,
         }),
       });
-      console.log("DueDateModal: Remove response status:", response.status);
+      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("DueDateModal: Remove error response:", errorText);
         throw new Error(`Failed to remove due date: ${response.status} ${errorText}`);
       }
       return response.json();
@@ -95,7 +89,7 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Due date removed successfully!");
-      onClose();
+      setIsOpen(false);
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -118,6 +112,18 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
   const handleRemove = () => {
     removeDueDateMutation.mutate();
   };
+
+  const handleClose = useCallback(() => {
+    // Reset to original values when closing
+    setStartDate(card.startDate ? format(new Date(card.startDate), "yyyy-MM-dd") : "");
+    setDueDate(card.dueDate ? format(new Date(card.dueDate), "yyyy-MM-dd") : "");
+    setStartTime(card.startDate ? format(new Date(card.startDate), "HH:mm") : "");
+    setDueTime(card.dueDate ? format(new Date(card.dueDate), "HH:mm") : "");
+    setIsRecurring(card.isRecurring || false);
+    setRecurringType(card.recurringType || "weekly");
+    setReminderType(card.reminderType || "1_day");
+    setIsOpen(false);
+  }, [card]);
 
   const getQuickDateOptions = () => {
     const today = new Date();
@@ -144,19 +150,42 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
     { value: "1_week", label: "1 week before" },
   ];
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Set Due Date
-          </DialogTitle>
-        </DialogHeader>
+  const getDisplayText = () => {
+    if (card.dueDate) {
+      return format(new Date(card.dueDate), "MMM d, yyyy");
+    }
+    return "Due Date";
+  };
 
-        <div className="space-y-6">
+  return (
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          {getDisplayText()}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-80 p-0">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4">
+          <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
+            {card.dueDate ? "Edit Due Date" : "Set Due Date"}
+          </h3>
+          <button
+            onClick={handleClose}
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+          >
+            <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          </button>
+        </div>
+        
+        <div className="p-4 space-y-4">
           {/* Start Date */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Start Date
@@ -166,19 +195,19 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="text-sm"
+                className="text-sm h-8"
               />
               <Input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="text-sm"
+                className="text-sm h-8"
               />
             </div>
           </div>
 
           {/* Due Date */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               Due Date
@@ -188,25 +217,25 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="text-sm"
+                className="text-sm h-8"
               />
               <Input
                 type="time"
                 value={dueTime}
                 onChange={(e) => setDueTime(e.target.value)}
-                className="text-sm"
+                className="text-sm h-8"
               />
             </div>
             
             {/* Quick Date Options */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1">
               {getQuickDateOptions().map((option) => (
                 <Button
                   key={option.value}
                   variant="outline"
                   size="sm"
                   onClick={() => setDueDate(option.value)}
-                  className="text-xs h-7 px-2"
+                  className="text-xs h-6 px-2"
                 >
                   {option.label}
                 </Button>
@@ -215,7 +244,7 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
           </div>
 
           {/* Recurring */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -232,7 +261,7 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
             
             {isRecurring && (
               <Select value={recurringType} onValueChange={setRecurringType}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -247,13 +276,13 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
           </div>
 
           {/* Reminder */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-2">
               <Bell className="w-4 h-4" />
               Reminder
             </Label>
             <Select value={reminderType} onValueChange={setReminderType}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -267,35 +296,34 @@ export function DueDateModal({ isOpen, onClose, card, boardId }: DueDateModalPro
           </div>
 
           {/* Actions */}
-          <div className="flex justify-between pt-4">
-            <Button
-              variant="outline"
-              onClick={handleRemove}
-              disabled={updateDueDateMutation.isPending || removeDueDateMutation.isPending}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Remove
-            </Button>
-            <div className="flex gap-2">
+          <div className="flex justify-between pt-2">
+            {card.dueDate && (
               <Button
                 variant="outline"
-                onClick={onClose}
+                size="sm"
+                onClick={handleRemove}
                 disabled={updateDueDateMutation.isPending || removeDueDateMutation.isPending}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-3"
               >
-                Cancel
+                <X className="w-3 h-3 mr-1" />
+                Remove
               </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
               <Button
                 onClick={handleSave}
                 disabled={updateDueDateMutation.isPending || removeDueDateMutation.isPending}
-                className="bg-teal-600 hover:bg-teal-700"
+                className="px-4 bg-teal-700 hover:bg-teal-900 text-slate-100 h-8"
               >
+                {updateDueDateMutation.isPending ? (
+                  <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                ) : null}
                 {updateDueDateMutation.isPending ? "Saving..." : "Save"}
               </Button>
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

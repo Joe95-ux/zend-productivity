@@ -77,14 +77,31 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const updateData: any = {};
+    const updateData: {
+      title?: string;
+      description?: string;
+      position?: number;
+      listId?: string;
+      isCompleted?: boolean;
+      startDate?: string | null;
+      dueDate?: string | null;
+      isRecurring?: boolean;
+      recurringType?: string | null;
+      reminderType?: string | null;
+    } = {};
     if (title !== undefined && title !== null) updateData.title = title;
     if (description !== undefined && description !== null) updateData.description = description;
     if (position !== undefined && position !== null) updateData.position = position;
     if (listId !== undefined && listId !== null) updateData.listId = listId;
     if (isCompleted !== undefined && isCompleted !== null) updateData.isCompleted = isCompleted;
-    if (startDate !== undefined) updateData.startDate = startDate;
-    if (dueDate !== undefined) updateData.dueDate = dueDate;
+    if (startDate !== undefined) {
+      updateData.startDate = startDate ? new Date(startDate).toISOString() : null;
+      console.log(`PUT /api/cards/${cardId} - Converted startDate: ${startDate} -> ${updateData.startDate}`);
+    }
+    if (dueDate !== undefined) {
+      updateData.dueDate = dueDate ? new Date(dueDate).toISOString() : null;
+      console.log(`PUT /api/cards/${cardId} - Converted dueDate: ${dueDate} -> ${updateData.dueDate}`);
+    }
     if (isRecurring !== undefined) updateData.isRecurring = isRecurring;
     if (recurringType !== undefined) updateData.recurringType = recurringType;
     if (reminderType !== undefined) updateData.reminderType = reminderType;

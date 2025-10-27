@@ -54,8 +54,8 @@ export async function PUT(
     }
 
     // Check if user has access to the board
-    const hasAccess = checklist.card.list.board.ownerId === user.id || 
-      checklist.card.list.board.members.some(member => member.userId === user.id);
+    const hasAccess = checklist.card?.list?.board?.ownerId === user.id || 
+      checklist.card?.list?.board?.members?.some(member => member.userId === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -74,9 +74,9 @@ export async function PUT(
     try {
       await createActivityWithNotifications({
         type: "updated_checklist",
-        message: `Updated checklist "${title}" in card "${checklist.card.title}"`,
-        boardId: checklist.card.list.boardId,
-        cardId: checklist.cardId,
+        message: `Updated checklist "${title}" in card "${checklist.card?.title}"`,
+        boardId: checklist.card?.list?.boardId || "",
+        cardId: checklist.cardId || "",
         userId: user.id
       });
     } catch (activityError) {
@@ -132,8 +132,8 @@ export async function DELETE(
     }
 
     // Check if user has access to the board
-    const hasAccess = checklist.card.list.board.ownerId === user.id || 
-      checklist.card.list.board.members.some(member => member.userId === user.id);
+    const hasAccess = checklist.card?.list?.board?.ownerId === user.id || 
+      checklist.card?.list?.board?.members?.some(member => member.userId === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -148,9 +148,9 @@ export async function DELETE(
     try {
       await createActivityWithNotifications({
         type: "deleted_checklist",
-        message: `Deleted checklist "${checklist.title}" from card "${checklist.card.title}"`,
-        boardId: checklist.card.list.boardId,
-        cardId: checklist.cardId,
+        message: `Deleted checklist "${checklist.title}" from card "${checklist.card?.title}"`,
+        boardId: checklist.card?.list?.boardId || "",
+        cardId: checklist.cardId || "",
         userId: user.id
       });
     } catch (activityError) {

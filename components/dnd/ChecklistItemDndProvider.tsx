@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback } from "react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { Droppable } from "@hello-pangea/dnd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChecklistItem as ChecklistItemType, Board, List, Card, Checklist } from "@/lib/types";
@@ -71,21 +71,17 @@ export function ChecklistItemDndProvider({
           ...old,
           lists: old.lists.map((list: List) => ({
             ...list,
-            cards: list.cards.map((card: Card) => 
-              card.id === boardId 
-                ? {
-                    ...card,
-                    checklists: card.checklists?.map((checklist: Checklist) => 
-                      checklist.id === checklistId 
-                        ? {
-                            ...checklist,
-                            items: reorderArray(checklist.items, itemId, newPosition)
-                          }
-                        : checklist
-                    )
-                  }
-                : card
-            )
+            cards: list.cards.map((card: Card) => ({
+              ...card,
+              checklists: card.checklists?.map((checklist: Checklist) => 
+                checklist.id === checklistId 
+                  ? {
+                      ...checklist,
+                      items: reorderArray(checklist.items, itemId, newPosition)
+                    }
+                  : checklist
+              )
+            }))
           }))
         };
       });
@@ -93,7 +89,7 @@ export function ChecklistItemDndProvider({
       return { previousBoard };
     },
     onSuccess: () => {
-      toast.success("Items reordered successfully!");
+      // Silent success for smooth UX
     },
     onError: (err, variables, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
@@ -133,15 +129,6 @@ export function ChecklistItemDndProvider({
     });
   }, [items, reorderItemsMutation]);
 
-  const handleDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
-
-    if (!destination) return;
-    if (destination.droppableId !== source.droppableId) return;
-    if (destination.index === source.index) return;
-
-    reorderItems(checklistId, source.index, destination.index);
-  };
 
   const contextValue = {
     reorderItems,
@@ -150,20 +137,22 @@ export function ChecklistItemDndProvider({
 
   return (
     <ChecklistItemDndContext.Provider value={contextValue}>
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId={checklistId} type="checklist-item">
-          {(provided, snapshot) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className={`space-y-1 ${snapshot.isDraggingOver ? 'bg-blue-50 dark:bg-blue-900/20 rounded-md' : ''}`}
-            >
-              {children}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+      <Droppable droppableId={checklistId} type="checklist-item">
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={`space-y-1 transition-colors duration-200 ${
+              snapshot.isDraggingOver 
+                ? 'bg-blue-50 dark:bg-blue-900/20 rounded-md p-2' 
+                : ''
+            }`}
+          >
+            {children}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
     </ChecklistItemDndContext.Provider>
   );
 }

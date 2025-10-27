@@ -82,20 +82,15 @@ export async function PUT(
     // Insert it at the new position
     items.splice(newPosition, 0, movedItem);
 
-    // Update the checklist with the new order of items
-    // We'll delete all items and recreate them in the new order
-    await db.checklistItem.deleteMany({
-      where: { checklistId: checklistId }
-    });
+    // Update the checklist with the new order of items using position field
+    const updatePromises = items.map((item, index) => 
+      db.checklistItem.update({
+        where: { id: item.id },
+        data: { position: index }
+      })
+    );
 
-    await db.checklistItem.createMany({
-      data: items.map((item, index) => ({
-        id: item.id,
-        content: item.content,
-        isCompleted: item.isCompleted,
-        checklistId: checklistId
-      }))
-    });
+    await Promise.all(updatePromises);
 
     return NextResponse.json({ success: true });
   } catch (error) {
