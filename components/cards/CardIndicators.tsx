@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, TextQuote, MessagesSquare, Paperclip, Eye, CheckSquare } from "lucide-react";
+import { Clock, TextQuote, MessagesSquare, Paperclip, Eye, CheckSquare, Tag } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { Card } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
   const hasDueDate = card.dueDate;
   const hasAssignedTo = card.assignedTo;
   const hasChecklists = card.checklists && card.checklists.length > 0;
+  const hasLabels = card.labels && card.labels.length > 0;
 
   // Format due date
   const formatDueDate = (dateString: string) => {
@@ -97,6 +98,18 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
               <CheckSquare className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
               <span className="text-xs font-medium text-slate-900 dark:text-slate-300">
                 {card.checklists?.length || 0}
+              </span>
+            </div>
+          </HoverHint>
+        )}
+
+        {/* Labels */}
+        {hasLabels && (
+          <HoverHint label={`${card.labels.length} label${card.labels.length > 1 ? 's' : ''}`} side="bottom">
+            <div className="flex items-center gap-1">
+              <Tag className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
+              <span className="text-xs font-medium text-slate-900 dark:text-slate-300">
+                {card.labels.length}
               </span>
             </div>
           </HoverHint>

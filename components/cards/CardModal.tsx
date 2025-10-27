@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock, Eye, EyeOff, Calendar, Users, Tag, Paperclip, RotateCcw, SquareCheckBig } from "lucide-react";
+import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock, Eye, EyeOff, Calendar, Users, Paperclip, RotateCcw, SquareCheckBig } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { HoverHint } from "@/components/HoverHint";
@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Board, List, Card as CardType, Checklist } from "@/lib/types";
 import { DueDateDropdown } from "./DueDateDropdown";
 import { ChecklistDropdown } from "./ChecklistDropdown";
+import { LabelDropdown } from "./LabelDropdown";
 import { CopyChecklistModal } from "./CopyChecklistModal";
 import { ChecklistItemDndProvider } from "@/components/dnd/ChecklistItemDndProvider";
 import { DraggableChecklistItem } from "./DraggableChecklistItem";
@@ -1064,14 +1065,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   <Users className="w-4 h-4 mr-2" />
                   Members
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                >
-                  <Tag className="w-4 h-4 mr-2" />
-                  Labels
-                </Button>
+                <LabelDropdown
+                  card={card}
+                  boardId={boardId}
+                />
                 <ChecklistDropdown
                   cardId={card.id}
                   boardId={boardId}
@@ -1952,14 +1949,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     <Users className="w-4 h-4 mr-2" />
                     Members
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-4 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                  >
-                    <Tag className="w-4 h-4 mr-2" />
-                    Labels
-                  </Button>
+                  <LabelDropdown
+                    card={card}
+                    boardId={boardId}
+                  />
                   <ChecklistDropdown
                     cardId={card.id}
                     boardId={boardId}
