@@ -8,16 +8,12 @@ import Placeholder from '@tiptap/extension-placeholder';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from './button';
-import { Input } from './input';
-import { Label } from './label';
-import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { 
   Bold as BoldIcon, 
   Italic as ItalicIcon, 
   Strikethrough as StrikeIcon,
   Code as CodeIcon,
   Link as LinkIcon,
-  Image as ImageIcon,
   List as ListIcon,
   ListOrdered as OrderedListIcon,
   Quote as QuoteIcon,
@@ -25,9 +21,12 @@ import {
   Heading2 as H2Icon,
   Heading3 as H3Icon,
   Undo as UndoIcon,
-  Redo as RedoIcon
+  Redo as RedoIcon,
+  X as XIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AttachmentUpload } from './AttachmentUpload';
+import { fileToBase64, validateFile } from '@/lib/file-utils';
 
 interface RichTextEditorProps {
   content?: string;
@@ -52,9 +51,7 @@ export function RichTextEditor({
   editable = true
 }: RichTextEditorProps) {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-  const [isImagePopoverOpen, setIsImagePopoverOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
   const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -65,13 +62,13 @@ export function RichTextEditor({
       }),
       Image.configure({
         HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-md',
+          class: 'max-w-full h-auto rounded-md w-full object-contain',
         },
       }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-600 underline cursor-pointer',
+          class: 'text-blue-600 underline cursor-pointer break-all',
         },
       }),
       Placeholder.configure({
@@ -83,14 +80,24 @@ export function RichTextEditor({
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      const sanitizedHtml = DOMPurify.sanitize(html);
+      const sanitizedHtml = DOMPurify.sanitize(html, { 
+        USE_PROFILES: { html: true },
+        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'img', 'div', 'span', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre'],
+        ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class', 'style']
+      });
       onChange?.(sanitizedHtml);
     },
   });
 
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
+      // Use a small delay to ensure the editor is fully ready
+      const timer = setTimeout(() => {
+        // Don't sanitize content when loading it into the editor
+        // Only sanitize when saving/updating
+        editor.commands.setContent(content);
+      }, 10);
+      return () => clearTimeout(timer);
     }
   }, [content, editor]);
 
@@ -102,45 +109,28 @@ export function RichTextEditor({
     }
   }, [editor, linkUrl]);
 
-  const addImage = useCallback(() => {
-    if (imageUrl && editor) {
-      editor.chain().focus().setImage({ src: imageUrl }).run();
-      setImageUrl('');
-      setIsImagePopoverOpen(false);
+  const addImage = useCallback((url: string) => {
+    if (url && editor) {
+      editor.chain().focus().setImage({ src: url }).run();
     }
-  }, [editor, imageUrl]);
+  }, [editor]);
 
-  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Check if it's an image
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size must be less than 5MB');
+  const handleFileUpload = useCallback(async (file: File) => {
+    const validation = validateFile(file, "image/*", 5);
+    if (!validation.valid) {
+      alert(validation.error);
       return;
     }
 
     setIsUploading(true);
     
     try {
-      // Convert to base64 for now (in production, upload to a service like Cloudinary)
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-        editor?.chain().focus().setImage({ src: base64 }).run();
-        setIsImagePopoverOpen(false);
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
+      const result = await fileToBase64(file);
+      editor?.chain().focus().setImage({ src: result.url }).run();
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Failed to upload image');
+    } finally {
       setIsUploading(false);
     }
   }, [editor]);
@@ -216,78 +206,14 @@ export function RichTextEditor({
                 >
                   <LinkIcon className="w-4 h-4" />
                 </Button>
-                <Popover open={isImagePopoverOpen} onOpenChange={setIsImagePopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-4" align="start">
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-sm">Add Image</h4>
-                      
-                      {/* File Upload */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Upload Image</Label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileUpload}
-                            className="hidden"
-                            id="image-upload"
-                            disabled={isUploading}
-                          />
-                          <label
-                            htmlFor="image-upload"
-                            className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-md cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isUploading ? 'Uploading...' : 'Choose File'}
-                          </label>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Max 5MB, JPG, PNG, GIF, WebP
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-                        <span className="text-xs text-slate-500 dark:text-slate-400">or</span>
-                        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-                      </div>
-
-                      {/* URL Input */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Image URL</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={imageUrl}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setImageUrl(e.target.value)}
-                            placeholder="https://example.com/image.jpg"
-                            className="flex-1 h-8 text-sm"
-                            onKeyPress={(e: React.KeyboardEvent) => {
-                              if (e.key === 'Enter') {
-                                addImage();
-                              }
-                            }}
-                          />
-                          <Button
-                            onClick={addImage}
-                            disabled={!imageUrl || isUploading}
-                            size="sm"
-                            className="h-8 px-3"
-                          >
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <AttachmentUpload
+                  onFileUpload={handleFileUpload}
+                  onUrlUpload={addImage}
+                  isUploading={isUploading}
+                  acceptedTypes="image/*"
+                  maxSize={5}
+                  variant="icon"
+                />
               </div>
 
               <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-2" />
@@ -417,11 +343,12 @@ export function RichTextEditor({
       )}
 
       <div
-        className="prose prose-sm max-w-none p-3 focus-within:outline-none"
+        className="prose prose-sm max-w-none p-3 focus-within:outline-none w-full"
         style={{
           minHeight,
           maxHeight: showToolbar ? maxHeight : 'none',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          overflowX: 'hidden'
         }}
       >
         <EditorContent 
@@ -444,8 +371,12 @@ export function RichTextEditor({
                      [&_.ProseMirror]:overflow-x-hidden 
                      [&_.ProseMirror]:overflow-y-auto 
                      [&_.ProseMirror>p]:max-w-full 
+                     [&_.ProseMirror>p]:break-words
                      [&_.ProseMirror>img]:max-w-full 
+                     [&_.ProseMirror>img]:h-auto
                      [&_.ProseMirror>pre]:max-w-full 
+                     [&_.ProseMirror>pre]:overflow-x-auto
+                     [&_.ProseMirror>a]:break-all
                      [&_.ProseMirror]:text-wrap 
                      [&_.ProseMirror]:hyphens-auto"
         />
@@ -455,7 +386,15 @@ export function RichTextEditor({
       {isLinkModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-lg w-96">
-            <h3 className="text-lg font-semibold mb-4">Add Link</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Add Link</h3>
+              <button
+                onClick={() => setIsLinkModalOpen(false)}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+              >
+                <XIcon className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              </button>
+            </div>
             <input
               type="url"
               value={linkUrl}

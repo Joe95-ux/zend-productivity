@@ -258,3 +258,31 @@
 .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background-color: rgb(100 116 139);
 }
+
+/* Prevent code or long text from overflowing editor bounds */
+.ProseMirror {
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-width: 100%;
+}
+
+/* Contain code blocks */
+.ProseMirror pre {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+/* Contain images */
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Handle long URLs */
+.ProseMirror a {
+  word-break: break-all;
+}

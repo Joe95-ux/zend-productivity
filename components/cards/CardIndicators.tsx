@@ -84,6 +84,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
       )
     }] : []),
 
+
     // Description
     ...(hasDescription ? [{
       id: 'description',
@@ -155,11 +156,38 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
     }] : [])
   ];
 
-  // Always include watch and members in the first 5, then add others
+  // If 5 or fewer indicators, show all
+  if (allIndicators.length <= 5) {
+    return (
+      <div className="flex items-center justify-between px-3 pb-2">
+        {/* Left side indicators */}
+        <div className="flex items-center gap-3">
+          {allIndicators.map(indicator => indicator.component)}
+        </div>
+        {/* Right side - Members */}
+        <div className="flex items-center gap-1">
+          {hasAssignedTo && (
+            <HoverHint label="Assigned member" side="bottom">
+              <UserButton 
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "w-6 h-6"
+                  }
+                }}
+              />
+            </HoverHint>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // If more than 5 indicators, prioritize watch and dueDate, then show others
   const priorityIndicators = allIndicators.filter(ind => ind.id === 'watch' || ind.id === 'dueDate');
   const otherIndicators = allIndicators.filter(ind => ind.id !== 'watch' && ind.id !== 'dueDate');
   
-  // Take up to 3 more indicators to reach 5 total (excluding members)
+  // Take up to 3 more indicators to reach 5 total
   const visibleIndicators = [
     ...priorityIndicators,
     ...otherIndicators.slice(0, 5 - priorityIndicators.length)

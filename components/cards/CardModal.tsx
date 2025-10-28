@@ -496,6 +496,8 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      setIsDeleteCommentModalOpen(false);
+      setCommentToDelete(null);
       toast.success("Comment deleted successfully!");
     },
     onError: (error: Error) => {
@@ -567,8 +569,6 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   const confirmDeleteComment = () => {
     if (commentToDelete) {
       deleteCommentMutation.mutate(commentToDelete);
-      setIsDeleteCommentModalOpen(false);
-      setCommentToDelete(null);
     }
   };
 
@@ -1856,7 +1856,11 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     {card.comments.length > 0 && (
                       <div className="space-y-2">
                         {card.comments.map((comment) => (
-                          <div key={comment.id} className="flex gap-3 p-3 items-start border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900">
+                          <div key={comment.id} className={`flex gap-3 p-3 items-start rounded-lg ${
+                            editingCommentId === comment.id 
+                              ? '' 
+                              : 'border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900'
+                          }`}>
                             <ConditionalUserProfile user={comment.user as UserWithAvatar} size="sm" />
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
@@ -2755,7 +2759,11 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   {card.comments.length > 0 && (
                     <div className="space-y-3">
                     {(showDetails ? card.comments : card.comments.slice(0, 5)).map((comment) => (
-                        <div key={comment.id} className="flex gap-3 p-3 border items-start border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900">
+                        <div key={comment.id} className={`flex gap-3 p-3 items-start rounded-lg ${
+                          editingCommentId === comment.id 
+                            ? '' 
+                            : 'border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900'
+                        }`}>
                           <ConditionalUserProfile user={comment.user as UserWithAvatar} size="md" />
                           <div className="flex-1">
                             <div className="flex items-center justify-between">

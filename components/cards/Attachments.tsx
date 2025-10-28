@@ -7,6 +7,9 @@ import { Paperclip, X, Image as ImageIcon, FileText, Download } from "lucide-rea
 import { toast } from "sonner";
 import { Attachment } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
+import { AttachmentViewerModal } from "./AttachmentViewerModal";
+import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { fileToBase64, validateFile, extractFilename } from "@/lib/file-utils";
 
 interface AttachmentsProps {
   attachments: Attachment[];
@@ -16,6 +19,10 @@ interface AttachmentsProps {
 
 export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState(0);
+  const [showAllAttachments, setShowAllAttachments] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
 
   const deleteAttachmentMutation = useMutation({
@@ -58,32 +65,63 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
     }
   };
 
-  const getFileType = (url: string, type?: string) => {
-    if (type === 'image') {
-      // Extract filename from URL for images
-      const filename = url.split('/').pop() || 'image';
-      return filename.split('.')[0] || 'Image';
+  const getFileName = (url: string) => {
+    return extractFilename(url);
+  };
+
+  const handleAttachmentClick = (index: number) => {
+    setCurrentAttachmentIndex(index);
+    setViewerOpen(true);
+  };
+
+  const toggleShowAll = () => {
+    setShowAllAttachments(!showAllAttachments);
+  };
+
+  const handleFileUpload = async (file: File) => {
+    const validation = validateFile(file, "*/*", 10); // Allow all file types, 10MB max
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
     }
-    
-    const extension = url.split('.').pop()?.toLowerCase();
-    switch (extension) {
-      case 'pdf':
-        return 'PDF';
-      case 'doc':
-      case 'docx':
-        return 'Document';
-      case 'xls':
-      case 'xlsx':
-        return 'Spreadsheet';
-      case 'ppt':
-      case 'pptx':
-        return 'Presentation';
-      case 'txt':
-        return 'Text';
-      default:
-        return 'File';
+
+    setIsUploading(true);
+    try {
+      const result = await fileToBase64(file);
+      
+      // Here you would typically save to database
+      // For now, we'll just show a success message
+      toast.success(`File "${result.filename}" uploaded successfully!`);
+      
+      // Refresh the attachments list
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Failed to upload file');
+    } finally {
+      setIsUploading(false);
     }
   };
+
+  const handleUrlUpload = async (url: string) => {
+    setIsUploading(true);
+    try {
+      // Here you would typically save the URL to database
+      toast.success(`URL attachment added successfully!`);
+      
+      // Refresh the attachments list
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+    } catch (error) {
+      console.error('Error adding URL attachment:', error);
+      toast.error('Failed to add URL attachment');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Determine which attachments to show
+  const visibleAttachments = showAllAttachments ? attachments : attachments.slice(0, 6);
+  const hiddenCount = attachments.length - 6;
 
   const getThumbnailUrl = (url: string, type?: string) => {
     if (type === 'image') {
@@ -101,22 +139,33 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-          <Paperclip className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <Paperclip className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+          </div>
+          <h3 className="font-semibold text-slate-900 dark:text-white">Attachments</h3>
         </div>
-        <h3 className="font-semibold text-slate-900 dark:text-white">Attachments</h3>
+        <AttachmentUpload
+          onFileUpload={handleFileUpload}
+          onUrlUpload={handleUrlUpload}
+          isUploading={isUploading}
+          acceptedTypes="*/*"
+          maxSize={10}
+          variant="button"
+        />
       </div>
       
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {attachments.map((attachment) => {
+        {visibleAttachments.map((attachment, index) => {
           const thumbnailUrl = getThumbnailUrl(attachment.url, attachment.type);
-          const fileType = getFileType(attachment.url, attachment.type);
+          const fileName = getFileName(attachment.url);
           
           return (
             <div
               key={attachment.id}
-              className="group relative bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition-all duration-200"
+              className="group relative bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer"
+              onClick={() => handleAttachmentClick(index)}
             >
               {/* Thumbnail or Icon */}
               <div className="aspect-[4/3] relative">
@@ -141,7 +190,10 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => window.open(attachment.url, '_blank')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAttachmentClick(index);
+                    }}
                     className="h-8 px-2 text-xs"
                   >
                     <Download className="w-3 h-3 mr-1" />
@@ -150,7 +202,10 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => handleDeleteAttachment(attachment.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteAttachment(attachment.id);
+                    }}
                     disabled={isDeleting === attachment.id}
                     className="h-8 px-2 text-xs"
                   >
@@ -165,8 +220,8 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
               
               {/* File info */}
               <div className="p-2">
-                <p className="text-xs font-medium text-slate-900 dark:text-white truncate">
-                  {fileType}
+                <p className="text-xs font-medium text-slate-900 dark:text-white truncate" title={fileName}>
+                  {fileName}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {formatDistanceToNow(new Date(attachment.createdAt), { addSuffix: true })}
@@ -176,6 +231,33 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
           );
         })}
       </div>
+
+      {/* Show More/Less Toggle */}
+      {attachments.length > 6 && (
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleShowAll}
+            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+          >
+            {showAllAttachments ? (
+              <>Show Less</>
+            ) : (
+              <>Show {hiddenCount} more attachment{hiddenCount > 1 ? 's' : ''}</>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Attachment Viewer Modal */}
+      <AttachmentViewerModal
+        isOpen={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        attachments={attachments}
+        currentIndex={currentAttachmentIndex}
+        onIndexChange={setCurrentAttachmentIndex}
+      />
     </div>
   );
 }

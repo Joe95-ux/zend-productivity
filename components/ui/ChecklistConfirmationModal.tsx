@@ -53,7 +53,7 @@ export function ChecklistConfirmationModal({
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isLoading}
-            className="bg-slate-600 hover:bg-slate-700 text-white focus:ring-slate-600"
+            className="bg-teal-800 hover:bg-teal-900 text-white focus:ring-teal-600"
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
