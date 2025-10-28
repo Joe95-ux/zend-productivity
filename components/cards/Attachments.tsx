@@ -9,15 +9,17 @@ import { Attachment } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
 import { AttachmentViewerModal } from "./AttachmentViewerModal";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { AttachmentsSkeleton } from "./AttachmentsSkeleton";
 import { fileToBase64, validateFile, extractFilename } from "@/lib/file-utils";
 
 interface AttachmentsProps {
   attachments: Attachment[];
   cardId: string;
   boardId: string;
+  isLoading?: boolean;
 }
 
-export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) {
+export function Attachments({ attachments, cardId, boardId, isLoading = false }: AttachmentsProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState(0);
@@ -57,12 +59,10 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
   };
 
   const getFileIcon = (type?: string) => {
-    switch (type) {
-      case 'image':
+    if (type?.startsWith('image/')) {
         return <ImageIcon className="w-4 h-4" />;
-      default:
-        return <FileText className="w-4 h-4" />;
     }
+        return <FileText className="w-4 h-4" />;
   };
 
   const getFileName = (url: string) => {
@@ -79,40 +79,85 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
   };
 
   const handleFileUpload = async (file: File) => {
-    const validation = validateFile(file, "*/*", 10); // Allow all file types, 10MB max
+    const validation = validateFile(file, "*/*", 2); // Allow all file types, 2MB max
     if (!validation.valid) {
       toast.error(validation.error);
       return;
     }
 
     setIsUploading(true);
+    const loadingToastId = toast.loading(`Uploading "${file.name}"...`);
+    
     try {
       const result = await fileToBase64(file);
       
-      // Here you would typically save to database
-      // For now, we'll just show a success message
-      toast.success(`File "${result.filename}" uploaded successfully!`);
+      // Save to database via API
+      const response = await fetch(`/api/cards/${cardId}/attachments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: result.url,
+          type: result.type || 'file',
+          filename: file.name
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to upload attachment");
+      }
+
+      toast.dismiss(loadingToastId);
+      toast.success(`File "${file.name}" uploaded successfully!`);
       
       // Refresh the attachments list
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["attachments", cardId] });
     } catch (error) {
       console.error('Error uploading file:', error);
+      toast.dismiss(loadingToastId);
       toast.error('Failed to upload file');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleUrlUpload = async (url: string) => {
+  const handleUrlUpload = async (url: string, displayName?: string) => {
     setIsUploading(true);
+    const loadingToastId = toast.loading("Adding URL attachment...");
+    
     try {
-      // Here you would typically save the URL to database
+      // Save URL to database via API
+      const response = await fetch(`/api/cards/${cardId}/attachments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: url,
+          type: 'url',
+          filename: displayName || extractFilename(url)
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add URL attachment");
+      }
+
+      toast.dismiss(loadingToastId);
       toast.success(`URL attachment added successfully!`);
       
-      // Refresh the attachments list
-      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      // Refresh the attachments list with a small delay to ensure database consistency
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+        queryClient.invalidateQueries({ queryKey: ["attachments", cardId] });
+      }, 100);
     } catch (error) {
       console.error('Error adding URL attachment:', error);
+      toast.dismiss(loadingToastId);
       toast.error('Failed to add URL attachment');
     } finally {
       setIsUploading(false);
@@ -124,7 +169,12 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
   const hiddenCount = attachments.length - 6;
 
   const getThumbnailUrl = (url: string, type?: string) => {
-    if (type === 'image') {
+    // Check if it's an image by MIME type or by URL pattern
+    const isImage = type?.startsWith('image/') || 
+                   url.startsWith('data:image/') || 
+                   /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url);
+    
+    if (isImage) {
       // For base64 images, return as is
       if (url.startsWith('data:')) return url;
       // For external images, you might want to use a thumbnail service
@@ -133,6 +183,10 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
     return null;
   };
 
+  if (isLoading) {
+    return <AttachmentsSkeleton />;
+  }
+
   if (attachments.length === 0) {
     return null;
   }
@@ -140,18 +194,18 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-            <Paperclip className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-          </div>
-          <h3 className="font-semibold text-slate-900 dark:text-white">Attachments</h3>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+          <Paperclip className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+        </div>
+        <h3 className="font-semibold text-slate-900 dark:text-white">Attachments</h3>
         </div>
         <AttachmentUpload
           onFileUpload={handleFileUpload}
           onUrlUpload={handleUrlUpload}
           isUploading={isUploading}
           acceptedTypes="*/*"
-          maxSize={10}
+          maxSize={2}
           variant="button"
         />
       </div>
@@ -159,7 +213,7 @@ export function Attachments({ attachments, cardId, boardId }: AttachmentsProps) 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {visibleAttachments.map((attachment, index) => {
           const thumbnailUrl = getThumbnailUrl(attachment.url, attachment.type);
-          const fileName = getFileName(attachment.url);
+          const fileName = attachment.filename || getFileName(attachment.url);
           
           return (
             <div

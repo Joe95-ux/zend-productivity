@@ -33,6 +33,9 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { ChecklistConfirmationModal } from "@/components/ui/ChecklistConfirmationModal";
 import { Attachments } from "./Attachments";
 import { CommentContent } from "./CommentContent";
+import { ChecklistsSection } from "./ChecklistsSection";
+import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { fileToBase64, validateFile, extractFilename } from "@/lib/file-utils";
 
 const updateCardSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -107,9 +110,11 @@ interface CardModalProps {
   boardId: string;
   isOpen: boolean;
   onClose: () => void;
+  isLoadingAttachments?: boolean;
+  isLoadingChecklists?: boolean;
 }
 
-export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalProps) {
+export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttachments = false, isLoadingChecklists = false }: CardModalProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [isCommentFormExpanded, setIsCommentFormExpanded] = useState(false);
@@ -143,6 +148,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   // Checklist deletion and visibility state
   const [isDeleteChecklistOpen, setIsDeleteChecklistOpen] = useState(false);
   const [checklistToDelete, setChecklistToDelete] = useState<string | null>(null);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [hiddenChecklists, setHiddenChecklists] = useState<Set<string>>(new Set());
   const [optimisticItemStates, setOptimisticItemStates] = useState<Map<string, boolean>>(new Map());
   const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
@@ -598,6 +604,92 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
     updateCardContentMutation.mutate(data);
   };
 
+  const handleFileUpload = async (file: File) => {
+    const validation = validateFile(file, "*/*", 2); // 2MB max
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+
+    setIsUploadingAttachment(true);
+    const loadingToastId = toast.loading(`Uploading "${file.name}"...`);
+    
+    try {
+      const result = await fileToBase64(file);
+      
+      // Save to database via API
+      const response = await fetch(`/api/cards/${card.id}/attachments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: result.url,
+          type: result.type || 'file',
+          filename: file.name
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to upload attachment");
+      }
+
+      toast.dismiss(loadingToastId);
+      toast.success(`File "${file.name}" uploaded successfully!`);
+      
+      // Refresh the attachments list
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["attachments", card.id] });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.dismiss(loadingToastId);
+      toast.error('Failed to upload file');
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
+  const handleUrlUpload = async (url: string, displayName?: string) => {
+    setIsUploadingAttachment(true);
+    const loadingToastId = toast.loading("Adding URL attachment...");
+    
+    try {
+      // Save URL to database via API
+      const response = await fetch(`/api/cards/${card.id}/attachments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: url,
+          type: 'url',
+          filename: displayName || extractFilename(url)
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add URL attachment");
+      }
+
+      toast.dismiss(loadingToastId);
+      toast.success(`URL attachment added successfully!`);
+      
+      // Refresh the attachments list with a small delay to ensure database consistency
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+        queryClient.invalidateQueries({ queryKey: ["attachments", card.id] });
+      }, 100);
+    } catch (error) {
+      console.error('Error adding URL attachment:', error);
+      toast.dismiss(loadingToastId);
+      toast.error('Failed to add URL attachment');
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
   const handleToggleComplete = () => {
     const newCompletedState = !isCompleted;
     
@@ -936,7 +1028,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
   return (
     <>
       <Dialog open={isOpen}>
-        <DialogContent showCloseButton={false} className="w-[calc(100vw-8px)] sm:max-w-[65rem] h-[85vh] max-h-[85vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900 flex flex-col">
+        <DialogContent showCloseButton={false} className="w-[calc(100vw-8px)] sm:max-w-[75rem] h-[85vh] max-h-[85vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900 flex flex-col">
           {/* Header */}
           <DialogHeader>
             <DialogTitle>
@@ -1122,22 +1214,25 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                   boardId={boardId}
                   existingChecklists={card.checklists || []}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                <AttachmentUpload
+                  onFileUpload={handleFileUpload}
+                  onUrlUpload={handleUrlUpload}
+                  isUploading={isUploadingAttachment}
+                  acceptedTypes="*/*"
+                  maxSize={2}
+                  variant="button"
                 >
-                  <Paperclip className="w-4 h-4 mr-2" />
-                  Attachment
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                  >
+                    <Paperclip className="w-4 h-4 mr-2" />
+                    Attachment
+                  </Button>
+                </AttachmentUpload>
               </div>
 
-              {/* Attachments */}
-              <Attachments 
-                attachments={(card.attachments || []).map(att => ({ ...att, cardId: card.id })) as Attachment[]} 
-                cardId={card.id} 
-                boardId={boardId} 
-              />
 
               {/* Members */}
               <div className="space-y-4">
@@ -1303,6 +1398,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                 )}
               </div>
 
+              {/* Attachments */}
+              <Attachments 
+                attachments={(card.attachments || []).map(att => ({ ...att, cardId: card.id })) as Attachment[]} 
+                cardId={card.id} 
+                boardId={boardId}
+                isLoading={isLoadingAttachments}
+              />
+
               {/* Due Date Display */}
               {card.dueDate && (
                 <div className="space-y-4">
@@ -1338,11 +1441,11 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
               )}
 
               {/* Checklists */}
-              {card.checklists && card.checklists.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Checklists</h3>
-                  <div className="space-y-3">
-                    {card.checklists.map((checklist) => {
+              <ChecklistsSection 
+                checklists={card.checklists || []} 
+                isLoading={isLoadingChecklists}
+              >
+                    {card.checklists?.map((checklist) => {
                       const completedItems = checklist.items.filter(item => {
                         const optimisticState = optimisticItemStates.get(item.id);
                         return optimisticState !== undefined ? optimisticState : item.isCompleted;
@@ -1766,9 +1869,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                         </div>
                       );
                     })}
-                  </div>
-                </div>
-              )}
+              </ChecklistsSection>
 
 
                 </TabsContent>
@@ -2088,22 +2189,24 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     boardId={boardId}
                     existingChecklists={card.checklists || []}
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-4 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                  <AttachmentUpload
+                    onFileUpload={handleFileUpload}
+                    onUrlUpload={handleUrlUpload}
+                    isUploading={isUploadingAttachment}
+                    acceptedTypes="*/*"
+                    maxSize={2}
+                    variant="button"
                   >
-                    <Paperclip className="w-4 h-4 mr-2" />
-                    Attachment
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-4 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                    >
+                      <Paperclip className="w-4 h-4 mr-2" />
+                      Attachment
+                    </Button>
+                  </AttachmentUpload>
                 </div>
-
-                {/* Attachments */}
-                <Attachments 
-                  attachments={(card.attachments || []).map(att => ({ ...att, cardId: card.id })) as Attachment[]} 
-                  cardId={card.id} 
-                  boardId={boardId} 
-                />
 
                 {/* Members */}
                 <div className="space-y-4">
@@ -2268,6 +2371,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose }: CardModalPro
                     </div>
                   )}
                 </div>
+
+                {/* Attachments */}
+                <Attachments 
+                  attachments={(card.attachments || []).map(att => ({ ...att, cardId: card.id })) as Attachment[]} 
+                  cardId={card.id} 
+                  boardId={boardId} 
+                />
 
                 {/* Due Date Display */}
                 {card.dueDate && (

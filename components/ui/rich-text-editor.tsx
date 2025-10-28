@@ -7,6 +7,7 @@ import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from "sonner";
 import { Button } from './button';
 import { 
   Bold as BoldIcon, 
@@ -116,20 +117,24 @@ export function RichTextEditor({
   }, [editor]);
 
   const handleFileUpload = useCallback(async (file: File) => {
-    const validation = validateFile(file, "image/*", 5);
+    const validation = validateFile(file, "image/*", 2);
     if (!validation.valid) {
-      alert(validation.error);
+      toast.error(validation.error);
       return;
     }
 
     setIsUploading(true);
+    const loadingToastId = toast.loading(`Uploading "${file.name}"...`);
     
     try {
       const result = await fileToBase64(file);
       editor?.chain().focus().setImage({ src: result.url }).run();
+      toast.dismiss(loadingToastId);
+      toast.success(`Image "${file.name}" uploaded successfully!`);
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image');
+      toast.dismiss(loadingToastId);
+      toast.error('Failed to upload image');
     } finally {
       setIsUploading(false);
     }
@@ -211,7 +216,7 @@ export function RichTextEditor({
                   onUrlUpload={addImage}
                   isUploading={isUploading}
                   acceptedTypes="image/*"
-                  maxSize={5}
+                  maxSize={2}
                   variant="icon"
                 />
               </div>

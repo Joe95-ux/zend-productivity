@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, X, ChevronLeft, ChevronRight, FileText, Image as ImageIcon } from "lucide-react";
+import { Download, X, ChevronLeft, ChevronRight, FileText, Image as ImageIcon, ChevronUp, ChevronDown } from "lucide-react";
 import { Attachment } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
+import { extractFilename } from "@/lib/file-utils";
 
 interface AttachmentViewerModalProps {
   isOpen: boolean;
@@ -24,22 +25,14 @@ export function AttachmentViewerModal({
   onIndexChange 
 }: AttachmentViewerModalProps) {
   const [imageError, setImageError] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [showThumbnails, setShowThumbnails] = useState(true);
   
   const currentAttachment = attachments[currentIndex];
   
   useEffect(() => {
     setImageError(false);
-    setImageDimensions(null);
   }, [currentIndex]);
 
-  const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = event.currentTarget;
-    setImageDimensions({
-      width: img.naturalWidth,
-      height: img.naturalHeight
-    });
-  };
 
   const handlePrevious = () => {
     const newIndex = currentIndex > 0 ? currentIndex - 1 : attachments.length - 1;
@@ -54,16 +47,14 @@ export function AttachmentViewerModal({
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = currentAttachment.url;
-    link.download = getFileName(currentAttachment.url);
+    link.download = currentAttachment.filename || getFileName(currentAttachment.url);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const getFileName = (url: string) => {
-    // Extract filename from URL
-    const filename = url.split('/').pop() || 'attachment';
-    return filename;
+    return extractFilename(url);
   };
 
   const truncateFileName = (filename: string, maxLength: number = 30) => {
@@ -75,68 +66,68 @@ export function AttachmentViewerModal({
   };
 
   // Calculate modal width based on image dimensions
-  const getModalWidth = () => {
-    if (!imageDimensions || !isImage) return 'max-w-4xl';
+  // const getModalWidth = () => {
+  //   if (!imageDimensions || !isImage) return 'max-w-4xl';
     
-    const { width, height } = imageDimensions;
-    const aspectRatio = width / height;
-    const maxWidth = Math.min(width, window.innerWidth * 0.9);
-    const maxHeight = Math.min(height, window.innerHeight * 0.8);
+  //   const { width, height } = imageDimensions;
+  //   const aspectRatio = width / height;
     
-    // If image is very wide, use max width
-    if (aspectRatio > 2) return 'max-w-6xl';
-    // If image is very tall, use smaller width
-    if (aspectRatio < 0.5) return 'max-w-2xl';
-    // Default responsive width
-    return 'max-w-4xl';
-  };
+  //   // If image is very wide, use max width
+  //   if (aspectRatio > 2) return 'max-w-6xl';
+  //   // If image is very tall, use smaller width
+  //   if (aspectRatio < 0.5) return 'max-w-2xl';
+  //   // Default responsive width
+  //   return 'max-w-4xl';
+  // };
 
-  const isImage = currentAttachment.type === 'image';
+  const isImage = currentAttachment.type?.startsWith('image/') || 
+                  currentAttachment.url.startsWith('data:image/') ||
+                  (currentAttachment.type === 'url' && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(currentAttachment.url));
 
   if (!currentAttachment) return null;
 
   return (
     <TooltipProvider>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent showCloseButton={false} className={`${getModalWidth()} max-h-[90vh] p-0 overflow-hidden`}>
-          <DialogHeader className="p-6 pb-4">
-            <div className="flex items-center justify-between">
+        <DialogContent showCloseButton={false} className="h-[calc(100vh-2rem)] sm:h-[calc(100vh-4rem)] max-h-[85vh] sm:max-h-[95vh] sm:max-w-[calc(100vw-4rem)] max-w-[calc(100vw-2rem)] p-0 overflow-hidden gap-0">
+          <DialogHeader className="p-3 sm:p-6 gap-1">
+            <div className="flex items-center justify-between gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <DialogTitle className="text-lg font-semibold truncate max-w-[60%]">
-                    {truncateFileName(getFileName(currentAttachment.url))}
+                  <DialogTitle className="text-base sm:text-lg font-semibold truncate max-w-[50%] sm:max-w-[60%]">
+                    {truncateFileName(currentAttachment.filename || getFileName(currentAttachment.url))}
                   </DialogTitle>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="max-w-xs break-words">{getFileName(currentAttachment.url)}</p>
+                  <p className="max-w-xs break-words">{currentAttachment.filename || getFileName(currentAttachment.url)}</p>
                 </TooltipContent>
               </Tooltip>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownload}
-                className="h-8"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-8 w-8 p-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownload}
+                  className="h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm"
+                >
+                  <Download className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Download</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+                >
+                  <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {formatDistanceToNow(new Date(currentAttachment.createdAt), { addSuffix: true })}
-          </p>
-        </DialogHeader>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              {formatDistanceToNow(new Date(currentAttachment.createdAt), { addSuffix: true })}
+            </p>
+          </DialogHeader>
 
-        <div className="flex-1 relative bg-slate-50 dark:bg-slate-900">
+        <div className="flex-1 w-full max-w-[inherit] relative bg-slate-50 dark:bg-slate-900">
           {/* Navigation arrows */}
           {attachments.length > 1 && (
             <>
@@ -160,71 +151,130 @@ export function AttachmentViewerModal({
           )}
 
           {/* Content area */}
-          <div className="flex items-center justify-center min-h-[60vh] p-6">
-            {isImage ? (
-              <div className="relative w-full h-full flex items-center justify-center">
-                {!imageError ? (
-                  <img
-                    src={currentAttachment.url}
-                    alt={getFileName(currentAttachment.url)}
-                    className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg shadow-lg"
-                    onError={() => setImageError(true)}
-                    onLoad={handleImageLoad}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-64 text-slate-500 dark:text-slate-400">
-                    <ImageIcon className="w-16 h-16 mb-4" />
-                    <p className="text-lg font-medium">Failed to load image</p>
-                    <p className="text-sm">The image could not be displayed</p>
+          <div className="flex w-full flex-col items-center justify-center p-6">
+            {/* Main image/content */}
+            <div className="flex items-center justify-center mb-4">
+              {isImage ? (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  {!imageError ? (
+                    <img
+                      src={currentAttachment.url}
+                      alt={currentAttachment.filename || getFileName(currentAttachment.url)}
+                      className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg shadow-lg"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-64 text-slate-500 dark:text-slate-400">
+                      <ImageIcon className="w-16 h-16 mb-4" />
+                      <p className="text-lg font-medium">Failed to load image</p>
+                      <p className="text-sm">The image could not be displayed</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-slate-500 dark:text-slate-400">
+                  <FileText className="w-16 h-16 mb-4" />
+                  <p className="text-lg font-medium">Preview not available</p>
+                  <p className="text-sm mb-4">This file type cannot be previewed</p>
+                  <Button onClick={handleDownload} variant="outline">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download to view
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail strip - Responsive positioning */}
+            {attachments.length > 1 && (
+              <>
+                {/* Toggle button for mobile */}
+                <div className="sm:hidden flex justify-center mb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowThumbnails(!showThumbnails)}
+                    className="h-8 px-3 text-xs bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+                  >
+                    {showThumbnails ? (
+                      <>
+                        <ChevronDown className="w-3 h-3 mr-1" />
+                        Hide Thumbnails
+                      </>
+                    ) : (
+                      <>
+                        <ChevronUp className="w-3 h-3 mr-1" />
+                        Show Thumbnails
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Desktop thumbnail strip */}
+                <div className="hidden sm:flex gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-3 max-w-full overflow-x-auto">
+                  {attachments.map((attachment, index) => (
+                    <button
+                      key={attachment.id}
+                      onClick={() => onIndexChange(index)}
+                      className={`relative w-16 h-16 rounded overflow-hidden border-2 transition-all flex-shrink-0 ${
+                        index === currentIndex 
+                          ? 'border-blue-500 ring-2 ring-blue-200' 
+                          : 'border-transparent hover:border-slate-300'
+                      }`}
+                    >
+                      {attachment.type?.startsWith('image/') || attachment.url.startsWith('data:image/') || (attachment.type === 'url' && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(attachment.url)) ? (
+                        <img
+                          src={attachment.url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Mobile thumbnail strip - Absolutely positioned */}
+                {showThumbnails && (
+                  <div className="sm:hidden absolute bottom-2 left-2 right-2 z-20 bg-white dark:bg-slate-800 rounded-lg p-2 shadow-xl border border-slate-200 dark:border-slate-700">
+                    <div className="flex gap-1.5 overflow-x-auto max-w-full">
+                      {attachments.map((attachment, index) => (
+                        <button
+                          key={attachment.id}
+                          onClick={() => onIndexChange(index)}
+                          className={`relative w-10 h-10 rounded overflow-hidden border-2 transition-all flex-shrink-0 ${
+                            index === currentIndex 
+                              ? 'border-blue-500 ring-2 ring-blue-200' 
+                              : 'border-transparent hover:border-slate-300'
+                          }`}
+                        >
+                          {attachment.type?.startsWith('image/') || attachment.url.startsWith('data:image/') || (attachment.type === 'url' && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(attachment.url)) ? (
+                            <img
+                              src={attachment.url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                              <FileText className="w-2.5 h-2.5" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-64 text-slate-500 dark:text-slate-400">
-                <FileText className="w-16 h-16 mb-4" />
-                <p className="text-lg font-medium">Preview not available</p>
-                <p className="text-sm mb-4">This file type cannot be previewed</p>
-                <Button onClick={handleDownload} variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
-                  Download to view
-                </Button>
-              </div>
+              </>
             )}
           </div>
-
-          {/* Thumbnail strip */}
-          {attachments.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-              <div className="flex gap-2 bg-black/20 backdrop-blur-sm rounded-lg p-2">
-                {attachments.map((attachment, index) => (
-                  <button
-                    key={attachment.id}
-                    onClick={() => onIndexChange(index)}
-                    className={`relative w-12 h-12 rounded overflow-hidden border-2 transition-all ${
-                      index === currentIndex 
-                        ? 'border-blue-500 ring-2 ring-blue-200' 
-                        : 'border-transparent hover:border-slate-300'
-                    }`}
-                  >
-                    {attachment.type === 'image' ? (
-                      <img
-                        src={attachment.url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

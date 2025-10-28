@@ -58,7 +58,7 @@ export async function POST(
 
     const { cardId } = await params;
     const body = await request.json();
-    const { url, type } = body;
+    const { url, type, filename } = body;
 
     if (!url) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
@@ -87,7 +87,8 @@ export async function POST(
     const attachment = await db.attachment.create({
       data: {
         url,
-        type: type || 'image',
+        type: type || 'file',
+        filename: filename || null,
         cardId
       }
     });

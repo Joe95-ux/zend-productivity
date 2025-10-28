@@ -39,6 +39,7 @@ export interface Attachment {
   id: string;
   url: string;
   type?: string;
+  filename?: string;
   cardId: string;
   createdAt: string;
 }

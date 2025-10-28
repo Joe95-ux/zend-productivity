@@ -123,6 +123,7 @@ model Attachment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   url       String
   type      String?
+  filename  String?
   cardId    String   @db.ObjectId
   card      Card?    @relation(fields: [cardId], references: [id])
   createdAt DateTime @default(now())

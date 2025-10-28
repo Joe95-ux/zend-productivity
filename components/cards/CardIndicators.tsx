@@ -13,6 +13,7 @@ interface CardIndicatorsProps {
 }
 
 export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps) {
+
   const hasDescription = card.description && card.description.trim().length > 0;
   const hasComments = card.comments && card.comments.length > 0;
   const hasAttachments = card.attachments && card.attachments.length > 0;
@@ -46,7 +47,9 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
       id: 'watch',
       component: (
         <HoverHint key="watch" label="Watching this card" side="bottom">
-          <Eye className="w-4 h-4 cursor-pointer text-blue-600 dark:text-blue-400" />
+          <div onClick={(e) => e.stopPropagation()}>
+            <Eye className="w-4 h-4 cursor-pointer text-blue-600 dark:text-blue-400" />
+          </div>
         </HoverHint>
       )
     }] : []),
@@ -60,7 +63,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
           isDueSoon ? "Due soon" : 
           "Due date"
         } side="bottom">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <Clock className={cn(
               "w-4 h-4 cursor-pointer",
               isOverdue 
@@ -90,7 +93,9 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
       id: 'description',
       component: (
         <HoverHint key="description" label="Has description" side="bottom">
-          <TextQuote className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
+          <div onClick={(e) => e.stopPropagation()}>
+            <TextQuote className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
+          </div>
         </HoverHint>
       )
     }] : []),
@@ -100,7 +105,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
       id: 'comments',
       component: (
         <HoverHint key="comments" label={`${card.comments.length} comment${card.comments.length > 1 ? 's' : ''}`} side="bottom">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <MessagesSquare className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
             <span className="text-xs font-medium text-slate-900 dark:text-slate-300">
               {card.comments.length}
@@ -115,7 +120,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
       id: 'checklists',
       component: (
         <HoverHint key="checklists" label="Has checklists" side="bottom">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <CheckSquare className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
             <span className="text-xs font-medium text-slate-900 dark:text-slate-300">
               {card.checklists?.length || 0}
@@ -130,7 +135,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
       id: 'labels',
       component: (
         <HoverHint key="labels" label={`${card.labels.length} label${card.labels.length > 1 ? 's' : ''}`} side="bottom">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <Tag className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
             <span className="text-xs font-medium text-slate-900 dark:text-slate-300">
               {card.labels.length}
@@ -145,7 +150,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
       id: 'attachments',
       component: (
         <HoverHint key="attachments" label={`${card.attachments.length} attachment${card.attachments.length > 1 ? 's' : ''}`} side="bottom">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <Paperclip className="w-4 h-4 cursor-pointer text-slate-900 dark:text-slate-300" />
             <span className="text-xs font-medium text-slate-900 dark:text-slate-300">
               {card.attachments.length}
@@ -168,14 +173,16 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
         <div className="flex items-center gap-1">
           {hasAssignedTo && (
             <HoverHint label="Assigned member" side="bottom">
-              <UserButton 
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "w-6 h-6"
-                  }
-                }}
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <UserButton 
+                  afterSignOutUrl="/"
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-6 h-6"
+                    }
+                  }}
+                />
+              </div>
             </HoverHint>
           )}
         </div>
@@ -206,9 +213,14 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
         {hiddenIndicators.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <HoverHint label="More" side="bottom">
-                <MoreVertical className="w-4 h-4 cursor-pointer text-slate-500 dark:text-slate-400" />
-              </HoverHint>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-sm transition-colors"
+              >
+                <HoverHint label="More" side="bottom">
+                  <MoreVertical className="w-4 h-4 cursor-pointer text-slate-500 dark:text-slate-400" />
+                </HoverHint>
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
               <div className="p-2 space-y-2">
@@ -227,14 +239,16 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
       <div className="flex items-center gap-1">
         {hasAssignedTo && (
           <HoverHint label="Assigned member" side="bottom">
-            <UserButton 
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "w-6 h-6"
-                }
-              }}
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <UserButton 
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "w-6 h-6"
+                  }
+                }}
+              />
+            </div>
           </HoverHint>
         )}
       </div>

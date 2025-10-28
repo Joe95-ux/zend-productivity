@@ -17,14 +17,7 @@ export function fileToBase64(file: File): Promise<FileUploadResult> {
     const reader = new FileReader();
     
     reader.onload = (e) => {
-      let base64 = e.target?.result as string;
-      
-      if (base64 && file.name) {
-        // Add filename to the data URL for better filename extraction
-        const mimeType = base64.split(',')[0];
-        const data = base64.split(',')[1];
-        base64 = `${mimeType};filename=${encodeURIComponent(file.name)},${data}`;
-      }
+      const base64 = e.target?.result as string;
       
       resolve({
         url: base64,
@@ -48,12 +41,14 @@ export function validateFile(
   maxSizeMB: number = 5
 ): { valid: boolean; error?: string } {
   // Check file type
-  const typePattern = acceptedTypes.replace("*", ".*");
-  if (!file.type.match(typePattern)) {
-    return {
-      valid: false,
-      error: `Invalid file type. Accepted: ${acceptedTypes}`
-    };
+  if (acceptedTypes !== "*/*") {
+    const typePattern = acceptedTypes.replace(/\*/g, ".*");
+    if (!file.type.match(typePattern)) {
+      return {
+        valid: false,
+        error: `Invalid file type. Accepted: ${acceptedTypes}`
+      };
+    }
   }
 
   // Check file size
@@ -72,12 +67,8 @@ export function validateFile(
  * Extract filename from URL or data URL
  */
 export function extractFilename(url: string): string {
-  // Handle base64 data URLs with filename metadata
+  // Handle base64 data URLs
   if (url.startsWith('data:')) {
-    const match = url.match(/data:[^;]+;filename=([^;]+)/);
-    if (match) {
-      return decodeURIComponent(match[1]);
-    }
     return 'uploaded-file';
   }
   

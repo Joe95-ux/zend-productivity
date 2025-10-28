@@ -5,11 +5,12 @@ import { Button } from "./button";
 import { Input } from "./input";
 import { Label } from "./label";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
-import { Image as ImageIcon, Upload, Link as LinkIcon } from "lucide-react";
+import { Image as ImageIcon, Upload, Link as LinkIcon, X } from "lucide-react";
 
 interface AttachmentUploadProps {
   onFileUpload: (file: File) => void;
-  onUrlUpload: (url: string) => void;
+  onUrlUpload: (url: string, displayName?: string) => void;
+  onUploadComplete?: () => void;
   isUploading?: boolean;
   acceptedTypes?: string;
   maxSize?: number; // in MB
@@ -20,6 +21,7 @@ interface AttachmentUploadProps {
 export function AttachmentUpload({
   onFileUpload,
   onUrlUpload,
+  onUploadComplete,
   isUploading = false,
   acceptedTypes = "image/*",
   maxSize = 5,
@@ -28,15 +30,19 @@ export function AttachmentUpload({
 }: AttachmentUploadProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [url, setUrl] = useState("");
+  const [displayName, setDisplayName] = useState("");
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // Check file type
-    if (!file.type.match(acceptedTypes.replace("*", ".*"))) {
-      alert(`Please select a valid file type. Accepted: ${acceptedTypes}`);
-      return;
+    if (acceptedTypes !== "*/*") {
+      const typePattern = acceptedTypes.replace(/\*/g, ".*");
+      if (!file.type.match(typePattern)) {
+        alert(`Please select a valid file type. Accepted: ${acceptedTypes}`);
+        return;
+      }
     }
 
     // Check file size
@@ -46,16 +52,21 @@ export function AttachmentUpload({
     }
 
     onFileUpload(file);
+    // Close modal after upload starts
     setIsOpen(false);
+    onUploadComplete?.();
   }, [onFileUpload, acceptedTypes, maxSize]);
 
   const handleUrlUpload = useCallback(() => {
     if (url.trim()) {
-      onUrlUpload(url.trim());
+      onUrlUpload(url.trim(), displayName.trim() || undefined);
       setUrl("");
+      setDisplayName("");
+      // Close modal after upload starts
       setIsOpen(false);
+      onUploadComplete?.();
     }
-  }, [url, onUrlUpload]);
+  }, [url, displayName, onUrlUpload]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -69,9 +80,9 @@ export function AttachmentUpload({
         <ImageIcon className="w-4 h-4" />
       </Button>
     ) : (
-      <Button variant="outline" size="sm" disabled={isUploading}>
+      <Button variant="outline" size="sm">
         <Upload className="w-4 h-4 mr-2" />
-        {isUploading ? 'Uploading...' : 'Upload Attachment'}
+        Upload Attachment
       </Button>
     )
   );
@@ -107,17 +118,16 @@ export function AttachmentUpload({
                 onChange={handleFileUpload}
                 className="hidden"
                 id="attachment-upload"
-                disabled={isUploading}
               />
               <label
                 htmlFor="attachment-upload"
-                className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-md cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-md cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
-                {isUploading ? 'Uploading...' : 'Choose File'}
+                Choose File
               </label>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Max {maxSize}MB, {acceptedTypes}
+              Max {maxSize}MB, {acceptedTypes === "*/*" ? "All file types" : acceptedTypes}
             </p>
           </div>
 
@@ -129,22 +139,30 @@ export function AttachmentUpload({
 
           {/* URL Input */}
           <div className="space-y-2">
+            <Label className="text-sm font-medium">Display Name (Optional)</Label>
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Enter a custom name for this attachment"
+              className="h-10 text-sm"
+            />
             <Label className="text-sm font-medium">File URL</Label>
             <div className="flex gap-2">
               <Input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com/file.pdf"
-                className="flex-1 h-8 text-sm"
+                className="flex-1 h-10 text-sm"
                 onKeyPress={handleKeyPress}
               />
               <Button
                 onClick={handleUrlUpload}
-                disabled={!url || isUploading}
+                disabled={!url}
                 size="sm"
-                className="h-8 px-3"
+                className="h-10 px-3 gap-1"
               >
                 <LinkIcon className="w-4 h-4" />
+                Insert
               </Button>
             </div>
           </div>

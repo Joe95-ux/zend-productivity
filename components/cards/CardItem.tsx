@@ -30,10 +30,9 @@ interface CardItemProps {
   };
   boardId: string;
   index: number;
-  isWatching?: boolean;
 }
 
-export function CardItem({ card, list, boardId, index, isWatching = false }: CardItemProps) {
+export function CardItem({ card, list, boardId, index }: CardItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
@@ -42,6 +41,7 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
   const [showShootingStars, setShowShootingStars] = useState(false);
+  const [watchStatus, setWatchStatus] = useState(false);
   const queryClient = useQueryClient();
 
   // Get the current card data from query cache to stay in sync
@@ -53,6 +53,16 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
       return response.json();
     },
     enabled: false, // Don't fetch, just subscribe to cache updates
+  });
+
+  // Check if user is watching this card
+  const { data: watchData } = useQuery({
+    queryKey: ["watch", card.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/watch/check?cardId=${card.id}`);
+      if (!response.ok) throw new Error("Failed to check watch status");
+      return response.json();
+    },
   });
 
   // Sync local state with query cache updates
@@ -68,6 +78,13 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardData, list.id, card.id]);
+
+  // Update watch state when data changes
+  useEffect(() => {
+    if (watchData) {
+      setWatchStatus(watchData.isWatching);
+    }
+  }, [watchData]);
 
   const updateCardMutation = useMutation({
     mutationFn: async ({ title, description, position, isCompleted }: UpdateCardParams) => {
@@ -274,7 +291,10 @@ export function CardItem({ card, list, boardId, index, isWatching = false }: Car
               </div>
 
               {/* Card Indicators */}
-              <CardIndicators card={card} isWatching={isWatching} />
+              <CardIndicators 
+                card={card} 
+                isWatching={watchStatus} 
+              />
 
               {/* Action Buttons - Positioned absolutely on the right, aligned with title */}
               <div className="absolute right-3 top-3 flex items-center gap-1 z-50">
