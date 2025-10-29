@@ -97,7 +97,7 @@ export function ChecklistDropdown({
         <Button
           variant="outline"
           size="sm"
-          className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+          className="h-9 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
         >
           <ListTodo className="w-4 h-4 mr-2" />
           Checklist

@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Dialog, DialogContent, DialogClose, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { Button } from "@/components/ui/button";
@@ -14,14 +25,49 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { UserButton } from "@clerk/nextjs";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { MessageSquare, Send, Edit, X, MoreHorizontal, Copy, Share, Trash2, Megaphone, FileText, Check, MoreVertical, Clock, Eye, EyeOff, Calendar, Paperclip, RotateCcw, SquareCheckBig, Plus } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  MessageSquare,
+  Send,
+  Edit,
+  X,
+  MoreHorizontal,
+  Copy,
+  Share,
+  Trash2,
+  Megaphone,
+  FileText,
+  Check,
+  MoreVertical,
+  Clock,
+  Eye,
+  EyeOff,
+  Calendar,
+  Paperclip,
+  RotateCcw,
+  SquareCheckBig,
+  Plus,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { HoverHint } from "@/components/HoverHint";
 import { ShootingStars } from "@/components/ui/ShootingStars";
 import { motion, AnimatePresence } from "framer-motion";
-import { Board, List, Card as CardType, Checklist, Attachment } from "@/lib/types";
+import {
+  Board,
+  List,
+  Card as CardType,
+  Checklist,
+  Attachment,
+  Card,
+} from "@/lib/types";
+import { generateCardSlug } from "@/lib/utils";
 import { DueDateDropdown } from "./DueDateDropdown";
 import { ChecklistDropdown } from "./ChecklistDropdown";
 import { LabelDropdown } from "./LabelDropdown";
@@ -36,23 +82,31 @@ import { CommentContent } from "./CommentContent";
 import { ChecklistsSection } from "./ChecklistsSection";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { fileToBase64, validateFile, extractFilename } from "@/lib/file-utils";
+import { AddToCardDropdown } from "./AddToCardDropdown";
 
 const updateCardSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
-  description: z.string().max(1000, "Description must be less than 1000 characters").optional(),
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .max(200, "Title must be less than 200 characters"),
+  description: z
+    .string()
+    .max(1000, "Description must be less than 1000 characters")
+    .optional(),
 });
 
 const commentSchema = z.object({
-  content: z.string()
+  content: z
+    .string()
     .min(1, "Comment cannot be empty")
     .refine((content) => {
       // Remove HTML tags and check if there's actual text content
-      const cleanContent = content.replace(/<[^>]*>/g, '').trim();
+      const cleanContent = content.replace(/<[^>]*>/g, "").trim();
       return cleanContent.length > 0;
     }, "Comment cannot be empty")
     .refine((content) => {
       // Remove HTML tags and check text content length (not HTML length)
-      const cleanContent = content.replace(/<[^>]*>/g, '').trim();
+      const cleanContent = content.replace(/<[^>]*>/g, "").trim();
       return cleanContent.length <= 500;
     }, "Comment must be less than 500 characters"),
 });
@@ -66,43 +120,14 @@ type UserWithAvatar = {
   avatarUrl?: string;
 };
 
+type CardModalCard = Omit<Card, "createdAt" | "updatedAt"> & {
+  createdAt?: string;
+  updatedAt?: string;
+  isCompleted: boolean;
+};
+
 interface CardModalProps {
-  card: {
-    id: string;
-    title: string;
-    description?: string;
-    position: number;
-    isCompleted: boolean;
-    dueDate?: string;
-    startDate?: string;
-    isRecurring?: boolean;
-    recurringType?: string;
-    reminderType?: string;
-    assignedTo?: string;
-    labels: Array<{
-      id: string;
-      name: string;
-      color: string;
-    }>;
-    checklists?: Checklist[];
-    comments: Array<{
-      id: string;
-      content: string;
-      user: {
-        name?: string;
-        email: string;
-        avatarUrl?: string;
-      };
-      createdAt: string;
-    }>;
-    attachments?: Array<{
-      id: string;
-      url: string;
-      type?: string;
-      cardId: string;
-      createdAt: string;
-    }>;
-  };
+  card: CardModalCard;
   list: {
     id: string;
     title: string;
@@ -114,7 +139,15 @@ interface CardModalProps {
   isLoadingChecklists?: boolean;
 }
 
-export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttachments = false, isLoadingChecklists = false }: CardModalProps) {
+export function CardModal({
+  card,
+  list,
+  boardId,
+  isOpen,
+  onClose,
+  isLoadingAttachments = false,
+  isLoadingChecklists = false,
+}: CardModalProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [isCommentFormExpanded, setIsCommentFormExpanded] = useState(false);
@@ -122,7 +155,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
-  const [isDeleteCommentModalOpen, setIsDeleteCommentModalOpen] = useState(false);
+  const [editingCommentAttachments, setEditingCommentAttachments] = useState<
+    File[]
+  >([]);
+  const [editingCommentExistingImages, setEditingCommentExistingImages] =
+    useState<string[]>([]);
+  const [isDeleteCommentModalOpen, setIsDeleteCommentModalOpen] =
+    useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("details");
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
@@ -130,41 +169,73 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   const [isWatching, setIsWatching] = useState(false);
   const [isWatchLoading, setIsWatchLoading] = useState(false);
   const [isCopyChecklistOpen, setIsCopyChecklistOpen] = useState(false);
-  const [checklistToCopy, setChecklistToCopy] = useState<Checklist | null>(null);
-  
+  const [checklistToCopy, setChecklistToCopy] = useState<Checklist | null>(
+    null
+  );
+
   // Checklist inline editing state
-  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
+  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(
+    null
+  );
   const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingItemContent, setEditingItemContent] = useState("");
   const [showAddItemForm, setShowAddItemForm] = useState<string | null>(null);
   const [newItemContent, setNewItemContent] = useState("");
-  
+
   // Mobile checklist title editing popup
   const [isMobileEditTitleOpen, setIsMobileEditTitleOpen] = useState(false);
-  const [mobileEditChecklistId, setMobileEditChecklistId] = useState<string | null>(null);
+  const [mobileEditChecklistId, setMobileEditChecklistId] = useState<
+    string | null
+  >(null);
   const [mobileEditTitle, setMobileEditTitle] = useState("");
-  
+
   // Checklist deletion and visibility state
   const [isDeleteChecklistOpen, setIsDeleteChecklistOpen] = useState(false);
-  const [checklistToDelete, setChecklistToDelete] = useState<string | null>(null);
+  const [checklistToDelete, setChecklistToDelete] = useState<string | null>(
+    null
+  );
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-  const [hiddenChecklists, setHiddenChecklists] = useState<Set<string>>(new Set());
-  const [optimisticItemStates, setOptimisticItemStates] = useState<Map<string, boolean>>(new Map());
-  const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
+
+  // Add to card dropdown state
+  const [isAddToCardOpen, setIsAddToCardOpen] = useState(false);
+  const [isSticky, setIsSticky] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Refs for scrollable containers
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const desktopScrollRef = useRef<HTMLDivElement>(null);
+  const [hiddenChecklists, setHiddenChecklists] = useState<Set<string>>(
+    new Set()
+  );
+  const [optimisticItemStates, setOptimisticItemStates] = useState<
+    Map<string, boolean>
+  >(new Map());
+  const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(
+    new Set()
+  );
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
-  const [itemPriorities, setItemPriorities] = useState<Map<string, 'low' | 'medium' | 'high'>>(new Map());
+  const [itemPriorities, setItemPriorities] = useState<
+    Map<string, "low" | "medium" | "high">
+  >(new Map());
   const [swipeStartX, setSwipeStartX] = useState<number | null>(null);
   const [swipeItemId, setSwipeItemId] = useState<string | null>(null);
-  const [showCompletionAnimation, setShowCompletionAnimation] = useState<string | null>(null);
+  const [showCompletionAnimation, setShowCompletionAnimation] = useState<
+    string | null
+  >(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const queryClient = useQueryClient();
 
-
   // Checklist mutations
   const updateChecklistMutation = useMutation({
-    mutationFn: async ({ checklistId, title }: { checklistId: string; title: string }) => {
+    mutationFn: async ({
+      checklistId,
+      title,
+    }: {
+      checklistId: string;
+      title: string;
+    }) => {
       const response = await fetch(`/api/checklists/${checklistId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -184,7 +255,15 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   });
 
   const updateItemMutation = useMutation({
-    mutationFn: async ({ itemId, content, isCompleted }: { itemId: string; content?: string; isCompleted?: boolean }) => {
+    mutationFn: async ({
+      itemId,
+      content,
+      isCompleted,
+    }: {
+      itemId: string;
+      content?: string;
+      isCompleted?: boolean;
+    }) => {
       const response = await fetch(`/api/checklist-items/${itemId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -204,7 +283,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   });
 
   const createItemMutation = useMutation({
-    mutationFn: async ({ checklistId, content }: { checklistId: string; content: string }) => {
+    mutationFn: async ({
+      checklistId,
+      content,
+    }: {
+      checklistId: string;
+      content: string;
+    }) => {
       console.log("Creating checklist item:", { checklistId, content });
       const response = await fetch("/api/checklist-items", {
         method: "POST",
@@ -215,7 +300,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
       if (!response.ok) {
         const errorData = await response.json();
         console.error("API Error:", errorData);
-        throw new Error(`Failed to create item: ${errorData.error || response.statusText}`);
+        throw new Error(
+          `Failed to create item: ${errorData.error || response.statusText}`
+        );
       }
       return response.json();
     },
@@ -281,7 +368,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
       const updatedCard = boardDataFromCache.lists
         ?.find((l: List) => l.id === list.id)
         ?.cards?.find((c: CardType) => c.id === card.id);
-      
+
       if (updatedCard && updatedCard.isCompleted !== isCompleted) {
         setIsCompleted(updatedCard.isCompleted);
       }
@@ -292,7 +379,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   const { data: activities, isLoading: activitiesLoading } = useQuery({
     queryKey: ["activities", boardId, card.id],
     queryFn: async () => {
-      const response = await fetch(`/api/activities?boardId=${boardId}&cardId=${card.id}`);
+      const response = await fetch(
+        `/api/activities?boardId=${boardId}&cardId=${card.id}`
+      );
       if (!response.ok) throw new Error("Failed to fetch activities");
       return response.json();
     },
@@ -317,6 +406,41 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
     }
   }, [watchStatus]);
 
+  // Handle scroll for sticky header - Mobile
+  useEffect(() => {
+    const scrollEl = mobileScrollRef.current;
+    if (!scrollEl) return;
+
+    const handleScroll = () => {
+      const scrollTop = scrollEl.scrollTop;
+      const progress = Math.min(scrollTop / 80, 1);
+      setScrollProgress(progress);
+      setIsSticky(scrollTop > 20);
+    };
+
+    scrollEl.addEventListener("scroll", handleScroll);
+    // Set initial state
+    handleScroll();
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Handle scroll for sticky header - Desktop
+  useEffect(() => {
+    const scrollEl = desktopScrollRef.current;
+    if (!scrollEl) return;
+
+    const handleScroll = () => {
+      const scrollTop = scrollEl.scrollTop;
+      const progress = Math.min(scrollTop / 80, 1);
+      setScrollProgress(progress);
+      setIsSticky(scrollTop > 20);
+    };
+
+    scrollEl.addEventListener("scroll", handleScroll);
+    // Set initial state
+    handleScroll();
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const cardForm = useForm<UpdateCardFormData>({
     resolver: zodResolver(updateCardSchema),
@@ -334,7 +458,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   });
 
   const updateCardMutation = useMutation({
-    mutationFn: async (data: UpdateCardFormData & { isCompleted?: boolean }) => {
+    mutationFn: async (
+      data: UpdateCardFormData & { isCompleted?: boolean }
+    ) => {
       const response = await fetch(`/api/cards/${card.id}`, {
         method: "PUT",
         headers: {
@@ -358,24 +484,25 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
     onError: (error: Error) => {
       // Revert the local state change on error
       setIsCompleted(card.isCompleted);
-      
+
       // Revert the query cache to the original state
-      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
-        if (!oldData) return oldData;
-        
-        return {
-          ...oldData,
-          lists: oldData.lists.map((list: List) => ({
-            ...list,
-            cards: list.cards.map((c: CardType) => 
-              c.id === card.id 
-                ? { ...c, isCompleted: card.isCompleted }
-                : c
-            )
-          }))
-        };
-      });
-      
+      queryClient.setQueryData(
+        ["board", boardId],
+        (oldData: Board | undefined) => {
+          if (!oldData) return oldData;
+
+          return {
+            ...oldData,
+            lists: oldData.lists.map((list: List) => ({
+              ...list,
+              cards: list.cards.map((c: CardType) =>
+                c.id === card.id ? { ...c, isCompleted: card.isCompleted } : c
+              ),
+            })),
+          };
+        }
+      );
+
       toast.error(error.message);
     },
   });
@@ -399,22 +526,29 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
     },
     onSuccess: (data, variables) => {
       // Update the query cache immediately with the new data
-      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
-        if (!oldData) return oldData;
-        
-        return {
-          ...oldData,
-          lists: oldData.lists.map((list: List) => ({
-            ...list,
-            cards: list.cards.map((c: CardType) => 
-              c.id === card.id 
-                ? { ...c, title: variables.title, description: variables.description }
-                : c
-            )
-          }))
-        };
-      });
-      
+      queryClient.setQueryData(
+        ["board", boardId],
+        (oldData: Board | undefined) => {
+          if (!oldData) return oldData;
+
+          return {
+            ...oldData,
+            lists: oldData.lists.map((list: List) => ({
+              ...list,
+              cards: list.cards.map((c: CardType) =>
+                c.id === card.id
+                  ? {
+                      ...c,
+                      title: variables.title,
+                      description: variables.description,
+                    }
+                  : c
+              ),
+            })),
+          };
+        }
+      );
+
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       toast.success("Card updated successfully!");
       // Close the editing forms after successful update
@@ -425,7 +559,6 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
       toast.error(error.message);
     },
   });
-
 
   const addCommentMutation = useMutation({
     mutationFn: async (data: CommentFormData) => {
@@ -460,7 +593,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   });
 
   const updateCommentMutation = useMutation({
-    mutationFn: async ({ commentId, content }: { commentId: string; content: string }) => {
+    mutationFn: async ({
+      commentId,
+      content,
+    }: {
+      commentId: string;
+      content: string;
+    }) => {
       const response = await fetch(`/api/comments/${commentId}`, {
         method: "PUT",
         headers: {
@@ -537,10 +676,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
     },
   });
 
-
   const handleAddComment = (data: CommentFormData) => {
     // Check if content is empty or only contains whitespace/HTML tags
-    const cleanContent = data.content?.replace(/<[^>]*>/g, '').trim();
+    const cleanContent = data.content?.replace(/<[^>]*>/g, "").trim();
     if (!cleanContent) {
       toast.error("Please enter a comment");
       return;
@@ -553,16 +691,82 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
     addCommentMutation.mutate(data);
   };
 
-  const handleEditComment = (commentId: string, currentContent: string) => {
-    setEditingCommentId(commentId);
-    setEditingCommentContent(currentContent);
+  // Function to extract images from HTML content
+  const extractImagesFromHtml = (htmlContent: string): string[] => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, "text/html");
+    const images = doc.querySelectorAll("img");
+    return Array.from(images).map((img) => img.src);
   };
 
-  const handleUpdateComment = () => {
+  // Function to remove images from HTML content to get text only
+  const removeImagesFromHtml = (htmlContent: string): string => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, "text/html");
+    const images = doc.querySelectorAll("img");
+    images.forEach((img) => img.remove());
+    return doc.body.innerHTML;
+  };
+
+  const handleEditComment = (commentId: string, currentContent: string) => {
+    setEditingCommentId(commentId);
+
+    // Extract existing images from the comment content
+    const existingImages = extractImagesFromHtml(currentContent);
+    setEditingCommentExistingImages(existingImages);
+
+    // Remove images from content to get text-only content for editing
+    const textOnlyContent = removeImagesFromHtml(currentContent);
+    setEditingCommentContent(textOnlyContent);
+
+    // Reset new attachments
+    setEditingCommentAttachments([]);
+  };
+
+  const handleUpdateComment = async () => {
     if (editingCommentId && editingCommentContent.trim()) {
+      let finalContent = editingCommentContent.trim();
+
+      // If there are existing images, add them back to the content
+      if (editingCommentExistingImages.length > 0) {
+        const existingImagesHtml = editingCommentExistingImages
+          .map(
+            (src) =>
+              `<img src="${src}" alt="Comment image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;" />`
+          )
+          .join("");
+        finalContent =
+          existingImagesHtml + (finalContent ? `<br/>${finalContent}` : "");
+      }
+
+      // If there are new attachments, upload them and add to content
+      if (editingCommentAttachments.length > 0) {
+        try {
+          const uploadPromises = editingCommentAttachments.map(async (file) => {
+            const base64 = await fileToBase64(file);
+            return base64;
+          });
+
+          const uploadedImages = await Promise.all(uploadPromises);
+          const newImagesHtml = uploadedImages
+            .map(
+              (base64) =>
+                `<img src="${base64}" alt="Comment image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;" />`
+            )
+            .join("");
+
+          finalContent =
+            newImagesHtml + (finalContent ? `<br/>${finalContent}` : "");
+        } catch (error) {
+          console.error("Failed to upload images:", error);
+          toast.error("Failed to upload images");
+          return;
+        }
+      }
+
       updateCommentMutation.mutate({
         commentId: editingCommentId,
-        content: editingCommentContent.trim(),
+        content: finalContent,
       });
     }
   };
@@ -586,6 +790,8 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   const handleCancelEdit = () => {
     setEditingCommentId(null);
     setEditingCommentContent("");
+    setEditingCommentAttachments([]);
+    setEditingCommentExistingImages([]);
   };
 
   const handleTitleEdit = () => {
@@ -613,10 +819,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
     setIsUploadingAttachment(true);
     const loadingToastId = toast.loading(`Uploading "${file.name}"...`);
-    
+
     try {
       const result = await fileToBase64(file);
-      
+
       // Save to database via API
       const response = await fetch(`/api/cards/${card.id}/attachments`, {
         method: "POST",
@@ -625,8 +831,8 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
         },
         body: JSON.stringify({
           url: result.url,
-          type: result.type || 'file',
-          filename: file.name
+          type: result.type || "file",
+          filename: file.name,
         }),
       });
 
@@ -637,14 +843,14 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
       toast.dismiss(loadingToastId);
       toast.success(`File "${file.name}" uploaded successfully!`);
-      
+
       // Refresh the attachments list
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       queryClient.invalidateQueries({ queryKey: ["attachments", card.id] });
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error("Error uploading file:", error);
       toast.dismiss(loadingToastId);
-      toast.error('Failed to upload file');
+      toast.error("Failed to upload file");
     } finally {
       setIsUploadingAttachment(false);
     }
@@ -653,7 +859,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   const handleUrlUpload = async (url: string, displayName?: string) => {
     setIsUploadingAttachment(true);
     const loadingToastId = toast.loading("Adding URL attachment...");
-    
+
     try {
       // Save URL to database via API
       const response = await fetch(`/api/cards/${card.id}/attachments`, {
@@ -663,8 +869,8 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
         },
         body: JSON.stringify({
           url: url,
-          type: 'url',
-          filename: displayName || extractFilename(url)
+          type: "url",
+          filename: displayName || extractFilename(url),
         }),
       });
 
@@ -675,16 +881,16 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
       toast.dismiss(loadingToastId);
       toast.success(`URL attachment added successfully!`);
-      
+
       // Refresh the attachments list with a small delay to ensure database consistency
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["board", boardId] });
         queryClient.invalidateQueries({ queryKey: ["attachments", card.id] });
       }, 100);
     } catch (error) {
-      console.error('Error adding URL attachment:', error);
+      console.error("Error adding URL attachment:", error);
       toast.dismiss(loadingToastId);
-      toast.error('Failed to add URL attachment');
+      toast.error("Failed to add URL attachment");
     } finally {
       setIsUploadingAttachment(false);
     }
@@ -692,37 +898,38 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
   const handleToggleComplete = () => {
     const newCompletedState = !isCompleted;
-    
+
     // Trigger shooting stars animation when completing a card
     if (newCompletedState && !isCompleted) {
       setShowShootingStars(true);
     }
-    
+
     // Update local state immediately for instant visual feedback
     setIsCompleted(newCompletedState);
-    
+
     // Update the query cache immediately for instant UI updates
-    queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
-      if (!oldData) return oldData;
-      
-      return {
-        ...oldData,
-        lists: oldData.lists.map((list: List) => ({
-          ...list,
-          cards: list.cards.map((c: CardType) => 
-            c.id === card.id 
-              ? { ...c, isCompleted: newCompletedState }
-              : c
-          )
-        }))
-      };
-    });
-    
+    queryClient.setQueryData(
+      ["board", boardId],
+      (oldData: Board | undefined) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          lists: oldData.lists.map((list: List) => ({
+            ...list,
+            cards: list.cards.map((c: CardType) =>
+              c.id === card.id ? { ...c, isCompleted: newCompletedState } : c
+            ),
+          })),
+        };
+      }
+    );
+
     // Then update the database in the background
-    updateCardMutation.mutate({ 
-      title: card.title, 
-      description: card.description || "", 
-      isCompleted: newCompletedState 
+    updateCardMutation.mutate({
+      title: card.title,
+      description: card.description || "",
+      isCompleted: newCompletedState,
     });
   };
 
@@ -740,7 +947,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
   const handleUpdateChecklist = (checklistId: string) => {
     if (editingChecklistTitle.trim()) {
-      updateChecklistMutation.mutate({ checklistId, title: editingChecklistTitle.trim() });
+      updateChecklistMutation.mutate({
+        checklistId,
+        title: editingChecklistTitle.trim(),
+      });
     }
   };
 
@@ -757,47 +967,54 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
   const handleToggleItem = (itemId: string, isCompleted: boolean) => {
     const newCompletedState = !isCompleted;
-    
+
     // Show completion animation if item is being completed
     if (newCompletedState && !isCompleted) {
       setShowCompletionAnimation(itemId);
       setTimeout(() => setShowCompletionAnimation(null), 1000);
     }
-    
+
     // Optimistic update - immediately update UI
-    setOptimisticItemStates(prev => new Map(prev).set(itemId, newCompletedState));
-    
+    setOptimisticItemStates((prev) =>
+      new Map(prev).set(itemId, newCompletedState)
+    );
+
     // Update the query cache immediately for instant UI updates
-    queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
-      if (!oldData) return oldData;
-      
-      return {
-        ...oldData,
-        lists: oldData.lists.map((list: List) => ({
-          ...list,
-          cards: list.cards.map((c: CardType) => 
-            c.id === card.id 
-              ? {
-                  ...c,
-                  checklists: c.checklists.map((checklist) => ({
-                    ...checklist,
-                    items: checklist.items.map((item) => 
-                      item.id === itemId 
-                        ? { ...item, isCompleted: newCompletedState }
-                        : item
-                    )
-                  }))
-                }
-              : c
-          )
-        }))
-      };
-    });
-    
+    queryClient.setQueryData(
+      ["board", boardId],
+      (oldData: Board | undefined) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          lists: oldData.lists.map((list: List) => ({
+            ...list,
+            cards: list.cards.map((c: CardType) =>
+              c.id === card.id
+                ? {
+                    ...c,
+                    checklists: c.checklists.map((checklist) => ({
+                      ...checklist,
+                      items: checklist.items.map((item) =>
+                        item.id === itemId
+                          ? { ...item, isCompleted: newCompletedState }
+                          : item
+                      ),
+                    })),
+                  }
+                : c
+            ),
+          })),
+        };
+      }
+    );
+
     // Check if checklist is 100% complete for confetti
-    const checklist = card.checklists?.find(c => c.items.some(item => item.id === itemId));
+    const checklist = card.checklists?.find((c) =>
+      c.items.some((item) => item.id === itemId)
+    );
     if (checklist && newCompletedState) {
-      const allCompleted = checklist.items.every(item => 
+      const allCompleted = checklist.items.every((item) =>
         item.id === itemId ? newCompletedState : item.isCompleted
       );
       if (allCompleted) {
@@ -806,14 +1023,17 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
         toast.success("🎉 Checklist completed!");
       }
     }
-    
+
     // Then update the database in the background
     updateItemMutation.mutate({ itemId, isCompleted: newCompletedState });
   };
 
   const handleCreateItem = (checklistId: string) => {
     if (newItemContent.trim()) {
-      createItemMutation.mutate({ checklistId, content: newItemContent.trim() });
+      createItemMutation.mutate({
+        checklistId,
+        content: newItemContent.trim(),
+      });
     }
   };
 
@@ -826,9 +1046,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
   const handleMobileUpdateChecklist = () => {
     if (mobileEditTitle.trim() && mobileEditChecklistId) {
-      updateChecklistMutation.mutate({ 
-        checklistId: mobileEditChecklistId, 
-        title: mobileEditTitle.trim() 
+      updateChecklistMutation.mutate({
+        checklistId: mobileEditChecklistId,
+        title: mobileEditTitle.trim(),
       });
       setIsMobileEditTitleOpen(false);
       setMobileEditChecklistId(null);
@@ -863,11 +1083,11 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
     if (confirm("Are you sure you want to delete this item?")) {
       // Store item for potential undo
       const itemToDelete = card.checklists
-        ?.flatMap(checklist => checklist.items)
-        .find(item => item.id === itemId);
-      
+        ?.flatMap((checklist) => checklist.items)
+        .find((item) => item.id === itemId);
+
       deleteItemMutation.mutate(itemId);
-      
+
       // Show undo toast
       toast.success("Item deleted", {
         action: {
@@ -877,15 +1097,15 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
               // Restore item logic would go here
               toast.info("Undo functionality coming soon");
             }
-          }
-        }
+          },
+        },
       });
     }
   };
 
   // Hide/show checked items
   const handleToggleHideChecked = (checklistId: string) => {
-    setHiddenChecklists(prev => {
+    setHiddenChecklists((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(checklistId)) {
         newSet.delete(checklistId);
@@ -898,7 +1118,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
   // Toggle checklist expansion
   const handleToggleExpand = (checklistId: string) => {
-    setExpandedChecklists(prev => {
+    setExpandedChecklists((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(checklistId)) {
         newSet.delete(checklistId);
@@ -911,7 +1131,7 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
   // Bulk actions
   const handleToggleItemSelection = (itemId: string) => {
-    setSelectedItems(prev => {
+    setSelectedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
         newSet.delete(itemId);
@@ -924,9 +1144,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
   const handleBulkDelete = () => {
     if (selectedItems.size === 0) return;
-    
+
     const itemIds = Array.from(selectedItems);
-    itemIds.forEach(itemId => {
+    itemIds.forEach((itemId) => {
       deleteItemMutation.mutate(itemId);
     });
     setSelectedItems(new Set());
@@ -936,13 +1156,13 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
   const handleBulkComplete = () => {
     if (selectedItems.size === 0) return;
-    
+
     const itemIds = Array.from(selectedItems);
-    itemIds.forEach(itemId => {
+    itemIds.forEach((itemId) => {
       // Find the current completion state and toggle it
       const item = card.checklists
-        ?.flatMap(checklist => checklist.items)
-        .find(item => item.id === itemId);
+        ?.flatMap((checklist) => checklist.items)
+        .find((item) => item.id === itemId);
       if (item) {
         handleToggleItem(itemId, item.isCompleted);
       }
@@ -953,16 +1173,23 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
   };
 
   // Priority system
-  const handleSetPriority = (itemId: string, priority: 'low' | 'medium' | 'high') => {
-    setItemPriorities(prev => new Map(prev).set(itemId, priority));
+  const handleSetPriority = (
+    itemId: string,
+    priority: "low" | "medium" | "high"
+  ) => {
+    setItemPriorities((prev) => new Map(prev).set(itemId, priority));
   };
 
-  const getPriorityColor = (priority: 'low' | 'medium' | 'high') => {
+  const getPriorityColor = (priority: "low" | "medium" | "high") => {
     switch (priority) {
-      case 'high': return 'border-l-red-500 bg-red-50 dark:bg-red-900/20';
-      case 'medium': return 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20';
-      case 'low': return 'border-l-green-500 bg-green-50 dark:bg-green-900/20';
-      default: return '';
+      case "high":
+        return "border-l-red-500 bg-red-50 dark:bg-red-900/20";
+      case "medium":
+        return "border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20";
+      case "low":
+        return "border-l-green-500 bg-green-50 dark:bg-green-900/20";
+      default:
+        return "";
     }
   };
 
@@ -974,17 +1201,17 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
   const handleSwipeEnd = (e: React.TouchEvent) => {
     if (!swipeStartX || !swipeItemId) return;
-    
+
     const swipeEndX = e.changedTouches[0].clientX;
     const swipeDistance = swipeEndX - swipeStartX;
     const swipeThreshold = 50;
-    
+
     if (Math.abs(swipeDistance) > swipeThreshold) {
       if (swipeDistance > 0) {
         // Swipe right - complete item
         const item = card.checklists
-          ?.flatMap(checklist => checklist.items)
-          .find(item => item.id === swipeItemId);
+          ?.flatMap((checklist) => checklist.items)
+          .find((item) => item.id === swipeItemId);
         if (item) {
           handleToggleItem(swipeItemId, item.isCompleted);
           toast.success("Item completed");
@@ -994,131 +1221,174 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
         handleDeleteItem(swipeItemId);
       }
     }
-    
+
     setSwipeStartX(null);
     setSwipeItemId(null);
   };
 
-
   const handleMenuAction = (action: string) => {
     switch (action) {
-      case 'delete':
+      case "delete":
         // TODO: Implement delete functionality
         toast.info("Delete functionality coming soon");
         break;
-      case 'copy':
+      case "copy":
         // TODO: Implement copy functionality
         toast.info("Copy functionality coming soon");
         break;
-      case 'move':
+      case "move":
         // TODO: Implement move functionality
         toast.info("Move functionality coming soon");
         break;
-      case 'share':
-        // TODO: Implement share functionality
-        toast.info("Share functionality coming soon");
+      case "share":
+        const cardSlug = generateCardSlug(card.title, card.position);
+        const cardUrl = `${window.location.origin}/dashboard/boards/${boardId}/cards/${card.id}/${cardSlug}`;
+        navigator.clipboard.writeText(cardUrl);
+        toast.success("Card link copied to clipboard!");
         break;
-      case 'watch':
+      case "watch":
         handleWatchToggle();
         break;
     }
   };
 
-
   return (
     <>
       <Dialog open={isOpen}>
-        <DialogContent showCloseButton={false} className="w-[calc(100vw-8px)] sm:max-w-[75rem] h-[85vh] max-h-[85vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900 flex flex-col">
-          {/* Header */}
+        <DialogContent
+          showCloseButton={false}
+          className="w-[calc(100vw-16px)] max-w-[calc(100vw-16px)] lg:max-w-[64rem] sm:max-w-full xl:max-w-[76rem] h-[95vh] max-h-[95vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900 flex flex-col"
+        >
+          {/* Original Header */}
           <DialogHeader>
             <DialogTitle>
-            <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-t-lg">
-            <div className="flex items-center gap-2 md:gap-3">
-              <Badge variant="secondary" className="text-xs md:text-sm font-medium px-2 md:px-3 py-1 bg-slate-100 dark:bg-slate-700 text-strong dark:text-slate-300 border-slate-200 dark:border-slate-600">
-                {list.title}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-1">
-              <div  
-                onClick={() => setIsFeedbackOpen(true)}
-                className="h-7 w-7 md:h-8 md:w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors flex items-center justify-center"
-              >
-                <HoverHint label="Share feedback" side="top">
-                <Megaphone className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
-                </HoverHint>
-                
-              </div>
-              {/* Watch indicator */}
-              {isWatching && (
-                <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-7 w-7 md:h-8 md:w-8 p-0 border-none hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-t-lg">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <Badge
+                    variant="secondary"
+                    className="text-xs md:text-sm font-medium px-2 md:px-3 py-1 bg-slate-100 dark:bg-slate-700 text-strong dark:text-slate-300 border-slate-200 dark:border-slate-600"
                   >
-                    <HoverHint label="Actions" side="top">
-                    <MoreHorizontal className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
+                    {list.title}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div
+                    onClick={() => setIsFeedbackOpen(true)}
+                    className="h-7 w-7 md:h-8 md:w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors flex items-center justify-center"
+                  >
+                    <HoverHint label="Share feedback" side="top">
+                      <Megaphone className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
                     </HoverHint>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => handleMenuAction('watch')} className={isWatching ? "text-blue-600 dark:text-blue-400" : ""}>
-                    {isWatching ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-                    {isWatching ? "Stop Watching" : "Watch"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleMenuAction('delete')} className="text-red-600 dark:text-red-400">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleMenuAction('copy')}>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleMenuAction('move')}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Move
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleMenuAction('share')}>
-                    <Share className="w-4 h-4 mr-2" />
-                    Share
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DialogClose>
-              <div
-                onClick={onClose}
-                className="h-7 w-7 md:h-8 md:w-8 p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
-              >
-                <HoverHint label="Close" side="top">
-                <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
-                </HoverHint>
-              </div></DialogClose>
-            </div>
-            </div>
+                  </div>
+                  {/* Watch indicator */}
+                  {isWatching && (
+                    <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 md:h-8 md:w-8 p-0 border-none hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
+                      >
+                        <HoverHint label="Actions" side="top">
+                          <MoreHorizontal className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
+                        </HoverHint>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={() => handleMenuAction("watch")}
+                        className={
+                          isWatching ? "text-blue-600 dark:text-blue-400" : ""
+                        }
+                      >
+                        {isWatching ? (
+                          <EyeOff className="w-4 h-4 mr-2" />
+                        ) : (
+                          <Eye className="w-4 h-4 mr-2" />
+                        )}
+                        {isWatching ? "Stop Watching" : "Watch"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleMenuAction("delete")}
+                        className="text-red-600 dark:text-red-400"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleMenuAction("copy")}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleMenuAction("move")}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Move
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleMenuAction("share")}
+                      >
+                        <Share className="w-4 h-4 mr-2" />
+                        Share
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <DialogClose>
+                    <div
+                      onClick={onClose}
+                      className="h-7 w-7 md:h-8 md:w-8 p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
+                    >
+                      <HoverHint label="Close" side="top">
+                        <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-600 dark:text-slate-400" />
+                      </HoverHint>
+                    </div>
+                  </DialogClose>
+                </div>
+              </div>
             </DialogTitle>
           </DialogHeader>
-          
 
           {/* Body - Responsive Layout */}
           <div className="min-h-0 flex-1 bg-white dark:bg-[#0D1117] flex flex-col">
             {/* Mobile: Tabbed Layout */}
             <div className="md:hidden flex flex-col flex-1">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1">
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="flex flex-col flex-1"
+              >
                 <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-                  <TabsTrigger value="details" className="text-sm">Details</TabsTrigger>
-                  <TabsTrigger value="activity" className="text-sm">Activity</TabsTrigger>
+                  <TabsTrigger value="details" className="text-sm">
+                    Details
+                  </TabsTrigger>
+                  <TabsTrigger value="activity" className="text-sm">
+                    Activity
+                  </TabsTrigger>
                 </TabsList>
-                <TabsContent value="details" className="p-4 space-y-6 flex-1 overflow-y-auto min-h-0 max-h-[70vh]">
-                  {/* Card Title with Check Radio */}
-                  <div className="flex items-start gap-3">
-                    <div 
+                <TabsContent
+                  value="details"
+                  ref={mobileScrollRef}
+                  className="flex-1 overflow-y-auto min-h-0 max-h-[80vh]"
+                >
+                  {/* Card Title with Check Radio - Fixed when scrolling */}
+                  <div
+                    className={`sticky top-0 z-30 transition-all duration-300 ease-out bg-slate-50 dark:bg-slate-900 w-full flex items-start p-4 gap-3 ${
+                      isSticky ? "border-b border-slate-200 dark:border-slate-700" : ""
+                    }`}
+                    style={{
+                      transform: `translateY(${scrollProgress * 100}%)`,
+                      transition: "transform 0.3s ease-in-out",
+                    }}
+                  >
+                    <div
                       className={`relative w-5 h-5 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
-                        isCompleted 
-                          ? 'bg-teal-600 border-teal-600 hover:bg-teal-700 hover:border-teal-700' 
-                          : 'border-slate-300 dark:border-slate-600 hover:border-teal-600 dark:hover:border-teal-600'
+                        isCompleted
+                          ? "bg-teal-600 border-teal-600 hover:bg-teal-700 hover:border-teal-700"
+                          : "border-slate-300 dark:border-slate-600 hover:border-teal-600 dark:hover:border-teal-600"
                       }`}
                       onClick={handleToggleComplete}
                     >
@@ -1126,762 +1396,1025 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                         <motion.div
                           initial={{ scale: 0, rotate: -180 }}
                           animate={{ scale: 1, rotate: 0 }}
-                          transition={{ 
-                            type: "spring", 
-                            stiffness: 500, 
+                          transition={{
+                            type: "spring",
+                            stiffness: 500,
                             damping: 15,
-                            duration: 0.3 
+                            duration: 0.3,
                           }}
                         >
                           <Check className="w-3 h-3 text-white" />
                         </motion.div>
                       ) : null}
-                      <ShootingStars 
-                        isActive={showShootingStars} 
-                        onComplete={() => setShowShootingStars(false)} 
+                      <ShootingStars
+                        isActive={showShootingStars}
+                        onComplete={() => setShowShootingStars(false)}
                       />
                     </div>
-                {isEditingTitle ? (
-                  <Form {...cardForm}>
-                    <form onSubmit={cardForm.handleSubmit(handleTitleSave)} className="space-y-3 flex-1">
-                      <FormField
-                        control={cardForm.control}
-                        name="title"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                className="text-lg font-semibold border-2 border-slate-300 dark:border-slate-600 focus:border-slate-500 dark:focus:border-slate-400 p-2 h-auto focus-visible:ring-0 bg-slate-50 dark:bg-slate-800 rounded-lg" 
-                                autoFocus
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="flex gap-2">
-                        <Button 
-                          type="submit" 
-                          size="sm" 
-                          disabled={updateCardContentMutation.isPending}
-                          className="bg-teal-600 hover:bg-teal-700 text-white text-sm px-3 py-1 h-7"
+                    {isEditingTitle ? (
+                      <Form {...cardForm}>
+                        <form
+                          onSubmit={cardForm.handleSubmit(handleTitleSave)}
+                          className="space-y-3 flex-1"
                         >
-                          {updateCardContentMutation.isPending ? "Saving..." : "Save"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsEditingTitle(false)}
-                          className="border-slate-300 dark:border-slate-600 text-sm px-3 py-1 h-7"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <h1 
-                      className="text-lg font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 -m-2 rounded-lg transition-all duration-200 flex-1 text-slate-900 dark:text-white"
-                      onClick={handleTitleEdit}
-                    >
-                      {card.title}
-                    </h1>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons - Trello Style */}
-              <div className="flex flex-wrap gap-2">
-                <DueDateDropdown
-                  card={card}
-                  boardId={boardId}
-                />
-                {!card.assignedTo && (
-                  <MembersDropdown
-                    card={card}
-                    boardId={boardId}
-                  />
-                )}
-                <LabelDropdown
-                  card={card}
-                  boardId={boardId}
-                />
-                <ChecklistDropdown
-                  cardId={card.id}
-                  boardId={boardId}
-                  existingChecklists={card.checklists || []}
-                />
-                <AttachmentUpload
-                  onFileUpload={handleFileUpload}
-                  onUrlUpload={handleUrlUpload}
-                  isUploading={isUploadingAttachment}
-                  acceptedTypes="*/*"
-                  maxSize={2}
-                  variant="button"
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                  >
-                    <Paperclip className="w-4 h-4 mr-2" />
-                    Attachment
-                  </Button>
-                </AttachmentUpload>
-              </div>
-
-
-              {/* Members */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Members</h3>
-                <div className="flex items-center gap-2">
-                  {card.assignedTo ? (
-                    <div className="flex items-center gap-2">
-                      <UserButton 
-                        afterSignOutUrl="/"
-                        appearance={{
-                          elements: {
-                            avatarBox: "w-8 h-8"
-                          }
-                        }}
-                      />
-                      <MembersDropdown
-                        card={card}
-                        boardId={boardId}
-                        trigger={
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <MembersDropdown
-                      card={card}
-                      boardId={boardId}
-                      trigger={
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      }
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Labels */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Labels</h3>
-                <div className="flex flex-wrap gap-2">
-                  {card.labels.map((label) => (
-                    <LabelDropdown
-                      key={label.id}
-                      card={card}
-                      boardId={boardId}
-                      trigger={
-                        <Badge 
-                          variant="secondary"
-                          style={{ backgroundColor: label.color }}
-                          className="px-3 py-1.5 text-sm font-medium rounded-sm border-0 text-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
-                        >
-                          {label.name}
-                        </Badge>
-                      }
-                    />
-                  ))}
-                  <LabelDropdown
-                    card={card}
-                    boardId={boardId}
-                    trigger={
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                      <FileText className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                    </div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white">Description</h3>
-                  </div>
-                  {card.description && !isEditingDescription && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleDescriptionEdit}
-                      className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </Button>
-                  )}
-                </div>
-                {isEditingDescription ? (
-                  <Form {...cardForm}>
-                    <form onSubmit={cardForm.handleSubmit(handleDescriptionSave)} className="space-y-4">
-                      <FormField
-                        control={cardForm.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RichTextEditor
-                                content={field.value || ""}
-                                onChange={field.onChange}
-                                placeholder="Add a description..."
-                                minHeight="2.5rem"
-                                maxHeight="20rem"
-                                showToolbar={true}
-                                className="border-2 border-blue-200 dark:border-blue-800 focus-within:border-blue-500 dark:focus-within:border-blue-400"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="flex gap-3">
-                        <Button 
-                          type="submit" 
-                          size="sm" 
-                          disabled={updateCardContentMutation.isPending}
-                          className="bg-teal-600 hover:bg-teal-700 text-white"
-                        >
-                          {updateCardContentMutation.isPending ? "Saving..." : "Save"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsEditingDescription(false)}
-                          className="border-slate-300 dark:border-slate-600"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                ) : (
-                  <div 
-                    className="min-h-[2.5rem] p-4 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-600"
-                    onClick={handleDescriptionEdit}
-                  >
-                    {card.description ? (
-                      <div 
-                        className="text-sm text-slate-900 dark:text-slate-300 leading-relaxed prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: card.description }}
-                      />
-                    ) : (
-                      <p className="text-sm text-slate-500 dark:text-slate-400 italic">Click to add a description...</p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Attachments */}
-              <Attachments 
-                attachments={(card.attachments || []).map(att => ({ ...att, cardId: card.id })) as Attachment[]} 
-                cardId={card.id} 
-                boardId={boardId}
-                isLoading={isLoadingAttachments}
-              />
-
-              {/* Due Date Display */}
-              {card.dueDate && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Due Date</h3>
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                    <Calendar className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-slate-900 dark:text-white">
-                        {new Date(card.dueDate).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </div>
-                      {card.startDate && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          Started: {new Date(card.startDate).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    {card.isRecurring && (
-                      <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                        <RotateCcw className="w-3 h-3" />
-                        {card.recurringType}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Checklists */}
-              <ChecklistsSection 
-                checklists={card.checklists || []} 
-                isLoading={isLoadingChecklists}
-              >
-                    {card.checklists?.map((checklist) => {
-                      const completedItems = checklist.items.filter(item => {
-                        const optimisticState = optimisticItemStates.get(item.id);
-                        return optimisticState !== undefined ? optimisticState : item.isCompleted;
-                      }).length;
-                      const totalItems = checklist.items.length;
-                      const progress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
-                      const isHidden = hiddenChecklists.has(checklist.id);
-                      const visibleItems = isHidden 
-                        ? checklist.items.filter(item => {
-                            const optimisticState = optimisticItemStates.get(item.id);
-                            const isCompleted = optimisticState !== undefined ? optimisticState : item.isCompleted;
-                            return !isCompleted;
-                          })
-                        : checklist.items;
-                      
-                      return (
-                        <div key={checklist.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2 flex-1">
-                              <SquareCheckBig className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                              {editingChecklistId === checklist.id ? (
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
+                          <FormField
+                            control={cardForm.control}
+                            name="title"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
                                   <Input
-                                    value={editingChecklistTitle}
-                                    onChange={(e) => setEditingChecklistTitle(e.target.value)}
-                                    onKeyPress={(e) => e.key === "Enter" && handleUpdateChecklist(checklist.id)}
-                                    onBlur={() => handleUpdateChecklist(checklist.id)}
-                                    className="flex-1 h-10 text-sm min-w-0 w-full sm:w-auto"
+                                    {...field}
+                                    className="text-lg font-semibold border-2 border-slate-300 dark:border-slate-600 focus:border-slate-500 dark:focus:border-slate-400 p-2 h-auto focus-visible:ring-0 bg-slate-50 dark:bg-slate-800 rounded-lg"
                                     autoFocus
-                                    placeholder="Enter checklist title..."
                                   />
-                                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleUpdateChecklist(checklist.id)}
-                                      disabled={updateChecklistMutation.isPending}
-                                      className="h-10 rounded-sm flex-1 sm:flex-none"
-                                    >
-                                      {updateChecklistMutation.isPending ? (
-                                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                      ) : (
-                                        <Check className="w-4 h-4" />
-                                      )}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setEditingChecklistId(null);
-                                        setEditingChecklistTitle("");
-                                      }}
-                                      className="h-10 rounded-sm flex-1 sm:flex-none"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 flex-1">
-                                  <h4 
-                                    className="font-medium text-slate-900 dark:text-white text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded"
-                                    onClick={() => {
-                                      // Use mobile popup on small screens, inline on larger screens
-                                      if (window.innerWidth < 640) {
-                                        handleMobileEditChecklist(checklist.id, checklist.title);
-                                      } else {
-                                        handleEditChecklist(checklist.id, checklist.title);
-                                      }
-                                    }}
-                                  >
-                                    {checklist.title}
-                                  </h4>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-500 dark:text-slate-400">
-                                {completedItems}/{totalItems} ({Math.round(progress)}%)
-                              </span>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                  >
-                                    <MoreHorizontal className="w-3 h-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => setBulkMode(!bulkMode)}>
-                                    {bulkMode ? "Exit Bulk Mode" : "Bulk Actions"}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleToggleHideChecked(checklist.id)}>
-                                    {isHidden ? `Show checked items (${completedItems})` : `Hide checked items (${completedItems})`}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleCopyChecklist(checklist)}>
-                                    Copy Checklist
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => handleDeleteChecklist(checklist.id)}
-                                    className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
-                                  >
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={updateCardContentMutation.isPending}
+                              className="bg-teal-600 hover:bg-teal-700 text-white text-sm px-3 py-1 h-7"
+                            >
+                              {updateCardContentMutation.isPending
+                                ? "Saving..."
+                                : "Save"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsEditingTitle(false)}
+                              className="border-slate-300 dark:border-slate-600 text-sm px-3 py-1 h-7"
+                            >
+                              Cancel
+                            </Button>
                           </div>
-                          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mb-2 relative">
-                            {/* Progress milestones */}
-                            <div className="absolute inset-0 flex justify-between items-center">
-                              <div className={`w-1 h-1 rounded-full ${progress >= 25 ? 'bg-white' : 'bg-slate-400'}`} />
-                              <div className={`w-1 h-1 rounded-full ${progress >= 50 ? 'bg-white' : 'bg-slate-400'}`} />
-                              <div className={`w-1 h-1 rounded-full ${progress >= 75 ? 'bg-white' : 'bg-slate-400'}`} />
-                              <div className={`w-1 h-1 rounded-full ${progress >= 100 ? 'bg-white' : 'bg-slate-400'}`} />
-                            </div>
-                            <div
-                              className={`h-2 rounded-full transition-all duration-300 ${
-                                progress === 0 
-                                  ? 'bg-slate-400 dark:bg-slate-600' 
-                                  : progress < 25 
-                                  ? 'bg-red-500' 
-                                  : progress < 50 
-                                  ? 'bg-orange-500' 
-                                  : progress < 75 
-                                  ? 'bg-yellow-500' 
-                                  : progress < 100 
-                                  ? 'bg-blue-500' 
-                                  : 'bg-green-500'
-                              }`}
-                              style={{ width: `${progress}%` }}
-                            />
-                            {/* Milestone celebration */}
-                            {progress === 100 && (
-                              <motion.div
-                                className="absolute -top-1 -right-1"
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ delay: 0.5, type: "spring", stiffness: 500 }}
-                              >
-                                <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
-                                  <Check className="w-2 h-2 text-white" />
-                                </div>
-                              </motion.div>
-                            )}
-                          </div>
-                          <div className="space-y-1 relative">
-                            {showConfetti && (
-                              <div className="absolute inset-0 pointer-events-none z-10">
-                                <ShootingStars isActive={true} onComplete={() => setShowConfetti(false)} />
-                              </div>
-                            )}
-                            {visibleItems.length === 0 && isHidden && completedItems > 0 ? (
-                              <div className="text-xs text-slate-500 dark:text-slate-400 italic text-center py-2">
-                                Everything in this checklist is complete
-                              </div>
-                            ) : (
-                              <ChecklistItemDndProvider 
-                                checklistId={checklist.id} 
-                                boardId={boardId} 
-                                items={visibleItems}
-                              >
-                                {visibleItems.slice(0, expandedChecklists.has(checklist.id) ? visibleItems.length : 3).map((item) => {
-                                  const actualIndex = visibleItems.findIndex(visibleItem => visibleItem.id === item.id);
-                                const optimisticState = optimisticItemStates.get(item.id);
-                                const isCompleted = optimisticState !== undefined ? optimisticState : item.isCompleted;
-                                
-                                const priority = itemPriorities.get(item.id) || 'medium';
-                                
-                                return (
-                                  <DraggableChecklistItem key={item.id} item={item} index={actualIndex}>
-                                    <div 
-                                      className={`flex items-center gap-2 text-xs border-l-4 ${getPriorityColor(priority)} bg-slate-50 dark:bg-slate-800 rounded p-1`}
-                                      onTouchStart={(e) => handleSwipeStart(e, item.id)}
-                                      onTouchEnd={handleSwipeEnd}
-                                    >
-                                  {bulkMode && (
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedItems.has(item.id)}
-                                      onChange={() => handleToggleItemSelection(item.id)}
-                                      className="w-3 h-3 rounded border-slate-300"
-                                    />
-                                  )}
-                                  {editingItemId === item.id ? (
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full min-w-0">
-                                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                                        <button
-                                          className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                                            isCompleted 
-                                              ? 'bg-teal-600 border-teal-600' 
-                                              : 'border-slate-300 dark:border-slate-600'
-                                          }`}
-                                          onClick={() => handleToggleItem(item.id, isCompleted)}
-                                        >
-                                          <AnimatePresence>
-                                            {isCompleted && (
-                                              <motion.div
-                                                initial={{ scale: 0, rotate: -180 }}
-                                                animate={{ scale: 1, rotate: 0 }}
-                                                exit={{ scale: 0, rotate: 180 }}
-                                                transition={{ 
-                                                  type: "spring", 
-                                                  stiffness: 500, 
-                                                  damping: 15,
-                                                  duration: 0.3 
-                                                }}
-                                              >
-                                                <Check className="w-3 h-3 text-white" />
-                                              </motion.div>
-                                            )}
-                                          </AnimatePresence>
-                                          {showCompletionAnimation === item.id && (
-                                            <motion.div
-                                              className="absolute inset-0 bg-teal-600 rounded-full"
-                                              initial={{ scale: 0 }}
-                                              animate={{ scale: 1.5, opacity: 0 }}
-                                              transition={{ duration: 0.6 }}
-                                            />
-                                          )}
-                                        </button>
-                                        <Input
-                                          value={editingItemContent}
-                                          onChange={(e) => setEditingItemContent(e.target.value)}
-                                          onKeyPress={(e) => e.key === "Enter" && handleUpdateItem(item.id)}
-                                          onBlur={() => handleUpdateItem(item.id)}
-                                          className="flex-1 h-8 text-sm min-w-0"
-                                          autoFocus
-                                          placeholder="Enter item content..."
-                                        />
-                                      </div>
-                                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                                        <Button
-                                          size="sm"
-                                          onClick={() => handleUpdateItem(item.id)}
-                                          disabled={updateItemMutation.isPending}
-                                          className="h-8 rounded-sm flex-1 sm:flex-none"
-                                        >
-                                          {updateItemMutation.isPending ? (
-                                            <div className="w-3 h-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                          ) : (
-                                            <Check className="w-3 h-3" />
-                                          )}
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            setEditingItemId(null);
-                                            setEditingItemContent("");
-                                          }}
-                                          className="h-8 rounded-sm flex-1 sm:flex-none"
-                                        >
-                                          <X className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <button
-                                        className={`w-3 h-3 rounded border-2 flex items-center justify-center ${
-                                          isCompleted 
-                                            ? 'bg-teal-600 border-teal-600' 
-                                            : 'border-slate-300 dark:border-slate-600'
-                                        }`}
-                                        onClick={() => handleToggleItem(item.id, isCompleted)}
-                                      >
-                                        {isCompleted && <Check className="w-3 h-3 text-white" />}
-                                      </button>
-                                      <span 
-                                        className={`flex-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded ${isCompleted ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}
-                                        onClick={() => handleEditItem(item.id, item.content)}
-                                      >
-                                        {item.content}
-                                      </span>
-                                      <div className="flex items-center gap-1">
-                                        {/* Priority selector */}
-                                        <DropdownMenu>
-                                          <DropdownMenuTrigger asChild>
-                                            <button className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                                              <div className={`w-2 h-2 rounded-full ${
-                                                priority === 'high' ? 'bg-red-500' : 
-                                                priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                                              }`} />
-                                            </button>
-                                          </DropdownMenuTrigger>
-                                          <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleSetPriority(item.id, 'high')}>
-                                              <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-red-500" />
-                                                High Priority
-                                              </div>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleSetPriority(item.id, 'medium')}>
-                                              <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                                                Medium Priority
-                                              </div>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleSetPriority(item.id, 'low')}>
-                                              <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-green-500" />
-                                                Low Priority
-                                              </div>
-                                            </DropdownMenuItem>
-                                          </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        
-                                        <HoverHint label="Delete item" side="top">
-                                          <button
-                                            onClick={() => handleDeleteItem(item.id)}
-                                            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                          >
-                                            <X className="w-3 h-3" />
-                                          </button>
-                                        </HoverHint>
-                                      </div>
-                                    </>
-                                  )}
-                                
-                                    </div>
-                                  </DraggableChecklistItem>
-                                );
-                                })}
-                              </ChecklistItemDndProvider>
-                            )}
-                            {visibleItems.length > 3 && !expandedChecklists.has(checklist.id) && (
-                              <button
-                                onClick={() => handleToggleExpand(checklist.id)}
-                                className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
-                              >
-                                +{visibleItems.length - 3} more items
-                              </button>
-                            )}
-                            {visibleItems.length > 3 && expandedChecklists.has(checklist.id) && (
-                              <button
-                                onClick={() => handleToggleExpand(checklist.id)}
-                                className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
-                              >
-                                Show less
-                              </button>
-                            )}
-                          </div>
-                          {/* Bulk Actions Bar */}
-                          {bulkMode && selectedItems.size > 0 && (
-                            <div className="flex items-center gap-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">
-                              <span className="text-xs text-slate-600 dark:text-slate-400">
-                                {selectedItems.size} selected
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleBulkComplete}
-                                className="h-6 px-2 text-xs"
-                              >
-                                Complete
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleBulkDelete}
-                                className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
-                              >
-                                Delete
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setSelectedItems(new Set())}
-                                className="h-6 px-2 text-xs"
-                              >
-                                Clear
-                              </Button>
-                            </div>
-                          )}
-                          {showAddItemForm === checklist.id ? (
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2">
-                              <Input
-                                value={newItemContent}
-                                onChange={(e) => setNewItemContent(e.target.value)}
-                                onKeyPress={(e) => e.key === "Enter" && handleCreateItem(checklist.id)}
-                                placeholder="Add an item..."
-                                className="flex-1 h-10 text-sm w-full sm:w-auto"
-                                autoFocus
+                        </form>
+                      </Form>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-1">
+                        <h1
+                          className="text-lg font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 -m-2 rounded-lg transition-all duration-200 flex-1 text-slate-900 dark:text-white"
+                          onClick={handleTitleEdit}
+                        >
+                          {card.title}
+                        </h1>
+                        {isSticky && (
+                          <div className="relative">
+                            <Button
+                              onClick={() =>
+                                setIsAddToCardOpen(!isAddToCardOpen)
+                              }
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                            >
+                              [+ Add]
+                            </Button>
+                            {isAddToCardOpen && (
+                              <AddToCardDropdown
+                                isOpen={isAddToCardOpen}
+                                onClose={() => setIsAddToCardOpen(false)}
+                                card={card}
+                                boardId={boardId}
+                                onFileUpload={handleFileUpload}
+                                onUrlUpload={handleUrlUpload}
+                                isUploadingAttachment={isUploadingAttachment}
                               />
-                              <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <Button
-                                  onClick={() => handleCreateItem(checklist.id)}
-                                  disabled={createItemMutation.isPending || !newItemContent.trim()}
-                                  className="bg-teal-600 hover:bg-teal-700 h-10 rounded-sm flex-1 sm:flex-none"
-                                >
-                                  {createItemMutation.isPending ? (
-                                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                  ) : (
-                                    <Check className="w-4 h-4" />
-                                  )}
-                                </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 space-y-6">
+                    {/* Action Buttons - Trello Style */}
+                    <div className="flex flex-wrap gap-2">
+                      <DueDateDropdown card={card} boardId={boardId} />
+                      {!card.assignedTo && (
+                        <MembersDropdown card={card} boardId={boardId} />
+                      )}
+                      <LabelDropdown card={card} boardId={boardId} />
+                      <ChecklistDropdown
+                        cardId={card.id}
+                        boardId={boardId}
+                        existingChecklists={card.checklists || []}
+                      />
+                      <AttachmentUpload
+                        onFileUpload={handleFileUpload}
+                        onUrlUpload={handleUrlUpload}
+                        isUploading={isUploadingAttachment}
+                        acceptedTypes="*/*"
+                        maxSize={2}
+                        variant="button"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                        >
+                          <Paperclip className="w-4 h-4 mr-2" />
+                          Attachment
+                        </Button>
+                      </AttachmentUpload>
+                    </div>
+
+                    {/* Members */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
+                        Members
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        {card.assignedTo ? (
+                          <div className="flex items-center gap-2">
+                            <UserButton
+                              afterSignOutUrl="/"
+                              appearance={{
+                                elements: {
+                                  avatarBox: "w-8 h-8",
+                                },
+                              }}
+                            />
+                            <MembersDropdown
+                              card={card}
+                              boardId={boardId}
+                              trigger={
                                 <Button
                                   variant="outline"
-                                  onClick={() => {
-                                    setShowAddItemForm(null);
-                                    setNewItemContent("");
-                                  }}
-                                  className="h-10 rounded-sm flex-1 sm:flex-none"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
                                 >
-                                  <X className="w-4 h-4" />
+                                  <Plus className="w-4 h-4" />
                                 </Button>
-                              </div>
-                            </div>
-                          ) : (
+                              }
+                            />
+                          </div>
+                        ) : (
+                          <MembersDropdown
+                            card={card}
+                            boardId={boardId}
+                            trigger={
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Labels */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
+                        Labels
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {card.labels.map((label) => (
+                          <LabelDropdown
+                            key={label.id}
+                            card={card}
+                            boardId={boardId}
+                            trigger={
+                              <Badge
+                                variant="secondary"
+                                style={{ backgroundColor: label.color }}
+                                className="px-3 py-1.5 text-sm font-medium rounded-sm border-0 text-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
+                              >
+                                {label.name}
+                              </Badge>
+                            }
+                          />
+                        ))}
+                        <LabelDropdown
+                          card={card}
+                          boardId={boardId}
+                          trigger={
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full mt-2 h-8 text-xs"
-                              onClick={() => setShowAddItemForm(checklist.id)}
+                              className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
                             >
-                              Add an item
+                              <Plus className="w-4 h-4" />
                             </Button>
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                            <FileText className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                          </div>
+                          <h3 className="font-semibold text-slate-900 dark:text-white">
+                            Description
+                          </h3>
+                        </div>
+                        {card.description && !isEditingDescription && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleDescriptionEdit}
+                            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                      {isEditingDescription ? (
+                        <Form {...cardForm}>
+                          <form
+                            onSubmit={cardForm.handleSubmit(
+                              handleDescriptionSave
+                            )}
+                            className="space-y-4"
+                          >
+                            <FormField
+                              control={cardForm.control}
+                              name="description"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <RichTextEditor
+                                      content={field.value || ""}
+                                      onChange={field.onChange}
+                                      placeholder="Add a description..."
+                                      minHeight="2.5rem"
+                                      maxHeight="20rem"
+                                      showToolbar={true}
+                                      className="border-2 border-blue-200 dark:border-blue-800 focus-within:border-blue-500 dark:focus-within:border-blue-400"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="flex gap-3">
+                              <Button
+                                type="submit"
+                                size="sm"
+                                disabled={updateCardContentMutation.isPending}
+                                className="bg-teal-600 hover:bg-teal-700 text-white"
+                              >
+                                {updateCardContentMutation.isPending
+                                  ? "Saving..."
+                                  : "Save"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setIsEditingDescription(false)}
+                                className="border-slate-300 dark:border-slate-600"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      ) : (
+                        <div
+                          className="min-h-[2.5rem] p-4 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                          onClick={handleDescriptionEdit}
+                        >
+                          {card.description ? (
+                            <div
+                              className="text-sm text-slate-900 dark:text-slate-300 leading-relaxed prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{
+                                __html: card.description,
+                              }}
+                            />
+                          ) : (
+                            <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                              Click to add a description...
+                            </p>
                           )}
                         </div>
-                      );
-                    })}
-              </ChecklistsSection>
+                      )}
+                    </div>
 
+                    {/* Attachments */}
+                    <Attachments
+                      attachments={
+                        (card.attachments || []).map((att) => ({
+                          ...att,
+                          cardId: card.id,
+                        })) as Attachment[]
+                      }
+                      cardId={card.id}
+                      boardId={boardId}
+                      isLoading={isLoadingAttachments}
+                    />
 
+                    {/* Due Date Display */}
+                    {card.dueDate && (
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-slate-900 dark:text-white">
+                          Due Date
+                        </h3>
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                          <Calendar className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-slate-900 dark:text-white">
+                              {new Date(card.dueDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  weekday: "long",
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                }
+                              )}
+                            </div>
+                            {card.startDate && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                Started:{" "}
+                                {new Date(card.startDate).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {card.isRecurring && (
+                            <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                              <RotateCcw className="w-3 h-3" />
+                              {card.recurringType}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Checklists */}
+                    <ChecklistsSection
+                      checklists={card.checklists || []}
+                      isLoading={isLoadingChecklists}
+                    >
+                      {card.checklists?.map((checklist) => {
+                        const completedItems = checklist.items.filter(
+                          (item) => {
+                            const optimisticState = optimisticItemStates.get(
+                              item.id
+                            );
+                            return optimisticState !== undefined
+                              ? optimisticState
+                              : item.isCompleted;
+                          }
+                        ).length;
+                        const totalItems = checklist.items.length;
+                        const progress =
+                          totalItems > 0
+                            ? (completedItems / totalItems) * 100
+                            : 0;
+                        const isHidden = hiddenChecklists.has(checklist.id);
+                        const visibleItems = isHidden
+                          ? checklist.items.filter((item) => {
+                              const optimisticState = optimisticItemStates.get(
+                                item.id
+                              );
+                              const isCompleted =
+                                optimisticState !== undefined
+                                  ? optimisticState
+                                  : item.isCompleted;
+                              return !isCompleted;
+                            })
+                          : checklist.items;
+
+                        return (
+                          <div
+                            key={checklist.id}
+                            className="border border-slate-200 dark:border-slate-700 rounded-lg p-3"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2 flex-1">
+                                <SquareCheckBig className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                                {editingChecklistId === checklist.id ? (
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
+                                    <Input
+                                      value={editingChecklistTitle}
+                                      onChange={(e) =>
+                                        setEditingChecklistTitle(e.target.value)
+                                      }
+                                      onKeyPress={(e) =>
+                                        e.key === "Enter" &&
+                                        handleUpdateChecklist(checklist.id)
+                                      }
+                                      onBlur={() =>
+                                        handleUpdateChecklist(checklist.id)
+                                      }
+                                      className="flex-1 h-10 text-sm min-w-0 w-full sm:w-auto"
+                                      autoFocus
+                                      placeholder="Enter checklist title..."
+                                    />
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                      <Button
+                                        size="sm"
+                                        onClick={() =>
+                                          handleUpdateChecklist(checklist.id)
+                                        }
+                                        disabled={
+                                          updateChecklistMutation.isPending
+                                        }
+                                        className="h-10 rounded-sm flex-1 sm:flex-none"
+                                      >
+                                        {updateChecklistMutation.isPending ? (
+                                          <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                        ) : (
+                                          <Check className="w-4 h-4" />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setEditingChecklistId(null);
+                                          setEditingChecklistTitle("");
+                                        }}
+                                        className="h-10 rounded-sm flex-1 sm:flex-none"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <h4
+                                      className="font-medium text-slate-900 dark:text-white text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded"
+                                      onClick={() => {
+                                        // Use mobile popup on small screens, inline on larger screens
+                                        if (window.innerWidth < 640) {
+                                          handleMobileEditChecklist(
+                                            checklist.id,
+                                            checklist.title
+                                          );
+                                        } else {
+                                          handleEditChecklist(
+                                            checklist.id,
+                                            checklist.title
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      {checklist.title}
+                                    </h4>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                  {completedItems}/{totalItems} (
+                                  {Math.round(progress)}%)
+                                </span>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                    >
+                                      <MoreHorizontal className="w-3 h-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => setBulkMode(!bulkMode)}
+                                    >
+                                      {bulkMode
+                                        ? "Exit Bulk Mode"
+                                        : "Bulk Actions"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleToggleHideChecked(checklist.id)
+                                      }
+                                    >
+                                      {isHidden
+                                        ? `Show checked items (${completedItems})`
+                                        : `Hide checked items (${completedItems})`}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleCopyChecklist(checklist)
+                                      }
+                                    >
+                                      Copy Checklist
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleDeleteChecklist(checklist.id)
+                                      }
+                                      className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                                    >
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mb-2 relative">
+                              {/* Progress milestones */}
+                              <div className="absolute inset-0 flex justify-between items-center">
+                                <div
+                                  className={`w-1 h-1 rounded-full ${
+                                    progress >= 25 ? "bg-white" : "bg-slate-400"
+                                  }`}
+                                />
+                                <div
+                                  className={`w-1 h-1 rounded-full ${
+                                    progress >= 50 ? "bg-white" : "bg-slate-400"
+                                  }`}
+                                />
+                                <div
+                                  className={`w-1 h-1 rounded-full ${
+                                    progress >= 75 ? "bg-white" : "bg-slate-400"
+                                  }`}
+                                />
+                                <div
+                                  className={`w-1 h-1 rounded-full ${
+                                    progress >= 100
+                                      ? "bg-white"
+                                      : "bg-slate-400"
+                                  }`}
+                                />
+                              </div>
+                              <div
+                                className={`h-2 rounded-full transition-all duration-300 ${
+                                  progress === 0
+                                    ? "bg-slate-400 dark:bg-slate-600"
+                                    : progress < 25
+                                    ? "bg-red-500"
+                                    : progress < 50
+                                    ? "bg-orange-500"
+                                    : progress < 75
+                                    ? "bg-yellow-500"
+                                    : progress < 100
+                                    ? "bg-blue-500"
+                                    : "bg-green-500"
+                                }`}
+                                style={{ width: `${progress}%` }}
+                              />
+                              {/* Milestone celebration */}
+                              {progress === 100 && (
+                                <motion.div
+                                  className="absolute -top-1 -right-1"
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{
+                                    delay: 0.5,
+                                    type: "spring",
+                                    stiffness: 500,
+                                  }}
+                                >
+                                  <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                    <Check className="w-2 h-2 text-white" />
+                                  </div>
+                                </motion.div>
+                              )}
+                            </div>
+                            <div className="space-y-1 relative">
+                              {showConfetti && (
+                                <div className="absolute inset-0 pointer-events-none z-10">
+                                  <ShootingStars
+                                    isActive={true}
+                                    onComplete={() => setShowConfetti(false)}
+                                  />
+                                </div>
+                              )}
+                              {visibleItems.length === 0 &&
+                              isHidden &&
+                              completedItems > 0 ? (
+                                <div className="text-xs text-slate-500 dark:text-slate-400 italic text-center py-2">
+                                  Everything in this checklist is complete
+                                </div>
+                              ) : (
+                                <ChecklistItemDndProvider
+                                  checklistId={checklist.id}
+                                  boardId={boardId}
+                                  items={visibleItems}
+                                >
+                                  {visibleItems
+                                    .slice(
+                                      0,
+                                      expandedChecklists.has(checklist.id)
+                                        ? visibleItems.length
+                                        : 3
+                                    )
+                                    .map((item) => {
+                                      const actualIndex =
+                                        visibleItems.findIndex(
+                                          (visibleItem) =>
+                                            visibleItem.id === item.id
+                                        );
+                                      const optimisticState =
+                                        optimisticItemStates.get(item.id);
+                                      const isCompleted =
+                                        optimisticState !== undefined
+                                          ? optimisticState
+                                          : item.isCompleted;
+
+                                      const priority =
+                                        itemPriorities.get(item.id) || "medium";
+
+                                      return (
+                                        <DraggableChecklistItem
+                                          key={item.id}
+                                          item={item}
+                                          index={actualIndex}
+                                        >
+                                          <div
+                                            className={`flex items-center gap-2 text-xs border-l-4 ${getPriorityColor(
+                                              priority
+                                            )} bg-slate-50 dark:bg-slate-800 rounded p-1`}
+                                            onTouchStart={(e) =>
+                                              handleSwipeStart(e, item.id)
+                                            }
+                                            onTouchEnd={handleSwipeEnd}
+                                          >
+                                            {bulkMode && (
+                                              <input
+                                                type="checkbox"
+                                                checked={selectedItems.has(
+                                                  item.id
+                                                )}
+                                                onChange={() =>
+                                                  handleToggleItemSelection(
+                                                    item.id
+                                                  )
+                                                }
+                                                className="w-3 h-3 rounded border-slate-300"
+                                              />
+                                            )}
+                                            {editingItemId === item.id ? (
+                                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full min-w-0">
+                                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                  <button
+                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                                                      isCompleted
+                                                        ? "bg-teal-600 border-teal-600"
+                                                        : "border-slate-300 dark:border-slate-600"
+                                                    }`}
+                                                    onClick={() =>
+                                                      handleToggleItem(
+                                                        item.id,
+                                                        isCompleted
+                                                      )
+                                                    }
+                                                  >
+                                                    <AnimatePresence>
+                                                      {isCompleted && (
+                                                        <motion.div
+                                                          initial={{
+                                                            scale: 0,
+                                                            rotate: -180,
+                                                          }}
+                                                          animate={{
+                                                            scale: 1,
+                                                            rotate: 0,
+                                                          }}
+                                                          exit={{
+                                                            scale: 0,
+                                                            rotate: 180,
+                                                          }}
+                                                          transition={{
+                                                            type: "spring",
+                                                            stiffness: 500,
+                                                            damping: 15,
+                                                            duration: 0.3,
+                                                          }}
+                                                        >
+                                                          <Check className="w-3 h-3 text-white" />
+                                                        </motion.div>
+                                                      )}
+                                                    </AnimatePresence>
+                                                    {showCompletionAnimation ===
+                                                      item.id && (
+                                                      <motion.div
+                                                        className="absolute inset-0 bg-teal-600 rounded-full"
+                                                        initial={{ scale: 0 }}
+                                                        animate={{
+                                                          scale: 1.5,
+                                                          opacity: 0,
+                                                        }}
+                                                        transition={{
+                                                          duration: 0.6,
+                                                        }}
+                                                      />
+                                                    )}
+                                                  </button>
+                                                  <Input
+                                                    value={editingItemContent}
+                                                    onChange={(e) =>
+                                                      setEditingItemContent(
+                                                        e.target.value
+                                                      )
+                                                    }
+                                                    onKeyPress={(e) =>
+                                                      e.key === "Enter" &&
+                                                      handleUpdateItem(item.id)
+                                                    }
+                                                    onBlur={() =>
+                                                      handleUpdateItem(item.id)
+                                                    }
+                                                    className="flex-1 h-8 text-sm min-w-0"
+                                                    autoFocus
+                                                    placeholder="Enter item content..."
+                                                  />
+                                                </div>
+                                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                  <Button
+                                                    size="sm"
+                                                    onClick={() =>
+                                                      handleUpdateItem(item.id)
+                                                    }
+                                                    disabled={
+                                                      updateItemMutation.isPending
+                                                    }
+                                                    className="h-8 rounded-sm flex-1 sm:flex-none"
+                                                  >
+                                                    {updateItemMutation.isPending ? (
+                                                      <div className="w-3 h-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                                    ) : (
+                                                      <Check className="w-3 h-3" />
+                                                    )}
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                      setEditingItemId(null);
+                                                      setEditingItemContent("");
+                                                    }}
+                                                    className="h-8 rounded-sm flex-1 sm:flex-none"
+                                                  >
+                                                    <X className="w-3 h-3" />
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <>
+                                                <button
+                                                  className={`w-3 h-3 rounded border-2 flex items-center justify-center ${
+                                                    isCompleted
+                                                      ? "bg-teal-600 border-teal-600"
+                                                      : "border-slate-300 dark:border-slate-600"
+                                                  }`}
+                                                  onClick={() =>
+                                                    handleToggleItem(
+                                                      item.id,
+                                                      isCompleted
+                                                    )
+                                                  }
+                                                >
+                                                  {isCompleted && (
+                                                    <Check className="w-3 h-3 text-white" />
+                                                  )}
+                                                </button>
+                                                <span
+                                                  className={`flex-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded ${
+                                                    isCompleted
+                                                      ? "line-through text-slate-500 dark:text-slate-400"
+                                                      : "text-slate-700 dark:text-slate-300"
+                                                  }`}
+                                                  onClick={() =>
+                                                    handleEditItem(
+                                                      item.id,
+                                                      item.content
+                                                    )
+                                                  }
+                                                >
+                                                  {item.content}
+                                                </span>
+                                                <div className="flex items-center gap-1">
+                                                  {/* Priority selector */}
+                                                  <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                      asChild
+                                                    >
+                                                      <button className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                                                        <div
+                                                          className={`w-2 h-2 rounded-full ${
+                                                            priority === "high"
+                                                              ? "bg-red-500"
+                                                              : priority ===
+                                                                "medium"
+                                                              ? "bg-yellow-500"
+                                                              : "bg-green-500"
+                                                          }`}
+                                                        />
+                                                      </button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                      <DropdownMenuItem
+                                                        onClick={() =>
+                                                          handleSetPriority(
+                                                            item.id,
+                                                            "high"
+                                                          )
+                                                        }
+                                                      >
+                                                        <div className="flex items-center gap-2">
+                                                          <div className="w-2 h-2 rounded-full bg-red-500" />
+                                                          High Priority
+                                                        </div>
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem
+                                                        onClick={() =>
+                                                          handleSetPriority(
+                                                            item.id,
+                                                            "medium"
+                                                          )
+                                                        }
+                                                      >
+                                                        <div className="flex items-center gap-2">
+                                                          <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                                                          Medium Priority
+                                                        </div>
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem
+                                                        onClick={() =>
+                                                          handleSetPriority(
+                                                            item.id,
+                                                            "low"
+                                                          )
+                                                        }
+                                                      >
+                                                        <div className="flex items-center gap-2">
+                                                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                                                          Low Priority
+                                                        </div>
+                                                      </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                  </DropdownMenu>
+
+                                                  <HoverHint
+                                                    label="Delete item"
+                                                    side="top"
+                                                  >
+                                                    <button
+                                                      onClick={() =>
+                                                        handleDeleteItem(
+                                                          item.id
+                                                        )
+                                                      }
+                                                      className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                                    >
+                                                      <X className="w-3 h-3" />
+                                                    </button>
+                                                  </HoverHint>
+                                                </div>
+                                              </>
+                                            )}
+                                          </div>
+                                        </DraggableChecklistItem>
+                                      );
+                                    })}
+                                </ChecklistItemDndProvider>
+                              )}
+                              {visibleItems.length > 3 &&
+                                !expandedChecklists.has(checklist.id) && (
+                                  <button
+                                    onClick={() =>
+                                      handleToggleExpand(checklist.id)
+                                    }
+                                    className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                                  >
+                                    +{visibleItems.length - 3} more items
+                                  </button>
+                                )}
+                              {visibleItems.length > 3 &&
+                                expandedChecklists.has(checklist.id) && (
+                                  <button
+                                    onClick={() =>
+                                      handleToggleExpand(checklist.id)
+                                    }
+                                    className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                                  >
+                                    Show less
+                                  </button>
+                                )}
+                            </div>
+                            {/* Bulk Actions Bar */}
+                            {bulkMode && selectedItems.size > 0 && (
+                              <div className="flex items-center gap-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">
+                                <span className="text-xs text-slate-600 dark:text-slate-400">
+                                  {selectedItems.size} selected
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleBulkComplete}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  Complete
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleBulkDelete}
+                                  className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                                >
+                                  Delete
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setSelectedItems(new Set())}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  Clear
+                                </Button>
+                              </div>
+                            )}
+                            {showAddItemForm === checklist.id ? (
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2">
+                                <Input
+                                  value={newItemContent}
+                                  onChange={(e) =>
+                                    setNewItemContent(e.target.value)
+                                  }
+                                  onKeyPress={(e) =>
+                                    e.key === "Enter" &&
+                                    handleCreateItem(checklist.id)
+                                  }
+                                  placeholder="Add an item..."
+                                  className="flex-1 h-10 text-sm w-full sm:w-auto"
+                                  autoFocus
+                                />
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                  <Button
+                                    onClick={() =>
+                                      handleCreateItem(checklist.id)
+                                    }
+                                    disabled={
+                                      createItemMutation.isPending ||
+                                      !newItemContent.trim()
+                                    }
+                                    className="bg-teal-600 hover:bg-teal-700 h-10 rounded-sm flex-1 sm:flex-none"
+                                  >
+                                    {createItemMutation.isPending ? (
+                                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                    ) : (
+                                      <Check className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setShowAddItemForm(null);
+                                      setNewItemContent("");
+                                    }}
+                                    className="h-10 rounded-sm flex-1 sm:flex-none"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full mt-2 h-8 text-xs"
+                                onClick={() => setShowAddItemForm(checklist.id)}
+                              >
+                                Add an item
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </ChecklistsSection>
+                  </div>
                 </TabsContent>
-                
-                <TabsContent value="activity" className="p-4 space-y-4 flex-1 overflow-y-auto max-h-[70vh]">
+
+                <TabsContent
+                  value="activity"
+                  className="p-4 space-y-4 flex-1 overflow-y-auto max-h-[80vh]"
+                >
                   {/* Comments Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="p-1.5 bg-slate-100 dark:bg-slate-900 rounded-lg">
                         <MessageSquare className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
                       </div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Comments and activity</h3>
+                      <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
+                        Comments and activity
+                      </h3>
                     </div>
                     <Button
                       variant="outline"
@@ -1895,15 +2428,20 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
 
                   {/* Add Comment Input */}
                   {!isCommentFormExpanded ? (
-                    <div 
+                    <div
                       className="p-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
                       onClick={() => setIsCommentFormExpanded(true)}
                     >
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Write a comment...</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Write a comment...
+                      </p>
                     </div>
                   ) : (
                     <Form {...commentForm}>
-                      <form onSubmit={commentForm.handleSubmit(handleAddComment)} className="space-y-3">
+                      <form
+                        onSubmit={commentForm.handleSubmit(handleAddComment)}
+                        className="space-y-3"
+                      >
                         <FormField
                           control={commentForm.control}
                           name="content"
@@ -1925,14 +2463,16 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                           )}
                         />
                         <div className="flex gap-2">
-                          <Button 
-                            type="submit" 
-                            size="sm" 
+                          <Button
+                            type="submit"
+                            size="sm"
                             disabled={addCommentMutation.isPending}
                             className="bg-slate-600 hover:bg-slate-700 text-white text-sm px-3 py-1 h-7"
                           >
                             <Send className="w-3 h-3 mr-1" />
-                            {addCommentMutation.isPending ? "Adding..." : "Comment"}
+                            {addCommentMutation.isPending
+                              ? "Adding..."
+                              : "Comment"}
                           </Button>
                           <Button
                             type="button"
@@ -1952,57 +2492,168 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                   )}
 
                   {/* Comments and Activity List */}
-                  <div className="space-y-3 pb-4">
+                  <div className="space-y-4">
                     {/* Comments Section */}
                     {card.comments.length > 0 && (
-                      <div className="space-y-2">
-                        {card.comments.map((comment) => (
-                          <div key={comment.id} className={`flex gap-3 p-3 items-start rounded-lg ${
-                            editingCommentId === comment.id 
-                              ? '' 
-                              : 'border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900'
-                          }`}>
-                            <ConditionalUserProfile user={comment.user as UserWithAvatar} size="sm" />
+                      <div className="space-y-3">
+                        {(showDetails
+                          ? card.comments
+                          : card.comments.slice(0, 5)
+                        ).map((comment) => (
+                          <div
+                            key={comment.id}
+                            className={`flex gap-3 p-3 items-start rounded-lg ${
+                              editingCommentId === comment.id
+                                ? ""
+                                : "border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900"
+                            }`}
+                          >
+                            <ConditionalUserProfile
+                              user={comment.user as UserWithAvatar}
+                              size="md"
+                            />
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-2">
                                   <span className="font-medium text-sm text-slate-900 dark:text-white">
                                     {comment.user.name || comment.user.email}
                                   </span>
                                   <span className="text-xs text-slate-500 dark:text-slate-400">
-                                    {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                                    {formatDistanceToNow(
+                                      new Date(comment.createdAt),
+                                      { addSuffix: true }
+                                    )}
                                   </span>
                                 </div>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
+                                    <Button
+                                      variant="ghost"
                                       size="sm"
-                                      className="h-5 w-5 p-0 hover:bg-slate-100 dark:hover:bg-slate-600"
+                                      className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-600"
                                     >
-                                      <MoreVertical className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400" />
+                                      <MoreVertical className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-28">
-                                    <DropdownMenuItem 
-                                      onClick={() => handleEditComment(comment.id, comment.content)}
-                                      className="text-strong dark:text-slate-300 text-xs"
+                                  <DropdownMenuContent
+                                    align="end"
+                                    className="w-32"
+                                  >
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleEditComment(
+                                          comment.id,
+                                          comment.content
+                                        )
+                                      }
+                                      className="text-strong dark:text-slate-300"
                                     >
-                                      <Edit className="w-2.5 h-2.5 mr-1" />
+                                      <Edit className="w-3 h-3 mr-2" />
                                       Edit
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDeleteComment(comment.id)}
-                                      className="text-red-600 dark:text-red-400 text-xs"
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleDeleteComment(comment.id)
+                                      }
+                                      className="text-red-600 dark:text-red-400"
                                     >
-                                      <Trash2 className="w-2.5 h-2.5 mr-1" />
+                                      <Trash2 className="w-3 h-3 mr-2" />
                                       Delete
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
                               {editingCommentId === comment.id ? (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
+                                  {/* Existing Images */}
+                                  {editingCommentExistingImages.length > 0 && (
+                                    <div className="space-y-2">
+                                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                                        Existing images:
+                                      </p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {editingCommentExistingImages.map(
+                                          (src, index) => (
+                                            <div
+                                              key={index}
+                                              className="relative"
+                                            >
+                                              <img
+                                                src={src}
+                                                alt="Existing comment image"
+                                                className="w-16 h-16 object-cover rounded border border-slate-200 dark:border-slate-600"
+                                              />
+                                              <button
+                                                onClick={() => {
+                                                  setEditingCommentExistingImages(
+                                                    (prev) =>
+                                                      prev.filter(
+                                                        (_, i) => i !== index
+                                                      )
+                                                  );
+                                                }}
+                                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                                              >
+                                                ×
+                                              </button>
+                                            </div>
+                                          )
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* New Attachments */}
+                                  <AttachmentUpload
+                                    onFileUpload={(file) => {
+                                      setEditingCommentAttachments((prev) => [
+                                        ...prev,
+                                        file,
+                                      ]);
+                                    }}
+                                    onUrlUpload={() => {}} // Not used for comment editing
+                                    acceptedTypes="image/*"
+                                    variant="button"
+                                  />
+
+                                  {/* Selected New Files Preview */}
+                                  {editingCommentAttachments.length > 0 && (
+                                    <div className="space-y-2">
+                                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                                        New images:
+                                      </p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {editingCommentAttachments.map(
+                                          (file, index) => (
+                                            <div
+                                              key={index}
+                                              className="relative"
+                                            >
+                                              <img
+                                                src={URL.createObjectURL(file)}
+                                                alt="New comment image"
+                                                className="w-16 h-16 object-cover rounded border border-slate-200 dark:border-slate-600"
+                                              />
+                                              <button
+                                                onClick={() => {
+                                                  setEditingCommentAttachments(
+                                                    (prev) =>
+                                                      prev.filter(
+                                                        (_, i) => i !== index
+                                                      )
+                                                  );
+                                                }}
+                                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                                              >
+                                                ×
+                                              </button>
+                                            </div>
+                                          )
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
                                   <RichTextEditor
                                     content={editingCommentContent}
                                     onChange={setEditingCommentContent}
@@ -2010,22 +2661,31 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                                     minHeight="2.5rem"
                                     maxHeight="10rem"
                                     showToolbar={true}
-                                    className="border-slate-300 dark:border-slate-600"
+                                    className="border-slate-300 dark:border-slate-700"
                                   />
-                                  <div className="flex gap-1">
+                                  <div className="flex gap-2">
                                     <Button
                                       size="sm"
                                       onClick={handleUpdateComment}
-                                      disabled={updateCommentMutation.isPending || !editingCommentContent.trim()}
-                                      className="bg-slate-600 hover:bg-slate-700 text-white text-xs px-2 py-0.5 h-6"
+                                      disabled={
+                                        updateCommentMutation.isPending ||
+                                        (!editingCommentContent.trim() &&
+                                          editingCommentExistingImages.length ===
+                                            0 &&
+                                          editingCommentAttachments.length ===
+                                            0)
+                                      }
+                                      className="bg-slate-600 hover:bg-slate-700 text-white text-xs px-3 py-1 h-7"
                                     >
-                                      {updateCommentMutation.isPending ? "Saving..." : "Save"}
+                                      {updateCommentMutation.isPending
+                                        ? "Saving..."
+                                        : "Save"}
                                     </Button>
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       onClick={handleCancelEdit}
-                                      className="border-slate-300 dark:border-slate-600 text-xs px-2 py-0.5 h-6"
+                                      className="border-slate-300 dark:border-slate-600 text-xs px-3 py-1 h-7"
                                     >
                                       Cancel
                                     </Button>
@@ -2040,42 +2700,103 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                       </div>
                     )}
 
+                    {/* Show more comments indicator when details are hidden */}
+                    {!showDetails && card.comments.length > 5 && (
+                      <div className="text-center py-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowDetails(true)}
+                          className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                        >
+                          Show {card.comments.length - 5} more comments
+                        </Button>
+                      </div>
+                    )}
+
                     {/* Activities Section */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1 text-sm font-medium text-strong dark:text-slate-300 mb-2">
-                        <Clock className="w-3 h-3" />
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-strong dark:text-slate-300">
+                        <Clock className="w-4 h-4" />
                         Recent Activity
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         {activitiesLoading ? (
-                          <div className="text-xs text-slate-500 dark:text-slate-400">Loading activities...</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400">
+                            Loading activities...
+                          </div>
                         ) : activities && activities.length > 0 ? (
-                          activities.map((activity: { id: string; message: string; user: { name?: string; email: string; avatarUrl?: string }; createdAt: string }) => (
-                            <div key={activity.id} className="flex items-start gap-2">
-                              <ConditionalUserProfile user={activity.user} size="sm" />
-                              <div className="flex-1 space-y-1">
-                                <p className="text-sm">
-                                  <span className="font-medium text-strong dark:text-slate-300">
-                                    {activity.user.name || activity.user.email}
-                                  </span>{" "}
-                                  {activity.message}
-                                </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                  {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
-                                </p>
+                          (showDetails
+                            ? activities
+                            : activities.slice(0, 1)
+                          ).map(
+                            (activity: {
+                              id: string;
+                              message: string;
+                              user: {
+                                name?: string;
+                                email: string;
+                                avatarUrl?: string;
+                              };
+                              createdAt: string;
+                            }) => (
+                              <div
+                                key={activity.id}
+                                className="flex gap-3 items-center"
+                              >
+                                <ConditionalUserProfile
+                                  user={activity.user}
+                                  size="md"
+                                />
+                                <div className="flex-1 space-y-1">
+                                  <p className="text-sm">
+                                    <span className="font-medium text-strong dark:text-slate-300">
+                                      {activity.user.name ||
+                                        activity.user.email}
+                                    </span>{" "}
+                                    {activity.message}
+                                  </p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    {formatDistanceToNow(
+                                      new Date(activity.createdAt),
+                                      { addSuffix: true }
+                                    )}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          ))
+                            )
+                          )
                         ) : (
-                          <div className="text-xs text-slate-500 dark:text-slate-400">No recent activity</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400">
+                            No recent activity
+                          </div>
                         )}
-                        {card.comments.length === 0 && (
-                          <div className="text-center py-6 text-slate-500 dark:text-slate-400">
-                            <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-full w-fit mx-auto mb-2">
-                              <MessageSquare className="h-4 w-4" />
+                        {/* Show more activities indicator when details are hidden */}
+                        {!showDetails &&
+                          activities &&
+                          activities.length > 1 && (
+                            <div className="text-center py-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowDetails(true)}
+                                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                              >
+                                Show {activities.length - 1} more activities
+                              </Button>
                             </div>
-                            <p className="text-xs font-medium">No comments yet</p>
-                            <p className="text-xs mt-0.5">Be the first to add a comment</p>
+                          )}
+                        {card.comments.length === 0 && (
+                          <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                            <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-full w-fit mx-auto mb-3">
+                              <MessageSquare className="h-6 w-6" />
+                            </div>
+                            <p className="text-sm font-medium">
+                              No comments yet
+                            </p>
+                            <p className="text-xs mt-1">
+                              Be the first to add a comment
+                            </p>
                           </div>
                         )}
                       </div>
@@ -2088,14 +2809,25 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
             {/* Desktop: Two Column Layout */}
             <div className="hidden md:flex flex-row min-h-0 flex-1">
               {/* Left Column */}
-              <div className="flex-1 p-8 space-y-8 overflow-y-auto scrollbar-thin bg-slate-50 dark:bg-slate-900 min-h-0">
-                {/* Card Title with Check Radio */}
-                <div className="flex items-start gap-4">
-                  <div 
+              <div
+                ref={desktopScrollRef}
+                className="flex-1 overflow-y-auto scrollbar-thin bg-slate-50 dark:bg-slate-900 min-h-0"
+              >
+                {/* Card Title with Check Radio - Fixed when scrolling */}
+                <div
+                  className={`sticky top-0 z-30 transition-all duration-300 ease-out bg-slate-50 dark:bg-slate-900 w-full flex items-start px-8 py-4 gap-4 ${
+                    isSticky ? "border-b border-slate-200 dark:border-slate-700" : ""
+                  }`}
+                  style={{
+                    transform: `translateY(${scrollProgress * 100}%)`,
+                    transition: "transform 0.3s ease-in-out",
+                  }}
+                >
+                  <div
                     className={`relative w-6 h-6 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
-                      isCompleted 
-                        ? 'bg-teal-600 border-teal-600 hover:bg-teal-700 hover:border-teal-700' 
-                        : 'border-slate-300 dark:border-slate-600 hover:border-teal-600 dark:hover:border-teal-600'
+                      isCompleted
+                        ? "bg-teal-600 border-teal-600 hover:bg-teal-700 hover:border-teal-700"
+                        : "border-slate-300 dark:border-slate-600 hover:border-teal-600 dark:hover:border-teal-600"
                     }`}
                     onClick={handleToggleComplete}
                   >
@@ -2103,33 +2835,36 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                       <motion.div
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        transition={{ 
-                          type: "spring", 
-                          stiffness: 500, 
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
                           damping: 15,
-                          duration: 0.3 
+                          duration: 0.3,
                         }}
                       >
                         <Check className="w-3 h-3 text-white" />
                       </motion.div>
                     ) : null}
-                    <ShootingStars 
-                      isActive={showShootingStars} 
-                      onComplete={() => setShowShootingStars(false)} 
+                    <ShootingStars
+                      isActive={showShootingStars}
+                      onComplete={() => setShowShootingStars(false)}
                     />
                   </div>
                   {isEditingTitle ? (
                     <Form {...cardForm}>
-                      <form onSubmit={cardForm.handleSubmit(handleTitleSave)} className="space-y-3 flex-1">
+                      <form
+                        onSubmit={cardForm.handleSubmit(handleTitleSave)}
+                        className="space-y-3 flex-1"
+                      >
                         <FormField
                           control={cardForm.control}
                           name="title"
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Input 
-                                  {...field} 
-                                  className="text-xl font-semibold border-2 border-slate-300 dark:border-slate-600 focus:border-slate-500 dark:focus:border-slate-400 p-3 h-auto focus-visible:ring-0 bg-slate-50 dark:bg-slate-800 rounded-lg" 
+                                <Input
+                                  {...field}
+                                  className="text-xl font-semibold border-2 border-slate-300 dark:border-slate-600 focus:border-slate-500 dark:focus:border-slate-400 p-3 h-auto focus-visible:ring-0 bg-slate-50 dark:bg-slate-800 rounded-lg"
                                   autoFocus
                                 />
                               </FormControl>
@@ -2138,13 +2873,15 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                           )}
                         />
                         <div className="flex gap-3">
-                          <Button 
-                            type="submit" 
-                            size="sm" 
+                          <Button
+                            type="submit"
+                            size="sm"
                             disabled={updateCardContentMutation.isPending}
                             className="bg-teal-600 hover:bg-teal-700 text-white"
                           >
-                            {updateCardContentMutation.isPending ? "Saving..." : "Save"}
+                            {updateCardContentMutation.isPending
+                              ? "Saving..."
+                              : "Save"}
                           </Button>
                           <Button
                             type="button"
@@ -2159,69 +2896,102 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                       </form>
                     </Form>
                   ) : (
-                    <h1 
-                      className="text-xl font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-3 -m-3 rounded-lg transition-all duration-200 flex-1 text-slate-900 dark:text-white"
-                      onClick={handleTitleEdit}
-                    >
-                      {card.title}
-                    </h1>
+                    <div className="flex items-center gap-4 flex-1">
+                      <h1
+                        className="text-xl font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-3 -m-3 rounded-lg transition-all duration-200 flex-1 text-slate-900 dark:text-white"
+                        onClick={handleTitleEdit}
+                      >
+                        {card.title}
+                      </h1>
+                      {isSticky && (
+                        <div className="relative">
+                          <Button
+                            onClick={() => setIsAddToCardOpen(!isAddToCardOpen)}
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-4 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                          >
+                            [+ Add]
+                          </Button>
+                          {isAddToCardOpen && (
+                            <AddToCardDropdown
+                              isOpen={isAddToCardOpen}
+                              onClose={() => setIsAddToCardOpen(false)}
+                              card={card}
+                              boardId={boardId}
+                              onFileUpload={handleFileUpload}
+                              onUrlUpload={handleUrlUpload}
+                              isUploadingAttachment={isUploadingAttachment}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-
-                {/* Action Buttons - Trello Style */}
-                <div className="flex flex-wrap gap-3">
-                  <DueDateDropdown
-                    card={card}
-                    boardId={boardId}
-                  />
-                  {!card.assignedTo && (
-                    <MembersDropdown
-                      card={card}
+                <div className="px-8 pt-2 pb-8 pt-0 space-y-8">
+                  {/* Action Buttons - Trello Style */}
+                  <div className="flex flex-wrap gap-3">
+                    <DueDateDropdown card={card} boardId={boardId} />
+                    {!card.assignedTo && (
+                      <MembersDropdown card={card} boardId={boardId} />
+                    )}
+                    <LabelDropdown card={card} boardId={boardId} />
+                    <ChecklistDropdown
+                      cardId={card.id}
                       boardId={boardId}
+                      existingChecklists={card.checklists || []}
                     />
-                  )}
-                  <LabelDropdown
-                    card={card}
-                    boardId={boardId}
-                  />
-                  <ChecklistDropdown
-                    cardId={card.id}
-                    boardId={boardId}
-                    existingChecklists={card.checklists || []}
-                  />
-                  <AttachmentUpload
-                    onFileUpload={handleFileUpload}
-                    onUrlUpload={handleUrlUpload}
-                    isUploading={isUploadingAttachment}
-                    acceptedTypes="*/*"
-                    maxSize={2}
-                    variant="button"
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9 px-4 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                    <AttachmentUpload
+                      onFileUpload={handleFileUpload}
+                      onUrlUpload={handleUrlUpload}
+                      isUploading={isUploadingAttachment}
+                      acceptedTypes="*/*"
+                      maxSize={2}
+                      variant="button"
                     >
-                      <Paperclip className="w-4 h-4 mr-2" />
-                      Attachment
-                    </Button>
-                  </AttachmentUpload>
-                </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 px-4 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                      >
+                        <Paperclip className="w-4 h-4 mr-2" />
+                        Attachment
+                      </Button>
+                    </AttachmentUpload>
+                  </div>
 
-                {/* Members */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Members</h3>
-                  <div className="flex items-center gap-2">
-                    {card.assignedTo ? (
-                      <div className="flex items-center gap-2">
-                        <UserButton 
-                          afterSignOutUrl="/"
-                          appearance={{
-                            elements: {
-                              avatarBox: "w-8 h-8"
+                  {/* Members */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">
+                      Members
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      {card.assignedTo ? (
+                        <div className="flex items-center gap-2">
+                          <UserButton
+                            afterSignOutUrl="/"
+                            appearance={{
+                              elements: {
+                                avatarBox: "w-8 h-8",
+                              },
+                            }}
+                          />
+                          <MembersDropdown
+                            card={card}
+                            boardId={boardId}
+                            trigger={
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
                             }
-                          }}
-                        />
+                          />
+                        </div>
+                      ) : (
                         <MembersDropdown
                           card={card}
                           boardId={boardId}
@@ -2235,9 +3005,33 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                             </Button>
                           }
                         />
-                      </div>
-                    ) : (
-                      <MembersDropdown
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Labels */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">
+                      Labels
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {card.labels.map((label) => (
+                        <LabelDropdown
+                          key={label.id}
+                          card={card}
+                          boardId={boardId}
+                          trigger={
+                            <Badge
+                              variant="secondary"
+                              style={{ backgroundColor: label.color }}
+                              className="px-3 py-1.5 text-sm font-medium rounded-sm border-0 text-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
+                            >
+                              {label.name}
+                            </Badge>
+                          }
+                        />
+                      ))}
+                      <LabelDropdown
                         card={card}
                         boardId={boardId}
                         trigger={
@@ -2250,631 +3044,818 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                           </Button>
                         }
                       />
-                    )}
-                  </div>
-                </div>
-
-                {/* Labels */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Labels</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {card.labels.map((label) => (
-                      <LabelDropdown
-                        key={label.id}
-                        card={card}
-                        boardId={boardId}
-                        trigger={
-                          <Badge 
-                            variant="secondary"
-                            style={{ backgroundColor: label.color }}
-                            className="px-3 py-1.5 text-sm font-medium rounded-sm border-0 text-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
-                          >
-                            {label.name}
-                          </Badge>
-                        }
-                      />
-                    ))}
-                    <LabelDropdown
-                      card={card}
-                      boardId={boardId}
-                      trigger={
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-8 p-0 rounded-full border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      }
-                    />
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                        <FileText className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                      </div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white">Description</h3>
                     </div>
-                    {card.description && !isEditingDescription && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleDescriptionEdit}
-                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                    )}
                   </div>
-                  {isEditingDescription ? (
-                    <Form {...cardForm}>
-                      <form onSubmit={cardForm.handleSubmit(handleDescriptionSave)} className="space-y-4">
-                        <FormField
-                          control={cardForm.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <RichTextEditor
-                                  content={field.value || ""}
-                                  onChange={field.onChange}
-                                  placeholder="Add a description..."
-                                  minHeight="2.5rem"
-                                  maxHeight="20rem"
-                                  showToolbar={true}
-                                  className="border-2 border-slate-300 dark:border-slate-600 focus-within:border-slate-500 dark:focus-within:border-slate-400"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="flex gap-3">
-                          <Button 
-                            type="submit" 
-                            size="sm" 
-                            disabled={updateCardContentMutation.isPending}
-                            className="bg-teal-600 hover:bg-teal-700 text-white"
-                          >
-                            {updateCardContentMutation.isPending ? "Saving..." : "Save"}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsEditingDescription(false)}
-                            className="border-slate-300 dark:border-slate-600"
-                          >
-                            Cancel
-                          </Button>
+
+                  {/* Description */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                          <FileText className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                         </div>
-                      </form>
-                    </Form>
-                  ) : (
-                    <div 
-                      className="min-h-[2.5rem] p-4 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-600"
-                      onClick={handleDescriptionEdit}
-                    >
-                      {card.description ? (
-                        <div 
-                          className="text-sm text-slate-900 dark:text-slate-300 leading-relaxed prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: card.description }}
-                        />
-                      ) : (
-                        <p className="text-sm text-slate-500 dark:text-slate-400 italic">Click to add a description...</p>
+                        <h3 className="font-semibold text-slate-900 dark:text-white">
+                          Description
+                        </h3>
+                      </div>
+                      {card.description && !isEditingDescription && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleDescriptionEdit}
+                          className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
                       )}
                     </div>
-                  )}
-                </div>
+                    {isEditingDescription ? (
+                      <Form {...cardForm}>
+                        <form
+                          onSubmit={cardForm.handleSubmit(
+                            handleDescriptionSave
+                          )}
+                          className="space-y-4"
+                        >
+                          <FormField
+                            control={cardForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <RichTextEditor
+                                    content={field.value || ""}
+                                    onChange={field.onChange}
+                                    placeholder="Add a description..."
+                                    minHeight="2.5rem"
+                                    maxHeight="20rem"
+                                    showToolbar={true}
+                                    className="border-2 border-slate-300 dark:border-slate-600 focus-within:border-slate-500 dark:focus-within:border-slate-400"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <div className="flex gap-3">
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={updateCardContentMutation.isPending}
+                              className="bg-teal-600 hover:bg-teal-700 text-white"
+                            >
+                              {updateCardContentMutation.isPending
+                                ? "Saving..."
+                                : "Save"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsEditingDescription(false)}
+                              className="border-slate-300 dark:border-slate-600"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    ) : (
+                      <div
+                        className="min-h-[2.5rem] p-4 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border-2 border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                        onClick={handleDescriptionEdit}
+                      >
+                        {card.description ? (
+                          <div
+                            className="text-sm text-slate-900 dark:text-slate-300 leading-relaxed prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{
+                              __html: card.description,
+                            }}
+                          />
+                        ) : (
+                          <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                            Click to add a description...
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
-                {/* Attachments */}
-                <Attachments 
-                  attachments={(card.attachments || []).map(att => ({ ...att, cardId: card.id })) as Attachment[]} 
-                  cardId={card.id} 
-                  boardId={boardId} 
-                />
+                  {/* Attachments */}
+                  <Attachments
+                    attachments={
+                      (card.attachments || []).map((att) => ({
+                        ...att,
+                        cardId: card.id,
+                      })) as Attachment[]
+                    }
+                    cardId={card.id}
+                    boardId={boardId}
+                  />
 
-                {/* Due Date Display */}
-                {card.dueDate && (
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">Due Date</h3>
-                    <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                      <Calendar className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-slate-900 dark:text-white">
-                          {new Date(card.dueDate).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                  {/* Due Date Display */}
+                  {card.dueDate && (
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
+                        Due Date
+                      </h3>
+                      <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <Calendar className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-slate-900 dark:text-white">
+                            {new Date(card.dueDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "long",
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )}
+                          </div>
+                          {card.startDate && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              Started:{" "}
+                              {new Date(card.startDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {card.startDate && (
-                          <div className="text-xs text-slate-500 dark:text-slate-400">
-                            Started: {new Date(card.startDate).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+                        {card.isRecurring && (
+                          <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                            <RotateCcw className="w-3 h-3" />
+                            {card.recurringType}
                           </div>
                         )}
                       </div>
-                      {card.isRecurring && (
-                        <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                          <RotateCcw className="w-3 h-3" />
-                          {card.recurringType}
-                        </div>
-                      )}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Checklists */}
-                {card.checklists && card.checklists.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">Checklists</h3>
+                  {/* Checklists */}
+                  {card.checklists && card.checklists.length > 0 && (
                     <div className="space-y-4">
-                      {card.checklists.map((checklist) => {
-                        const completedItems = checklist.items.filter(item => {
-                          const optimisticState = optimisticItemStates.get(item.id);
-                          return optimisticState !== undefined ? optimisticState : item.isCompleted;
-                        }).length;
-                        const totalItems = checklist.items.length;
-                        const progress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
-                        const isHidden = hiddenChecklists.has(checklist.id);
-                        const visibleItems = isHidden 
-                          ? checklist.items.filter(item => {
-                              const optimisticState = optimisticItemStates.get(item.id);
-                              const isCompleted = optimisticState !== undefined ? optimisticState : item.isCompleted;
-                              return !isCompleted;
-                            })
-                          : checklist.items;
-                        
-                        return (
-                          <div key={checklist.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2 flex-1">
-                                <SquareCheckBig className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                                {editingChecklistId === checklist.id ? (
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <Input
-                                      value={editingChecklistTitle}
-                                      onChange={(e) => setEditingChecklistTitle(e.target.value)}
-                                      onKeyPress={(e) => e.key === "Enter" && handleUpdateChecklist(checklist.id)}
-                                      onBlur={() => handleUpdateChecklist(checklist.id)}
-                                      className="flex-1 h-8 text-sm"
-                                      autoFocus
-                                    />
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleUpdateChecklist(checklist.id)}
-                                      disabled={updateChecklistMutation.isPending}
-                                      className="h-8 rounded-sm"
-                                    >
-                                      {updateChecklistMutation.isPending ? (
-                                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                      ) : (
-                                        <Check className="w-4 h-4" />
-                                      )}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setEditingChecklistId(null);
-                                        setEditingChecklistTitle("");
-                                      }}
-                                      className="h-8 rounded-sm"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </Button>
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
+                        Checklists
+                      </h3>
+                      <div className="space-y-4">
+                        {card.checklists.map((checklist) => {
+                          const completedItems = checklist.items.filter(
+                            (item) => {
+                              const optimisticState = optimisticItemStates.get(
+                                item.id
+                              );
+                              return optimisticState !== undefined
+                                ? optimisticState
+                                : item.isCompleted;
+                            }
+                          ).length;
+                          const totalItems = checklist.items.length;
+                          const progress =
+                            totalItems > 0
+                              ? (completedItems / totalItems) * 100
+                              : 0;
+                          const isHidden = hiddenChecklists.has(checklist.id);
+                          const visibleItems = isHidden
+                            ? checklist.items.filter((item) => {
+                                const optimisticState =
+                                  optimisticItemStates.get(item.id);
+                                const isCompleted =
+                                  optimisticState !== undefined
+                                    ? optimisticState
+                                    : item.isCompleted;
+                                return !isCompleted;
+                              })
+                            : checklist.items;
+
+                          return (
+                            <div
+                              key={checklist.id}
+                              className="border border-slate-200 dark:border-slate-700 rounded-lg p-4"
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <SquareCheckBig className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                                  {editingChecklistId === checklist.id ? (
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <Input
+                                        value={editingChecklistTitle}
+                                        onChange={(e) =>
+                                          setEditingChecklistTitle(
+                                            e.target.value
+                                          )
+                                        }
+                                        onKeyPress={(e) =>
+                                          e.key === "Enter" &&
+                                          handleUpdateChecklist(checklist.id)
+                                        }
+                                        onBlur={() =>
+                                          handleUpdateChecklist(checklist.id)
+                                        }
+                                        className="flex-1 h-8 text-sm"
+                                        autoFocus
+                                      />
+                                      <Button
+                                        size="sm"
+                                        onClick={() =>
+                                          handleUpdateChecklist(checklist.id)
+                                        }
+                                        disabled={
+                                          updateChecklistMutation.isPending
+                                        }
+                                        className="h-8 rounded-sm"
+                                      >
+                                        {updateChecklistMutation.isPending ? (
+                                          <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                        ) : (
+                                          <Check className="w-4 h-4" />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setEditingChecklistId(null);
+                                          setEditingChecklistTitle("");
+                                        }}
+                                        className="h-8 rounded-sm"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <h4
+                                        className="font-medium text-slate-900 dark:text-white text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded"
+                                        onClick={() => {
+                                          // Use mobile popup on small screens, inline on larger screens
+                                          if (window.innerWidth < 640) {
+                                            handleMobileEditChecklist(
+                                              checklist.id,
+                                              checklist.title
+                                            );
+                                          } else {
+                                            handleEditChecklist(
+                                              checklist.id,
+                                              checklist.title
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        {checklist.title}
+                                      </h4>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                                    {completedItems}/{totalItems} (
+                                    {Math.round(progress)}%)
+                                  </span>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <MoreHorizontal className="w-3 h-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() => setBulkMode(!bulkMode)}
+                                      >
+                                        {bulkMode
+                                          ? "Exit Bulk Mode"
+                                          : "Bulk Actions"}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleToggleHideChecked(checklist.id)
+                                        }
+                                      >
+                                        {isHidden
+                                          ? `Show checked items (${completedItems})`
+                                          : `Hide checked items (${completedItems})`}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleCopyChecklist(checklist)
+                                        }
+                                      >
+                                        Copy Checklist
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleDeleteChecklist(checklist.id)
+                                        }
+                                        className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                                      >
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </div>
+                              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mb-3">
+                                <div
+                                  className={`h-2 rounded-full transition-all duration-300 ${
+                                    progress === 0
+                                      ? "bg-slate-400 dark:bg-slate-600"
+                                      : progress < 25
+                                      ? "bg-red-500"
+                                      : progress < 50
+                                      ? "bg-orange-500"
+                                      : progress < 75
+                                      ? "bg-yellow-500"
+                                      : progress < 100
+                                      ? "bg-blue-500"
+                                      : "bg-green-500"
+                                  }`}
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                {visibleItems.length === 0 &&
+                                isHidden &&
+                                completedItems > 0 ? (
+                                  <div className="text-sm text-slate-500 dark:text-slate-400 italic text-center py-2">
+                                    Everything in this checklist is complete
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <h4 
-                                      className="font-medium text-slate-900 dark:text-white text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded"
-                                      onClick={() => {
-                                        // Use mobile popup on small screens, inline on larger screens
-                                        if (window.innerWidth < 640) {
-                                          handleMobileEditChecklist(checklist.id, checklist.title);
-                                        } else {
-                                          handleEditChecklist(checklist.id, checklist.title);
-                                        }
-                                      }}
-                                    >
-                                      {checklist.title}
-                                    </h4>
-                                  </div>
+                                  <ChecklistItemDndProvider
+                                    checklistId={checklist.id}
+                                    boardId={boardId}
+                                    items={visibleItems}
+                                  >
+                                    {visibleItems
+                                      .slice(
+                                        0,
+                                        expandedChecklists.has(checklist.id)
+                                          ? visibleItems.length
+                                          : 5
+                                      )
+                                      .map((item) => {
+                                        const actualIndex =
+                                          visibleItems.findIndex(
+                                            (visibleItem) =>
+                                              visibleItem.id === item.id
+                                          );
+                                        const optimisticState =
+                                          optimisticItemStates.get(item.id);
+                                        const isCompleted =
+                                          optimisticState !== undefined
+                                            ? optimisticState
+                                            : item.isCompleted;
+
+                                        const priority =
+                                          itemPriorities.get(item.id) ||
+                                          "medium";
+
+                                        return (
+                                          <DraggableChecklistItem
+                                            key={item.id}
+                                            item={item}
+                                            index={actualIndex}
+                                          >
+                                            <div
+                                              className={`flex items-center gap-3 text-sm border-l-4 ${getPriorityColor(
+                                                priority
+                                              )} bg-slate-50 dark:bg-slate-800 rounded p-1`}
+                                            >
+                                              {editingItemId === item.id ? (
+                                                <div className="flex items-center gap-2 w-full">
+                                                  <button
+                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                      isCompleted
+                                                        ? "bg-teal-600 border-teal-600"
+                                                        : "border-slate-300 dark:border-slate-600"
+                                                    }`}
+                                                    onClick={() =>
+                                                      handleToggleItem(
+                                                        item.id,
+                                                        isCompleted
+                                                      )
+                                                    }
+                                                  >
+                                                    {isCompleted && (
+                                                      <Check className="w-3 h-3 text-white" />
+                                                    )}
+                                                  </button>
+                                                  <Input
+                                                    value={editingItemContent}
+                                                    onChange={(e) =>
+                                                      setEditingItemContent(
+                                                        e.target.value
+                                                      )
+                                                    }
+                                                    onKeyPress={(e) =>
+                                                      e.key === "Enter" &&
+                                                      handleUpdateItem(item.id)
+                                                    }
+                                                    onBlur={() =>
+                                                      handleUpdateItem(item.id)
+                                                    }
+                                                    className="flex-1 h-6 text-sm"
+                                                    autoFocus
+                                                  />
+                                                  <Button
+                                                    size="sm"
+                                                    onClick={() =>
+                                                      handleUpdateItem(item.id)
+                                                    }
+                                                    disabled={
+                                                      updateItemMutation.isPending
+                                                    }
+                                                    className="h-6 rounded-sm"
+                                                  >
+                                                    {updateItemMutation.isPending ? (
+                                                      <div className="w-3 h-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                                    ) : (
+                                                      <Check className="w-3 h-3" />
+                                                    )}
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                      setEditingItemId(null);
+                                                      setEditingItemContent("");
+                                                    }}
+                                                    className="h-6 rounded-sm"
+                                                  >
+                                                    <X className="w-3 h-3" />
+                                                  </Button>
+                                                </div>
+                                              ) : (
+                                                <>
+                                                  {bulkMode && (
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={selectedItems.has(
+                                                        item.id
+                                                      )}
+                                                      onChange={() =>
+                                                        handleToggleItemSelection(
+                                                          item.id
+                                                        )
+                                                      }
+                                                      className="w-4 h-4 rounded border-slate-300"
+                                                    />
+                                                  )}
+                                                  <button
+                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                      isCompleted
+                                                        ? "bg-teal-600 border-teal-600"
+                                                        : "border-slate-300 dark:border-slate-600"
+                                                    }`}
+                                                    onClick={() =>
+                                                      handleToggleItem(
+                                                        item.id,
+                                                        isCompleted
+                                                      )
+                                                    }
+                                                  >
+                                                    {isCompleted && (
+                                                      <Check className="w-3 h-3 text-white" />
+                                                    )}
+                                                  </button>
+                                                  <span
+                                                    className={`flex-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded ${
+                                                      isCompleted
+                                                        ? "line-through text-slate-500 dark:text-slate-400"
+                                                        : "text-slate-700 dark:text-slate-300"
+                                                    }`}
+                                                    onClick={() =>
+                                                      handleEditItem(
+                                                        item.id,
+                                                        item.content
+                                                      )
+                                                    }
+                                                  >
+                                                    {item.content}
+                                                  </span>
+                                                  <div className="flex items-center gap-1">
+                                                    {/* Priority selector */}
+                                                    <DropdownMenu>
+                                                      <DropdownMenuTrigger
+                                                        asChild
+                                                      >
+                                                        <button className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                                                          <div
+                                                            className={`w-2 h-2 rounded-full ${
+                                                              priority ===
+                                                              "high"
+                                                                ? "bg-red-500"
+                                                                : priority ===
+                                                                  "medium"
+                                                                ? "bg-yellow-500"
+                                                                : "bg-green-500"
+                                                            }`}
+                                                          />
+                                                        </button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem
+                                                          onClick={() =>
+                                                            handleSetPriority(
+                                                              item.id,
+                                                              "high"
+                                                            )
+                                                          }
+                                                        >
+                                                          <div className="flex items-center gap-2">
+                                                            <div className="w-2 h-2 rounded-full bg-red-500" />
+                                                            High Priority
+                                                          </div>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                          onClick={() =>
+                                                            handleSetPriority(
+                                                              item.id,
+                                                              "medium"
+                                                            )
+                                                          }
+                                                        >
+                                                          <div className="flex items-center gap-2">
+                                                            <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                                                            Medium Priority
+                                                          </div>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                          onClick={() =>
+                                                            handleSetPriority(
+                                                              item.id,
+                                                              "low"
+                                                            )
+                                                          }
+                                                        >
+                                                          <div className="flex items-center gap-2">
+                                                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                                                            Low Priority
+                                                          </div>
+                                                        </DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                    </DropdownMenu>
+
+                                                    <HoverHint
+                                                      label="Delete item"
+                                                      side="top"
+                                                    >
+                                                      <button
+                                                        onClick={() =>
+                                                          handleDeleteItem(
+                                                            item.id
+                                                          )
+                                                        }
+                                                        className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                                      >
+                                                        <X className="w-3 h-3" />
+                                                      </button>
+                                                    </HoverHint>
+                                                  </div>
+                                                </>
+                                              )}
+                                            </div>
+                                          </DraggableChecklistItem>
+                                        );
+                                      })}
+                                  </ChecklistItemDndProvider>
                                 )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-slate-500 dark:text-slate-400">
-                                  {completedItems}/{totalItems} ({Math.round(progress)}%)
-                                </span>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
+                                {/* Bulk Actions Bar */}
+                                {bulkMode && selectedItems.size > 0 && (
+                                  <div className="flex items-center gap-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">
+                                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                                      {selectedItems.size} selected
+                                    </span>
                                     <Button
-                                      variant="outline"
                                       size="sm"
-                                      className="h-6 w-6 p-0"
+                                      variant="outline"
+                                      onClick={handleBulkComplete}
+                                      className="h-6 px-2 text-xs"
                                     >
-                                      <MoreHorizontal className="w-3 h-3" />
+                                      Complete
                                     </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => setBulkMode(!bulkMode)}>
-                                      {bulkMode ? "Exit Bulk Mode" : "Bulk Actions"}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleToggleHideChecked(checklist.id)}>
-                                      {isHidden ? `Show checked items (${completedItems})` : `Hide checked items (${completedItems})`}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleCopyChecklist(checklist)}>
-                                      Copy Checklist
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDeleteChecklist(checklist.id)}
-                                      className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={handleBulkDelete}
+                                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
                                     >
                                       Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        setSelectedItems(new Set())
+                                      }
+                                      className="h-6 px-2 text-xs"
+                                    >
+                                      Clear
+                                    </Button>
+                                  </div>
+                                )}
+                                {visibleItems.length > 5 &&
+                                  !expandedChecklists.has(checklist.id) && (
+                                    <button
+                                      onClick={() =>
+                                        handleToggleExpand(checklist.id)
+                                      }
+                                      className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                                    >
+                                      +{visibleItems.length - 5} more items
+                                    </button>
+                                  )}
+                                {visibleItems.length > 5 &&
+                                  expandedChecklists.has(checklist.id) && (
+                                    <button
+                                      onClick={() =>
+                                        handleToggleExpand(checklist.id)
+                                      }
+                                      className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                                    >
+                                      Show less
+                                    </button>
+                                  )}
                               </div>
-                            </div>
-                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mb-3">
-                              <div
-                                className={`h-2 rounded-full transition-all duration-300 ${
-                                  progress === 0 
-                                    ? 'bg-slate-400 dark:bg-slate-600' 
-                                    : progress < 25 
-                                    ? 'bg-red-500' 
-                                    : progress < 50 
-                                    ? 'bg-orange-500' 
-                                    : progress < 75 
-                                    ? 'bg-yellow-500' 
-                                    : progress < 100 
-                                    ? 'bg-blue-500' 
-                                    : 'bg-green-500'
-                                }`}
-                                style={{ width: `${progress}%` }}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              {visibleItems.length === 0 && isHidden && completedItems > 0 ? (
-                                <div className="text-sm text-slate-500 dark:text-slate-400 italic text-center py-2">
-                                  Everything in this checklist is complete
+                              {showAddItemForm === checklist.id ? (
+                                <div className="flex items-center gap-2 mt-3">
+                                  <Input
+                                    value={newItemContent}
+                                    onChange={(e) =>
+                                      setNewItemContent(e.target.value)
+                                    }
+                                    onKeyPress={(e) =>
+                                      e.key === "Enter" &&
+                                      handleCreateItem(checklist.id)
+                                    }
+                                    placeholder="Add an item..."
+                                    className="flex-1 h-8 text-sm"
+                                    autoFocus
+                                  />
+                                  <Button
+                                    onClick={() =>
+                                      handleCreateItem(checklist.id)
+                                    }
+                                    disabled={
+                                      createItemMutation.isPending ||
+                                      !newItemContent.trim()
+                                    }
+                                    className="bg-teal-600 hover:bg-teal-700 h-8 rounded-sm"
+                                  >
+                                    {createItemMutation.isPending ? (
+                                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                    ) : (
+                                      <Check className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setShowAddItemForm(null);
+                                      setNewItemContent("");
+                                    }}
+                                    className="h-8 rounded-sm"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
                                 </div>
                               ) : (
-                                <ChecklistItemDndProvider 
-                                  checklistId={checklist.id} 
-                                  boardId={boardId} 
-                                  items={visibleItems}
-                                >
-                                  {visibleItems.slice(0, expandedChecklists.has(checklist.id) ? visibleItems.length : 5).map((item) => {
-                                  const actualIndex = visibleItems.findIndex(visibleItem => visibleItem.id === item.id);
-                                  const optimisticState = optimisticItemStates.get(item.id);
-                                  const isCompleted = optimisticState !== undefined ? optimisticState : item.isCompleted;
-                                  
-                                  const priority = itemPriorities.get(item.id) || 'medium';
-                                  
-                                  return (
-                                    <DraggableChecklistItem key={item.id} item={item} index={actualIndex}>
-                                      <div className={`flex items-center gap-3 text-sm border-l-4 ${getPriorityColor(priority)} bg-slate-50 dark:bg-slate-800 rounded p-1`}>
-                                    {editingItemId === item.id ? (
-                                      <div className="flex items-center gap-2 w-full">
-                                        <button
-                                          className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                            isCompleted 
-                                              ? 'bg-teal-600 border-teal-600' 
-                                              : 'border-slate-300 dark:border-slate-600'
-                                          }`}
-                                          onClick={() => handleToggleItem(item.id, isCompleted)}
-                                        >
-                                          {isCompleted && <Check className="w-3 h-3 text-white" />}
-                                        </button>
-                                        <Input
-                                          value={editingItemContent}
-                                          onChange={(e) => setEditingItemContent(e.target.value)}
-                                          onKeyPress={(e) => e.key === "Enter" && handleUpdateItem(item.id)}
-                                          onBlur={() => handleUpdateItem(item.id)}
-                                          className="flex-1 h-6 text-sm"
-                                          autoFocus
-                                        />
-                                        <Button
-                                          size="sm"
-                                          onClick={() => handleUpdateItem(item.id)}
-                                          disabled={updateItemMutation.isPending}
-                                          className="h-6 rounded-sm"
-                                        >
-                                          {updateItemMutation.isPending ? (
-                                            <div className="w-3 h-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                          ) : (
-                                            <Check className="w-3 h-3" />
-                                          )}
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            setEditingItemId(null);
-                                            setEditingItemContent("");
-                                          }}
-                                          className="h-6 rounded-sm"
-                                        >
-                                          <X className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        {bulkMode && (
-                                          <input
-                                            type="checkbox"
-                                            checked={selectedItems.has(item.id)}
-                                            onChange={() => handleToggleItemSelection(item.id)}
-                                            className="w-4 h-4 rounded border-slate-300"
-                                          />
-                                        )}
-                                        <button
-                                          className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                            isCompleted 
-                                              ? 'bg-teal-600 border-teal-600' 
-                                              : 'border-slate-300 dark:border-slate-600'
-                                          }`}
-                                          onClick={() => handleToggleItem(item.id, isCompleted)}
-                                        >
-                                          {isCompleted && <Check className="w-3 h-3 text-white" />}
-                                        </button>
-                                        <span 
-                                          className={`flex-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded ${isCompleted ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}
-                                          onClick={() => handleEditItem(item.id, item.content)}
-                                        >
-                                          {item.content}
-                                        </span>
-                                        <div className="flex items-center gap-1">
-                                          {/* Priority selector */}
-                                          <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                              <button className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                                                <div className={`w-2 h-2 rounded-full ${
-                                                  priority === 'high' ? 'bg-red-500' : 
-                                                  priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                                                }`} />
-                                              </button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                              <DropdownMenuItem onClick={() => handleSetPriority(item.id, 'high')}>
-                                                <div className="flex items-center gap-2">
-                                                  <div className="w-2 h-2 rounded-full bg-red-500" />
-                                                  High Priority
-                                                </div>
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => handleSetPriority(item.id, 'medium')}>
-                                                <div className="flex items-center gap-2">
-                                                  <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                                                  Medium Priority
-                                                </div>
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => handleSetPriority(item.id, 'low')}>
-                                                <div className="flex items-center gap-2">
-                                                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                                                  Low Priority
-                                                </div>
-                                              </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                          </DropdownMenu>
-                                          
-                                          <HoverHint label="Delete item" side="top">
-                                            <button
-                                              onClick={() => handleDeleteItem(item.id)}
-                                              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                            >
-                                              <X className="w-3 h-3" />
-                                            </button>
-                                          </HoverHint>
-                                        </div>
-                                      </>
-                                    )}
-                                      </div>
-                                    </DraggableChecklistItem>
-                                  );
-                                  })}
-                                </ChecklistItemDndProvider>
-                              )}
-                              {/* Bulk Actions Bar */}
-                              {bulkMode && selectedItems.size > 0 && (
-                                <div className="flex items-center gap-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md">
-                                  <span className="text-sm text-slate-600 dark:text-slate-400">
-                                    {selectedItems.size} selected
-                                  </span>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={handleBulkComplete}
-                                    className="h-6 px-2 text-xs"
-                                  >
-                                    Complete
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={handleBulkDelete}
-                                    className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
-                                  >
-                                    Delete
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => setSelectedItems(new Set())}
-                                    className="h-6 px-2 text-xs"
-                                  >
-                                    Clear
-                                  </Button>
-                                </div>
-                              )}
-                              {visibleItems.length > 5 && !expandedChecklists.has(checklist.id) && (
-                                <button
-                                  onClick={() => handleToggleExpand(checklist.id)}
-                                  className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
-                                >
-                                  +{visibleItems.length - 5} more items
-                                </button>
-                              )}
-                              {visibleItems.length > 5 && expandedChecklists.has(checklist.id) && (
-                                <button
-                                  onClick={() => handleToggleExpand(checklist.id)}
-                                  className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
-                                >
-                                  Show less
-                                </button>
-                              )}
-                            </div>
-                            {showAddItemForm === checklist.id ? (
-                              <div className="flex items-center gap-2 mt-3">
-                                <Input
-                                  value={newItemContent}
-                                  onChange={(e) => setNewItemContent(e.target.value)}
-                                  onKeyPress={(e) => e.key === "Enter" && handleCreateItem(checklist.id)}
-                                  placeholder="Add an item..."
-                                  className="flex-1 h-8 text-sm"
-                                  autoFocus
-                                />
-                                <Button
-                                  onClick={() => handleCreateItem(checklist.id)}
-                                  disabled={createItemMutation.isPending || !newItemContent.trim()}
-                                  className="bg-teal-600 hover:bg-teal-700 h-8 rounded-sm"
-                                >
-                                  {createItemMutation.isPending ? (
-                                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                  ) : (
-                                    <Check className="w-4 h-4" />
-                                  )}
-                                </Button>
                                 <Button
                                   variant="outline"
-                                  onClick={() => {
-                                    setShowAddItemForm(null);
-                                    setNewItemContent("");
-                                  }}
-                                  className="h-8 rounded-sm"
+                                  size="sm"
+                                  className="w-full mt-3 h-8 text-xs"
+                                  onClick={() =>
+                                    setShowAddItemForm(checklist.id)
+                                  }
                                 >
-                                  <X className="w-4 h-4" />
+                                  Add an item
                                 </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full mt-3 h-8 text-xs"
-                                onClick={() => setShowAddItemForm(checklist.id)}
-                              >
-                                Add an item
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      })}
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="flex-1 p-8 space-y-6 overflow-y-auto scrollbar-thin border-l border-slate-400 dark:border-slate-800 bg-slate-200 dark:bg-[#0D1117]">
+                {/* Comments Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm">
+                      <MessageSquare className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                    </div>
+                    <h3 className="font-semibold text-slate-900 dark:text-white">
+                      Comments and activity
+                    </h3>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    {showDetails ? "Hide details" : "Show details"}
+                  </Button>
+                </div>
+
+                {/* Add Comment Input */}
+                {!isCommentFormExpanded ? (
+                  <div
+                    className="p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
+                    onClick={() => setIsCommentFormExpanded(true)}
+                  >
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Write a comment...
+                    </p>
+                  </div>
+                ) : (
+                  <Form {...commentForm}>
+                    <form
+                      onSubmit={commentForm.handleSubmit(handleAddComment)}
+                      className="space-y-4"
+                    >
+                      <FormField
+                        control={commentForm.control}
+                        name="content"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RichTextEditor
+                                content={field.value || ""}
+                                onChange={field.onChange}
+                                placeholder="Write a comment..."
+                                minHeight="2.5rem"
+                                maxHeight="15rem"
+                                showToolbar={true}
+                                className="border-2 border-slate-300 dark:border-slate-600 focus-within:border-slate-500 dark:focus-within:border-slate-400"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex gap-3">
+                        <Button
+                          type="submit"
+                          size="sm"
+                          disabled={addCommentMutation.isPending}
+                          className="bg-teal-600 hover:bg-teal-700 text-white"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          {addCommentMutation.isPending
+                            ? "Adding..."
+                            : "Comment"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setIsCommentFormExpanded(false);
+                            commentForm.reset();
+                          }}
+                          className="border-slate-300 dark:border-slate-600"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
                 )}
 
-              </div>
-
-
-            {/* Right Column */}
-            <div className="flex-1 p-8 space-y-6 overflow-y-auto scrollbar-thin border-l border-slate-400 dark:border-slate-800 bg-slate-200 dark:bg-[#0D1117]">
-              {/* Comments Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm">
-                    <MessageSquare className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-white">Comments and activity</h3>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowDetails(!showDetails)}
-                  className="border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
-                >
-                  {showDetails ? "Hide details" : "Show details"}
-                </Button>
-              </div>
-
-              {/* Add Comment Input */}
-              {!isCommentFormExpanded ? (
-                <div 
-                  className="p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
-                  onClick={() => setIsCommentFormExpanded(true)}
-                >
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Write a comment...</p>
-                </div>
-              ) : (
-                <Form {...commentForm}>
-                  <form onSubmit={commentForm.handleSubmit(handleAddComment)} className="space-y-4">
-                    <FormField
-                      control={commentForm.control}
-                      name="content"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <RichTextEditor
-                              content={field.value || ""}
-                              onChange={field.onChange}
-                              placeholder="Write a comment..."
-                              minHeight="2.5rem"
-                              maxHeight="15rem"
-                              showToolbar={true}
-                              className="border-2 border-slate-300 dark:border-slate-600 focus-within:border-slate-500 dark:focus-within:border-slate-400"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex gap-3">
-                      <Button 
-                        type="submit" 
-                        size="sm" 
-                        disabled={addCommentMutation.isPending}
-                        className="bg-teal-600 hover:bg-teal-700 text-white"
-                      >
-                        <Send className="w-4 h-4 mr-2" />
-                        {addCommentMutation.isPending ? "Adding..." : "Comment"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setIsCommentFormExpanded(false);
-                          commentForm.reset();
-                        }}
-                        className="border-slate-300 dark:border-slate-600"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              )}
-
-              {/* Comments and Activity List */}
+                {/* Comments and Activity List */}
                 <div className="space-y-4">
                   {/* Comments Section */}
                   {card.comments.length > 0 && (
                     <div className="space-y-3">
-                    {(showDetails ? card.comments : card.comments.slice(0, 5)).map((comment) => (
-                        <div key={comment.id} className={`flex gap-3 p-3 items-start rounded-lg ${
-                          editingCommentId === comment.id 
-                            ? '' 
-                            : 'border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900'
-                        }`}>
-                          <ConditionalUserProfile user={comment.user as UserWithAvatar} size="md" />
+                      {(showDetails
+                        ? card.comments
+                        : card.comments.slice(0, 5)
+                      ).map((comment) => (
+                        <div
+                          key={comment.id}
+                          className={`flex gap-3 p-3 items-start rounded-lg ${
+                            editingCommentId === comment.id
+                              ? ""
+                              : "border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900"
+                          }`}
+                        >
+                          <ConditionalUserProfile
+                            user={comment.user as UserWithAvatar}
+                            size="md"
+                          />
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -2882,29 +3863,42 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                                   {comment.user.name || comment.user.email}
                                 </span>
                                 <span className="text-xs text-slate-500 dark:text-slate-400">
-                                  {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                                  {formatDistanceToNow(
+                                    new Date(comment.createdAt),
+                                    { addSuffix: true }
+                                  )}
                                 </span>
                               </div>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
+                                  <Button
+                                    variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-600"
                                   >
                                     <MoreVertical className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-32">
-                                  <DropdownMenuItem 
-                                    onClick={() => handleEditComment(comment.id, comment.content)}
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-32"
+                                >
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleEditComment(
+                                        comment.id,
+                                        comment.content
+                                      )
+                                    }
                                     className="text-strong dark:text-slate-300"
                                   >
                                     <Edit className="w-3 h-3 mr-2" />
                                     Edit
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => handleDeleteComment(comment.id)}
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleDeleteComment(comment.id)
+                                    }
                                     className="text-red-600 dark:text-red-400"
                                   >
                                     <Trash2 className="w-3 h-3 mr-2" />
@@ -2914,7 +3908,90 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                               </DropdownMenu>
                             </div>
                             {editingCommentId === comment.id ? (
-                              <div className="space-y-2">
+                              <div className="space-y-3">
+                                {/* Existing Images */}
+                                {editingCommentExistingImages.length > 0 && (
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                                      Existing images:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {editingCommentExistingImages.map(
+                                        (src, index) => (
+                                          <div key={index} className="relative">
+                                            <img
+                                              src={src}
+                                              alt="Existing comment image"
+                                              className="w-16 h-16 object-cover rounded border border-slate-200 dark:border-slate-600"
+                                            />
+                                            <button
+                                              onClick={() => {
+                                                setEditingCommentExistingImages(
+                                                  (prev) =>
+                                                    prev.filter(
+                                                      (_, i) => i !== index
+                                                    )
+                                                );
+                                              }}
+                                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                                            >
+                                              ×
+                                            </button>
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* New Attachments */}
+                                <AttachmentUpload
+                                  onFileUpload={(file) => {
+                                    setEditingCommentAttachments((prev) => [
+                                      ...prev,
+                                      file,
+                                    ]);
+                                  }}
+                                  onUrlUpload={() => {}} // Not used for comment editing
+                                  acceptedTypes="image/*"
+                                  variant="button"
+                                />
+
+                                {/* Selected New Files Preview */}
+                                {editingCommentAttachments.length > 0 && (
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                                      New images:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {editingCommentAttachments.map(
+                                        (file, index) => (
+                                          <div key={index} className="relative">
+                                            <img
+                                              src={URL.createObjectURL(file)}
+                                              alt="New comment image"
+                                              className="w-16 h-16 object-cover rounded border border-slate-200 dark:border-slate-600"
+                                            />
+                                            <button
+                                              onClick={() => {
+                                                setEditingCommentAttachments(
+                                                  (prev) =>
+                                                    prev.filter(
+                                                      (_, i) => i !== index
+                                                    )
+                                                );
+                                              }}
+                                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                                            >
+                                              ×
+                                            </button>
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
                                 <RichTextEditor
                                   content={editingCommentContent}
                                   onChange={setEditingCommentContent}
@@ -2928,10 +4005,18 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                                   <Button
                                     size="sm"
                                     onClick={handleUpdateComment}
-                                    disabled={updateCommentMutation.isPending || !editingCommentContent.trim()}
+                                    disabled={
+                                      updateCommentMutation.isPending ||
+                                      (!editingCommentContent.trim() &&
+                                        editingCommentExistingImages.length ===
+                                          0 &&
+                                        editingCommentAttachments.length === 0)
+                                    }
                                     className="bg-slate-600 hover:bg-slate-700 text-white text-xs px-3 py-1 h-7"
                                   >
-                                    {updateCommentMutation.isPending ? "Saving..." : "Save"}
+                                    {updateCommentMutation.isPending
+                                      ? "Saving..."
+                                      : "Save"}
                                   </Button>
                                   <Button
                                     size="sm"
@@ -2950,19 +4035,19 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                         </div>
                       ))}
                     </div>
-                )}
+                  )}
 
-                {/* Show more comments indicator when details are hidden */}
-                {!showDetails && card.comments.length > 5 && (
-                  <div className="text-center py-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowDetails(true)}
-                      className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                    >
-                      Show {card.comments.length - 5} more comments
-                    </Button>
+                  {/* Show more comments indicator when details are hidden */}
+                  {!showDetails && card.comments.length > 5 && (
+                    <div className="text-center py-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowDetails(true)}
+                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                      >
+                        Show {card.comments.length - 5} more comments
+                      </Button>
                     </div>
                   )}
 
@@ -2974,26 +4059,50 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                     </div>
                     <div className="space-y-2">
                       {activitiesLoading ? (
-                        <div className="text-sm text-slate-500 dark:text-slate-400">Loading activities...</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                          Loading activities...
+                        </div>
                       ) : activities && activities.length > 0 ? (
-                        (showDetails ? activities : activities.slice(0, 1)).map((activity: { id: string; message: string; user: { name?: string; email: string; avatarUrl?: string }; createdAt: string }) => (
-                          <div key={activity.id} className="flex gap-3 items-center">
-                            <ConditionalUserProfile user={activity.user} size="md" />
-                            <div className="flex-1 space-y-1">
-                              <p className="text-sm">
-                                <span className="font-medium text-strong dark:text-slate-300">
-                                  {activity.user.name || activity.user.email}
-                                </span>{" "}
-                                {activity.message}
-                              </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
-                                {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
-                              </p>
+                        (showDetails ? activities : activities.slice(0, 1)).map(
+                          (activity: {
+                            id: string;
+                            message: string;
+                            user: {
+                              name?: string;
+                              email: string;
+                              avatarUrl?: string;
+                            };
+                            createdAt: string;
+                          }) => (
+                            <div
+                              key={activity.id}
+                              className="flex gap-3 items-center"
+                            >
+                              <ConditionalUserProfile
+                                user={activity.user}
+                                size="md"
+                              />
+                              <div className="flex-1 space-y-1">
+                                <p className="text-sm">
+                                  <span className="font-medium text-strong dark:text-slate-300">
+                                    {activity.user.name || activity.user.email}
+                                  </span>{" "}
+                                  {activity.message}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  {formatDistanceToNow(
+                                    new Date(activity.createdAt),
+                                    { addSuffix: true }
+                                  )}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          )
+                        )
                       ) : (
-                        <div className="text-sm text-slate-500 dark:text-slate-400">No recent activity</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                          No recent activity
+                        </div>
                       )}
                       {/* Show more activities indicator when details are hidden */}
                       {!showDetails && activities && activities.length > 1 && (
@@ -3014,25 +4123,25 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
                             <MessageSquare className="h-6 w-6" />
                           </div>
                           <p className="text-sm font-medium">No comments yet</p>
-                          <p className="text-xs mt-1">Be the first to add a comment</p>
+                          <p className="text-xs mt-1">
+                            Be the first to add a comment
+                          </p>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-            </div>
+              </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Feedback Modal */}
-      <FeedbackModal 
-        isOpen={isFeedbackOpen} 
-        onClose={() => setIsFeedbackOpen(false)} 
+      <FeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
       />
-
-
 
       {/* Copy Checklist Modal */}
       {checklistToCopy && (
@@ -3049,7 +4158,10 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
       )}
 
       {/* Mobile Checklist Title Edit Popup */}
-      <Dialog open={isMobileEditTitleOpen} onOpenChange={setIsMobileEditTitleOpen}>
+      <Dialog
+        open={isMobileEditTitleOpen}
+        onOpenChange={setIsMobileEditTitleOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Checklist Title</DialogTitle>
@@ -3059,7 +4171,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
               <Input
                 value={mobileEditTitle}
                 onChange={(e) => setMobileEditTitle(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleMobileUpdateChecklist()}
+                onKeyPress={(e) =>
+                  e.key === "Enter" && handleMobileUpdateChecklist()
+                }
                 placeholder="Enter checklist title..."
                 className="w-full h-10 text-sm"
                 autoFocus
@@ -3075,7 +4189,9 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
               </Button>
               <Button
                 onClick={handleMobileUpdateChecklist}
-                disabled={updateChecklistMutation.isPending || !mobileEditTitle.trim()}
+                disabled={
+                  updateChecklistMutation.isPending || !mobileEditTitle.trim()
+                }
                 className="h-10 rounded-sm"
               >
                 {updateChecklistMutation.isPending ? (
@@ -3090,14 +4206,18 @@ export function CardModal({ card, list, boardId, isOpen, onClose, isLoadingAttac
       </Dialog>
 
       {/* Delete Checklist Confirmation Modal */}
-      <Dialog open={isDeleteChecklistOpen} onOpenChange={setIsDeleteChecklistOpen}>
+      <Dialog
+        open={isDeleteChecklistOpen}
+        onOpenChange={setIsDeleteChecklistOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Checklist</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Are you sure you want to delete this checklist? This action cannot be undone.
+              Are you sure you want to delete this checklist? This action cannot
+              be undone.
             </p>
             <div className="flex items-center justify-end gap-2">
               <Button

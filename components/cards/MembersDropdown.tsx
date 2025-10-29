@@ -9,14 +9,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 import { Users, X, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { UserButton } from "@clerk/nextjs";
-import { Board, User, BoardMember } from "@/lib/types";
+import { Board, User, BoardMember, Card } from "@/lib/types";
+
+type CardModalCard = Omit<Card, 'createdAt' | 'updatedAt'> & {
+  createdAt?: string;
+  updatedAt?: string;
+  isCompleted: boolean;
+};
 
 interface MembersDropdownProps {
-  card: {
-    id: string;
-    title: string;
-    assignedTo?: string;
-  };
+  card: CardModalCard;
   boardId: string;
   trigger?: React.ReactNode;
 }

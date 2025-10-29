@@ -57,6 +57,10 @@ export interface Card {
   comments: Comment[];
   attachments: Attachment[];
   dueDate?: string;
+  startDate?: string;
+  isRecurring?: boolean;
+  recurringType?: string;
+  reminderType?: string;
   assignedTo?: string;
   createdAt: string;
   updatedAt: string;

@@ -73,7 +73,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
                 : "text-slate-900 dark:text-slate-300"
             )} />
             <span className={cn(
-              "text-xs font-medium",
+              "shrink-0 whitespace-nowrap text-xs font-medium",
               isOverdue 
                 ? "text-red-600 dark:text-red-400" 
                 : isDueSoon

@@ -123,7 +123,7 @@ export function AttachmentViewerModal({
                 </Button>
               </div>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            <p className="mr-auto text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {formatDistanceToNow(new Date(currentAttachment.createdAt), { addSuffix: true })}
             </p>
           </DialogHeader>

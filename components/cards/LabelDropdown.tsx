@@ -10,17 +10,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tag, X, Plus, Palette, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { HexColorPicker } from "react-colorful";
+import { Card } from "@/lib/types";
+
+type CardModalCard = Omit<Card, 'createdAt' | 'updatedAt'> & {
+  createdAt?: string;
+  updatedAt?: string;
+  isCompleted: boolean;
+};
 
 interface LabelDropdownProps {
-  card: {
-    id: string;
-    title: string;
-    labels: Array<{
-      id: string;
-      name: string;
-      color: string;
-    }>;
-  };
+  card: CardModalCard;
   boardId: string;
   trigger?: React.ReactNode;
 }
@@ -250,7 +249,7 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+            className="h-9 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
           >
             <Tag className="w-4 h-4 mr-2" />
             {getDisplayText()}

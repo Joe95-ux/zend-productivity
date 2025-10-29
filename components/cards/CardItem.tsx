@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, Trash2, Check, Copy, MoreHorizontal, Move } from "lucide-react";
+import { Edit, Trash2, Check, Copy, MoreHorizontal, Move, Share } from "lucide-react";
 import { CardModal } from "./CardModal";
 import { CopyCardModal } from "./CopyCardModal";
 import { MoveCardModal } from "./MoveCardModal";
@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Draggable } from "@hello-pangea/dnd";
-import { cn } from "@/lib/utils";
+import { cn, generateCardSlug } from "@/lib/utils";
 import { toast } from "sonner";
 import { Card as CardType, UpdateCardParams, Board, List } from "@/lib/types";
 
@@ -362,6 +362,16 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                       }}>
                         <Move className="h-4 w-4 mr-2" />
                         Move Card
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        const cardSlug = generateCardSlug(card.title, card.position);
+                        const cardUrl = `${window.location.origin}/dashboard/boards/${boardId}/cards/${card.id}/${cardSlug}`;
+                        navigator.clipboard.writeText(cardUrl);
+                        toast.success("Card link copied to clipboard!");
+                      }}>
+                        <Share className="h-4 w-4 mr-2" />
+                        Copy Link
                       </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={(e) => {

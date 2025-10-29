@@ -10,17 +10,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 import { Calendar, Clock, RotateCcw, Bell, X } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths } from "date-fns";
+import { Card } from "@/lib/types";
+
+type CardModalCard = Omit<Card, 'createdAt' | 'updatedAt'> & {
+  createdAt?: string;
+  updatedAt?: string;
+  isCompleted: boolean;
+};
 
 interface DueDateDropdownProps {
-  card: {
-    id: string;
-    title: string;
-    dueDate?: string;
-    startDate?: string;
-    isRecurring?: boolean;
-    recurringType?: string;
-    reminderType?: string;
-  };
+  card: CardModalCard;
   boardId: string;
 }
 
@@ -163,7 +162,7 @@ export function DueDateDropdown({ card, boardId }: DueDateDropdownProps) {
         <Button
           variant="outline"
           size="sm"
-          className="h-8 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
+          className="h-9 px-3 text-sm font-medium border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200"
         >
           <Calendar className="w-4 h-4 mr-2" />
           {getDisplayText()}
