@@ -95,11 +95,21 @@ export async function PUT(
     if (listId !== undefined && listId !== null) updateData.listId = listId;
     if (isCompleted !== undefined && isCompleted !== null) updateData.isCompleted = isCompleted;
     if (startDate !== undefined) {
-      updateData.startDate = startDate ? new Date(startDate).toISOString() : null;
+      if (!startDate) {
+        updateData.startDate = null;
+      } else {
+        const d = new Date(startDate);
+        updateData.startDate = isNaN(d.getTime()) ? null : d.toISOString();
+      }
       console.log(`PUT /api/cards/${cardId} - Converted startDate: ${startDate} -> ${updateData.startDate}`);
     }
     if (dueDate !== undefined) {
-      updateData.dueDate = dueDate ? new Date(dueDate).toISOString() : null;
+      if (!dueDate) {
+        updateData.dueDate = null;
+      } else {
+        const d = new Date(dueDate);
+        updateData.dueDate = isNaN(d.getTime()) ? null : d.toISOString();
+      }
       console.log(`PUT /api/cards/${cardId} - Converted dueDate: ${dueDate} -> ${updateData.dueDate}`);
     }
     if (isRecurring !== undefined) updateData.isRecurring = isRecurring;

@@ -42,6 +42,7 @@ model Board {
   owner       User       @relation(fields: [ownerId], references: [id])
   members     Member[]
   lists       List[]
+  boardLabels BoardLabel[]
   activities  Activity[]
   watches     Watch[]
   createdAt   DateTime   @default(now())
@@ -100,6 +101,17 @@ model Label {
   color   String
   cardId  String  @db.ObjectId
   card    Card?   @relation(fields: [cardId], references: [id])
+  // Optional link to a board template for easy matching
+  boardLabelId String? @db.ObjectId
+}
+
+// Board-scoped reusable label templates
+model BoardLabel {
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  name    String
+  color   String
+  boardId String  @db.ObjectId
+  board   Board   @relation(fields: [boardId], references: [id])
 }
 
 model Checklist {

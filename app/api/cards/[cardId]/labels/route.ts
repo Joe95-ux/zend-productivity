@@ -47,20 +47,24 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Check if label exists
-    const label = await db.label.findFirst({
+    // Check if board template label exists and belongs to the same board
+    const boardLabel = await db.boardLabel.findFirst({
       where: { id: labelId }
     });
 
-    if (!label) {
+    if (!boardLabel) {
       return NextResponse.json({ error: "Label not found" }, { status: 404 });
     }
 
-    // Check if label is already assigned to this card
+    if (card.list?.boardId !== boardLabel.boardId) {
+      return NextResponse.json({ error: "Label does not belong to this board" }, { status: 400 });
+    }
+
+    // Check if a card label already exists matching this board label
     const existingAssignment = await db.label.findFirst({
       where: {
-        id: labelId,
-        cardId: cardId
+        cardId: cardId,
+        boardLabelId: boardLabel.id
       }
     });
 
@@ -68,13 +72,17 @@ export async function POST(
       return NextResponse.json({ error: "Label already assigned to this card" }, { status: 400 });
     }
 
-    // Assign the label to the card by updating the label's cardId
-    const updatedLabel = await db.label.update({
-      where: { id: labelId },
-      data: { cardId: cardId }
+    // Create a card-specific label based on the board template
+    const created = await db.label.create({
+      data: {
+        name: boardLabel.name,
+        color: boardLabel.color,
+        cardId: cardId,
+        boardLabelId: boardLabel.id,
+      }
     });
 
-    return NextResponse.json(updatedLabel);
+    return NextResponse.json(created);
   } catch (error) {
     console.error("Error assigning label to card:", error);
     return NextResponse.json(
@@ -130,11 +138,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Check if label is assigned to this card
+    // labelId refers to the board template label; find the card label linked to it
     const label = await db.label.findFirst({
       where: {
-        id: labelId,
-        cardId: cardId
+        cardId: cardId,
+        boardLabelId: labelId || undefined
       }
     });
 
@@ -142,9 +150,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Label not assigned to this card" }, { status: 404 });
     }
 
-    // Remove the label from the card by deleting it
+    // Remove the label from the card by deleting the card-specific label
     await db.label.delete({
-      where: { id: labelId }
+      where: { id: label.id }
     });
 
     return NextResponse.json({ success: true });

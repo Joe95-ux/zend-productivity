@@ -65,7 +65,7 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
       const response = await fetch("/api/labels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, color, cardId: card.id }),
+        body: JSON.stringify({ name, color, boardId }),
       });
 
       if (!response.ok) {
@@ -75,10 +75,14 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (created) => {
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       queryClient.invalidateQueries({ queryKey: ["labels", boardId] });
-      toast.success("Label created and assigned successfully!");
+      // Auto-assign newly created board label to current card
+      try {
+        await assignLabelMutation.mutateAsync(created.id);
+      } catch {}
+      toast.success("Label created successfully!");
       setNewLabelName("");
       setNewLabelColor(LABEL_COLORS[0].value);
       setIsCreatingNew(false);
@@ -131,6 +135,31 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       queryClient.invalidateQueries({ queryKey: ["labels", boardId] });
       toast.success("Label updated successfully!");
+      setEditingLabel(null);
+      setEditLabelName("");
+      setEditLabelColor("");
+      setEditCustomColor("");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteBoardLabelMutation = useMutation({
+    mutationFn: async (labelId: string) => {
+      const response = await fetch(`/api/labels/${labelId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete label");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["labels", boardId] });
+      toast.success("Label deleted");
       setEditingLabel(null);
       setEditLabelName("");
       setEditLabelColor("");
@@ -237,10 +266,16 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
     return "Labels";
   };
 
-  // Filter out labels that are already assigned to this card
-  const unassignedLabels = availableLabels.filter(
-    (label: { id: string; name: string; color: string }) => !card.labels.some(cardLabel => cardLabel.id === label.id)
-  );
+  const isChecked = (boardLabelId: string) =>
+    card.labels.some((l) => l.boardLabelId === boardLabelId);
+
+  const toggleLabel = (boardLabelId: string, checked: boolean) => {
+    if (checked) {
+      assignLabelMutation.mutate(boardLabelId);
+    } else {
+      removeLabelMutation.mutate(boardLabelId);
+    }
+  };
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -271,41 +306,39 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
         </div>
         
         <div className="p-4 space-y-4 flex-1 overflow-y-auto scrollbar-thin">
-          {/* Current Labels */}
-          {card.labels.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Current Labels
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {card.labels.map((label) => (
-                  <div key={label.id} className="flex items-center gap-1">
-                    <Badge
-                      variant="secondary"
-                      style={{ backgroundColor: label.color }}
-                      className="px-2 py-1 text-xs font-medium rounded-sm border-0 text-white shadow-sm"
-                    >
-                      {label.name}
-                    </Badge>
+          {/* Board Labels with checkboxes */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Labels
+            </Label>
+            <div className="flex flex-col gap-2">
+              {availableLabels.map((label: { id: string; name: string; color: string }) => {
+                const checked = isChecked(label.id);
+                return (
+                  <label key={label.id} className="flex items-center justify-between gap-3 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-300"
+                        checked={checked}
+                        onChange={(e) => toggleLabel(label.id, e.target.checked)}
+                      />
+                      <div className="w-10 h-3 rounded-sm" style={{ backgroundColor: label.color }} />
+                      <span className="text-sm text-slate-800 dark:text-slate-200">{label.name}</span>
+                    </div>
                     <button
-                      onClick={() => handleEditLabel(label)}
+                      onClick={() => handleEditLabel({ id: label.id, name: label.name, color: label.color })}
                       className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-sm transition-colors"
                       title="Edit label"
+                      type="button"
                     >
                       <Edit className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                     </button>
-                    <button
-                      onClick={() => handleRemoveLabel(label.id)}
-                      className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-sm transition-colors"
-                      title="Remove label"
-                    >
-                      <X className="w-3 h-3 text-slate-500 dark:text-slate-400" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  </label>
+                );
+              })}
             </div>
-          )}
+          </div>
 
           {/* Edit Label Form */}
           {editingLabel && (
@@ -430,6 +463,14 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => editingLabel && deleteBoardLabelMutation.mutate(editingLabel.id)}
+                  className="px-3 border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  Delete
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setEditingLabel(null);
                     setEditLabelName("");
@@ -444,31 +485,7 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
             </div>
           )}
 
-          {/* Available Labels */}
-          {unassignedLabels.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Available Labels
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {unassignedLabels.map((label: { id: string; name: string; color: string }) => (
-                  <button
-                    key={label.id}
-                    onClick={() => handleAssignLabel(label.id)}
-                    className="flex items-center gap-1 px-2 py-1 rounded-full border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: label.color }}
-                    />
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      {label.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Removed old Current/Available sections; Trello-style list is above */}
 
           {/* Create New Label */}
           {!isCreatingNew ? (

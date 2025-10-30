@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -200,11 +200,21 @@ export function CardModal({
   // Add to card dropdown state
   const [isAddToCardOpen, setIsAddToCardOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
 
   // Refs for scrollable containers
-  const mobileScrollRef = useRef<HTMLDivElement>(null);
-  const desktopScrollRef = useRef<HTMLDivElement>(null);
+  const [mobileScrollElement, setMobileScrollElement] = useState<HTMLDivElement | null>(null);
+
+  const mobileScrollRef = useCallback((node: HTMLDivElement | null) => {
+    setMobileScrollElement(node);
+  }, [])
+
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
+
+  const desktopScrollRef = useCallback((node: HTMLDivElement | null) => {
+    setScrollElement(node);
+  }, [])
+
+
   const [hiddenChecklists, setHiddenChecklists] = useState<Set<string>>(
     new Set()
   );
@@ -408,39 +418,33 @@ export function CardModal({
 
   // Handle scroll for sticky header - Mobile
   useEffect(() => {
-    const scrollEl = mobileScrollRef.current;
-    if (!scrollEl) return;
+    if (!mobileScrollElement) return;
 
     const handleScroll = () => {
-      const scrollTop = scrollEl.scrollTop;
-      const progress = Math.min(scrollTop / 80, 1);
-      setScrollProgress(progress);
+      const scrollTop = mobileScrollElement.scrollTop;
       setIsSticky(scrollTop > 20);
     };
 
-    scrollEl.addEventListener("scroll", handleScroll);
+    mobileScrollElement.addEventListener("scroll", handleScroll);
     // Set initial state
     handleScroll();
-    return () => scrollEl.removeEventListener("scroll", handleScroll);
-  }, []);
+    return () => mobileScrollElement.removeEventListener("scroll", handleScroll);
+  }, [mobileScrollElement]);
 
   // Handle scroll for sticky header - Desktop
   useEffect(() => {
-    const scrollEl = desktopScrollRef.current;
-    if (!scrollEl) return;
+    if (!scrollElement) return;
 
     const handleScroll = () => {
-      const scrollTop = scrollEl.scrollTop;
-      const progress = Math.min(scrollTop / 80, 1);
-      setScrollProgress(progress);
+      const scrollTop = scrollElement.scrollTop;
       setIsSticky(scrollTop > 20);
     };
 
-    scrollEl.addEventListener("scroll", handleScroll);
+    scrollElement.addEventListener("scroll", handleScroll);
     // Set initial state
     handleScroll();
-    return () => scrollEl.removeEventListener("scroll", handleScroll);
-  }, []);
+    return () => scrollElement.removeEventListener("scroll", handleScroll);
+  }, [scrollElement]);
 
   const cardForm = useForm<UpdateCardFormData>({
     resolver: zodResolver(updateCardSchema),
@@ -1376,13 +1380,11 @@ export function CardModal({
                 >
                   {/* Card Title with Check Radio - Fixed when scrolling */}
                   <div
-                    className={`sticky top-0 z-30 transition-all duration-300 ease-out bg-slate-50 dark:bg-slate-900 w-full flex items-start p-4 gap-3 ${
-                      isSticky ? "border-b border-slate-200 dark:border-slate-700" : ""
+                    className={`sticky top-0 z-30 bg-slate-50 dark:bg-slate-900 w-full flex items-start gap-3 transition-all duration-300 ease-out ${
+                      isSticky
+                        ? "border-b border-slate-200 dark:border-slate-700 py-2 shadow-sm scale-[0.98]"
+                        : "py-4"
                     }`}
-                    style={{
-                      transform: `translateY(${scrollProgress * 100}%)`,
-                      transition: "transform 0.3s ease-in-out",
-                    }}
                   >
                     <div
                       className={`relative w-5 h-5 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
@@ -1493,7 +1495,7 @@ export function CardModal({
                     )}
                   </div>
                   <div className="p-4 space-y-6">
-                    {/* Action Buttons - Trello Style */}
+                    {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2">
                       <DueDateDropdown card={card} boardId={boardId} />
                       {!card.assignedTo && (
@@ -2811,17 +2813,13 @@ export function CardModal({
               {/* Left Column */}
               <div
                 ref={desktopScrollRef}
-                className="flex-1 overflow-y-auto scrollbar-thin bg-slate-50 dark:bg-slate-900 min-h-0"
+                className="basis-[52%] overflow-y-auto scrollbar-thin bg-slate-50 dark:bg-slate-900 min-h-0"
               >
                 {/* Card Title with Check Radio - Fixed when scrolling */}
                 <div
-                  className={`sticky top-0 z-30 transition-all duration-300 ease-out bg-slate-50 dark:bg-slate-900 w-full flex items-start px-8 py-4 gap-4 ${
+                  className={`sticky top-0 z-30 transition-all duration-100 ease-out bg-slate-50 dark:bg-slate-900 w-full flex items-start px-8 py-4 gap-4 ${
                     isSticky ? "border-b border-slate-200 dark:border-slate-700" : ""
                   }`}
-                  style={{
-                    transform: `translateY(${scrollProgress * 100}%)`,
-                    transition: "transform 0.3s ease-in-out",
-                  }}
                 >
                   <div
                     className={`relative w-6 h-6 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
@@ -2929,7 +2927,7 @@ export function CardModal({
                     </div>
                   )}
                 </div>
-                <div className="px-8 pt-2 pb-8 pt-0 space-y-8">
+                <div className="px-8 pt-3 pb-8 space-y-8">
                   {/* Action Buttons - Trello Style */}
                   <div className="flex flex-wrap gap-3">
                     <DueDateDropdown card={card} boardId={boardId} />
@@ -3749,7 +3747,7 @@ export function CardModal({
               </div>
 
               {/* Right Column */}
-              <div className="flex-1 p-8 space-y-6 overflow-y-auto scrollbar-thin border-l border-slate-400 dark:border-slate-800 bg-slate-200 dark:bg-[#0D1117]">
+              <div className="basis-[48%] p-8 space-y-6 overflow-y-auto scrollbar-thin border-l border-slate-400 dark:border-slate-800 bg-slate-200 dark:bg-[#0D1117]">
                 {/* Comments Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
