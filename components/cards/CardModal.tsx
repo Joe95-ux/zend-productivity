@@ -72,6 +72,7 @@ import { DueDateDropdown } from "./DueDateDropdown";
 import { ChecklistDropdown } from "./ChecklistDropdown";
 import { LabelDropdown } from "./LabelDropdown";
 import { MembersDropdown } from "./MembersDropdown";
+import { useDndContextOptional } from "@/components/dnd/DndProvider";
 import { CopyChecklistModal } from "./CopyChecklistModal";
 import { ChecklistItemDndProvider } from "@/components/dnd/ChecklistItemDndProvider";
 import { DraggableChecklistItem } from "./DraggableChecklistItem";
@@ -197,6 +198,9 @@ export function CardModal({
   );
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
+  // Track if modal was just opened to show initial loading state
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   // Add to card dropdown state
   const [isAddToCardOpen, setIsAddToCardOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
@@ -236,6 +240,7 @@ export function CardModal({
   >(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const queryClient = useQueryClient();
+  const dndContext = useDndContextOptional();
 
   // Checklist mutations
   const updateChecklistMutation = useMutation({
@@ -397,6 +402,59 @@ export function CardModal({
     },
     enabled: isOpen,
   });
+
+  // Fetch attachments separately when modal opens (to show loading state)
+  // This ensures we have a loading state even if board query is cached
+  const { isLoading: isLoadingAttachmentsData } = useQuery({
+    queryKey: ["attachments", card.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/cards/${card.id}/attachments`);
+      if (!response.ok) throw new Error("Failed to fetch attachments");
+      return response.json();
+    },
+    enabled: isOpen,
+    staleTime: 10000, // 10 seconds
+  });
+
+  // Determine board loading state
+  const isBoardLoading = dndContext?.isLoading || false;
+
+  // Reset initial load flag when modal closes and manage it based on queries
+  useEffect(() => {
+    if (!isOpen) {
+      setIsInitialLoad(true);
+    } else if (isOpen && isInitialLoad) {
+      // Wait for queries to complete before hiding initial load state
+      // This ensures skeletons show even if queries are cached
+      const timer = setTimeout(() => {
+        // Only hide if board is not loading and attachments query is done
+        if (!isBoardLoading && !isLoadingAttachmentsData) {
+          setIsInitialLoad(false);
+        }
+      }, 300); // Brief delay to show skeleton even if data loads quickly
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, isInitialLoad, isBoardLoading, isLoadingAttachmentsData]);
+
+  // Also hide initial load when queries complete
+  useEffect(() => {
+    if (isOpen && isInitialLoad && !isBoardLoading && !isLoadingAttachmentsData) {
+      // Additional check to hide initial load when queries complete
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, isInitialLoad, isBoardLoading, isLoadingAttachmentsData]);
+
+  // Determine loading states
+  // Show skeleton if:
+  // 1. Prop is explicitly true, OR
+  // 2. Board context is loading, OR
+  // 3. Attachments query is loading (when modal first opens), OR
+  // 4. Modal was just opened (initial load)
+  const shouldShowAttachmentsLoading = isLoadingAttachments || isBoardLoading || isLoadingAttachmentsData || isInitialLoad;
+  const shouldShowChecklistsLoading = isLoadingChecklists || isBoardLoading || isInitialLoad;
 
   // Check if user is watching this card
   const { data: watchStatus } = useQuery({
@@ -645,9 +703,13 @@ export function CardModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      // Don't close modal here - let onSettled handle it
+      toast.success("Comment deleted successfully!");
+    },
+    onSettled: () => {
+      // Close modal only after everything is settled
       setIsDeleteCommentModalOpen(false);
       setCommentToDelete(null);
-      toast.success("Comment deleted successfully!");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -1261,7 +1323,7 @@ export function CardModal({
       <Dialog open={isOpen}>
         <DialogContent
           showCloseButton={false}
-          className="w-[calc(100vw-16px)] max-w-[calc(100vw-16px)] lg:max-w-[64rem] sm:max-w-full xl:max-w-[76rem] h-[95vh] max-h-[95vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900 flex flex-col"
+          className="w-[calc(100vw-16px)] max-w-[calc(100vw-16px)] lg:max-w-[64rem] sm:max-w-full xl:max-w-[76rem] h-auto max-h-[95vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900 flex flex-col"
         >
           {/* Original Header */}
           <DialogHeader>
@@ -1380,7 +1442,7 @@ export function CardModal({
                 >
                   {/* Card Title with Check Radio - Fixed when scrolling */}
                   <div
-                    className={`sticky top-0 z-30 bg-slate-50 dark:bg-slate-900 w-full flex items-start gap-3 transition-all duration-300 ease-out ${
+                    className={`sticky top-0 z-30 bg-slate-50 dark:bg-slate-900 w-full flex items-start gap-3 transition-all duration-200 ease-in ${
                       isSticky
                         ? "border-b border-slate-200 dark:border-slate-700 py-2 shadow-sm scale-[0.98]"
                         : "py-4"
@@ -1717,7 +1779,7 @@ export function CardModal({
                       }
                       cardId={card.id}
                       boardId={boardId}
-                      isLoading={isLoadingAttachments}
+                      isLoading={shouldShowAttachmentsLoading}
                     />
 
                     {/* Due Date Display */}
@@ -1766,7 +1828,7 @@ export function CardModal({
                     {/* Checklists */}
                     <ChecklistsSection
                       checklists={card.checklists || []}
-                      isLoading={isLoadingChecklists}
+                      isLoading={shouldShowChecklistsLoading}
                     >
                       {card.checklists?.map((checklist) => {
                         const completedItems = checklist.items.filter(
@@ -2010,19 +2072,10 @@ export function CardModal({
                                   boardId={boardId}
                                   items={visibleItems}
                                 >
-                                  {visibleItems
-                                    .slice(
-                                      0,
-                                      expandedChecklists.has(checklist.id)
-                                        ? visibleItems.length
-                                        : 3
-                                    )
-                                    .map((item) => {
-                                      const actualIndex =
-                                        visibleItems.findIndex(
-                                          (visibleItem) =>
-                                            visibleItem.id === item.id
-                                        );
+                                  {visibleItems.map((item, itemIndex) => {
+                                      // Determine if this item should be visible
+                                      const isExpanded = expandedChecklists.has(checklist.id);
+                                      const shouldBeVisible = isExpanded || itemIndex < 3;
                                       const optimisticState =
                                         optimisticItemStates.get(item.id);
                                       const isCompleted =
@@ -2037,12 +2090,12 @@ export function CardModal({
                                         <DraggableChecklistItem
                                           key={item.id}
                                           item={item}
-                                          index={actualIndex}
+                                          index={itemIndex}
                                         >
                                           <div
                                             className={`flex items-center gap-2 text-xs border-l-4 ${getPriorityColor(
                                               priority
-                                            )} bg-slate-50 dark:bg-slate-800 rounded p-1`}
+                                            )} bg-slate-50 dark:bg-slate-800 rounded p-1 ${shouldBeVisible ? '' : 'hidden'}`}
                                             onTouchStart={(e) =>
                                               handleSwipeStart(e, item.id)
                                             }
@@ -2441,7 +2494,14 @@ export function CardModal({
                   ) : (
                     <Form {...commentForm}>
                       <form
-                        onSubmit={commentForm.handleSubmit(handleAddComment)}
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          commentForm.handleSubmit(handleAddComment)(e);
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
                         className="space-y-3"
                       >
                         <FormField
@@ -2450,15 +2510,20 @@ export function CardModal({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <RichTextEditor
-                                  content={field.value || ""}
-                                  onChange={field.onChange}
-                                  placeholder="Write a comment..."
-                                  minHeight="2.5rem"
-                                  maxHeight="15rem"
-                                  showToolbar={true}
-                                  className="border-2 border-slate-300 dark:border-slate-700 focus-within:border-slate-500 dark:focus-within:border-slate-400"
-                                />
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                >
+                                  <RichTextEditor
+                                    content={field.value || ""}
+                                    onChange={field.onChange}
+                                    placeholder="Write a comment..."
+                                    minHeight="2.5rem"
+                                    maxHeight="15rem"
+                                    showToolbar={true}
+                                    className="border-2 border-slate-300 dark:border-slate-700 focus-within:border-slate-500 dark:focus-within:border-slate-400"
+                                  />
+                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -2469,6 +2534,9 @@ export function CardModal({
                             type="submit"
                             size="sm"
                             disabled={addCommentMutation.isPending}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
                             className="bg-slate-600 hover:bg-slate-700 text-white text-sm px-3 py-1 h-7"
                           >
                             <Send className="w-3 h-3 mr-1" />
@@ -2480,7 +2548,8 @@ export function CardModal({
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setIsCommentFormExpanded(false);
                               commentForm.reset();
                             }}
@@ -2817,7 +2886,7 @@ export function CardModal({
               >
                 {/* Card Title with Check Radio - Fixed when scrolling */}
                 <div
-                  className={`sticky top-0 z-30 transition-all duration-100 ease-out bg-slate-50 dark:bg-slate-900 w-full flex items-start px-8 py-4 gap-4 ${
+                  className={`sticky top-0 z-30 transition-all duration-200 ease bg-slate-50 dark:bg-slate-900 w-full flex items-start px-8 py-4 gap-4 ${
                     isSticky ? "border-b border-slate-200 dark:border-slate-700" : ""
                   }`}
                 >
@@ -3392,19 +3461,10 @@ export function CardModal({
                                     boardId={boardId}
                                     items={visibleItems}
                                   >
-                                    {visibleItems
-                                      .slice(
-                                        0,
-                                        expandedChecklists.has(checklist.id)
-                                          ? visibleItems.length
-                                          : 5
-                                      )
-                                      .map((item) => {
-                                        const actualIndex =
-                                          visibleItems.findIndex(
-                                            (visibleItem) =>
-                                              visibleItem.id === item.id
-                                          );
+                                    {visibleItems.map((item, itemIndex) => {
+                                        // Determine if this item should be visible
+                                        const isExpanded = expandedChecklists.has(checklist.id);
+                                        const shouldBeVisible = isExpanded || itemIndex < 5;
                                         const optimisticState =
                                           optimisticItemStates.get(item.id);
                                         const isCompleted =
@@ -3420,12 +3480,12 @@ export function CardModal({
                                           <DraggableChecklistItem
                                             key={item.id}
                                             item={item}
-                                            index={actualIndex}
+                                            index={itemIndex}
                                           >
                                             <div
                                               className={`flex items-center gap-3 text-sm border-l-4 ${getPriorityColor(
                                                 priority
-                                              )} bg-slate-50 dark:bg-slate-800 rounded p-1`}
+                                              )} bg-slate-50 dark:bg-slate-800 rounded p-1 ${shouldBeVisible ? '' : 'hidden'}`}
                                             >
                                               {editingItemId === item.id ? (
                                                 <div className="flex items-center gap-2 w-full">
@@ -3781,7 +3841,14 @@ export function CardModal({
                 ) : (
                   <Form {...commentForm}>
                     <form
-                      onSubmit={commentForm.handleSubmit(handleAddComment)}
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        commentForm.handleSubmit(handleAddComment)(e);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
                       className="space-y-4"
                     >
                       <FormField
@@ -3790,15 +3857,20 @@ export function CardModal({
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <RichTextEditor
-                                content={field.value || ""}
-                                onChange={field.onChange}
-                                placeholder="Write a comment..."
-                                minHeight="2.5rem"
-                                maxHeight="15rem"
-                                showToolbar={true}
-                                className="border-2 border-slate-300 dark:border-slate-600 focus-within:border-slate-500 dark:focus-within:border-slate-400"
-                              />
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                              >
+                                <RichTextEditor
+                                  content={field.value || ""}
+                                  onChange={field.onChange}
+                                  placeholder="Write a comment..."
+                                  minHeight="2.5rem"
+                                  maxHeight="15rem"
+                                  showToolbar={true}
+                                  className="border-2 border-slate-300 dark:border-slate-600 focus-within:border-slate-500 dark:focus-within:border-slate-400"
+                                />
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -3809,6 +3881,9 @@ export function CardModal({
                           type="submit"
                           size="sm"
                           disabled={addCommentMutation.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
                           className="bg-teal-600 hover:bg-teal-700 text-white"
                         >
                           <Send className="w-4 h-4 mr-2" />
@@ -3820,7 +3895,8 @@ export function CardModal({
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setIsCommentFormExpanded(false);
                             commentForm.reset();
                           }}

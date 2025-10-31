@@ -127,8 +127,7 @@ export function ChecklistItemDndProvider({
       itemId: item.id,
       newPosition: endIndex
     });
-  }, [items, reorderItemsMutation]);
-
+  }, [items, reorderItemsMutation, checklistId]);
 
   const contextValue = {
     reorderItems,
@@ -142,11 +141,10 @@ export function ChecklistItemDndProvider({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`space-y-1 transition-colors duration-200 ${
-              snapshot.isDraggingOver 
-                ? 'bg-blue-50 dark:bg-blue-900/20 rounded-md p-2' 
-                : ''
-            }`}
+            className={`space-y-1 ${snapshot.isDraggingOver ? 'transition-colors duration-200 bg-blue-50 dark:bg-blue-900/20 rounded-md p-2' : ''}`}
+            style={{
+              minHeight: '20px',
+            }}
           >
             {children}
             {provided.placeholder}

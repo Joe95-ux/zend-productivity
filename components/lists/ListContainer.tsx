@@ -132,63 +132,20 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
     },
   });
 
-  // Check if user is watching this list
-  const { data: watchStatus } = useQuery({
-    queryKey: ["watch", list.id],
-    queryFn: async () => {
-      const response = await fetch(`/api/watch/check?listId=${list.id}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to check watch status");
-      }
-      return response.json();
-    },
-    enabled: true,
-    retry: (failureCount, error) => {
-      // Don't retry on 404 errors (list doesn't exist)
-      if (error.message.includes("not found")) return false;
-      return failureCount < 2;
-    },
-    retryDelay: 1000,
-  });
-
-  // Update watch state when data changes
+  // Use batch watch map from context
   useEffect(() => {
-    if (watchStatus) {
-      setIsWatching(watchStatus.isWatching);
-    }
-  }, [watchStatus]);
+    setIsWatching(Boolean(watchMap && watchMap[`list:${list.id}`]));
+  }, [watchMap, list.id]);
 
-  // Watch toggle mutation
-  const watchToggleMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/watch", {
-        method: isWatching ? "DELETE" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ listId: list.id }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to toggle watch");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      setIsWatching(!isWatching);
-      queryClient.invalidateQueries({ queryKey: ["watch", list.id] });
-      toast.success(isWatching ? "Stopped watching list" : "Now watching list");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
+  const { toggleWatch } = useDndContext();
 
   const handleWatchToggle = () => {
     if (isWatchLoading) return;
     setIsWatchLoading(true);
-    watchToggleMutation.mutate();
+    toggleWatch({ listId: list.id, watch: !isWatching })
+      .then(() => toast.success(!isWatching ? "Now watching list" : "Stopped watching list"))
+      .catch(() => {})
+      .finally(() => setIsWatchLoading(false));
   };
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { UserButton } from "@clerk/nextjs";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useDndContextOptional } from "@/components/dnd/DndProvider";
 import { toast } from "sonner";
 import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
@@ -55,7 +56,15 @@ interface Comment {
 
 export function BoardHeader({ boardId, boardTitle, boardDescription, membersCount }: BoardHeaderProps) {
   const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [isLabelsOpen, setIsLabelsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  const [editLabelName, setEditLabelName] = useState("");
+  const [editLabelColor, setEditLabelColor] = useState("");
+  const [isCreatingLabel, setIsCreatingLabel] = useState(false);
+  const [newLabelName, setNewLabelName] = useState("");
+  const [newLabelColor, setNewLabelColor] = useState("#ef4444");
+  const [labelSearchQuery, setLabelSearchQuery] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(boardTitle);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -63,6 +72,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [activeTab, setActiveTab] = useState("activity");
   const [isWatching, setIsWatching] = useState(false);
   const [isWatchLoading, setIsWatchLoading] = useState(false);
+  const dndContext = useDndContextOptional();
   const queryClient = useQueryClient();
 
   // Fetch activities
@@ -87,23 +97,36 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     enabled: isActivityOpen,
   });
 
-  // Check if user is watching this board
-  const { data: watchStatus } = useQuery({
+  // Fetch board labels
+  const { data: boardLabels = [], isLoading: labelsLoading } = useQuery({
+    queryKey: ["labels", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/labels?boardId=${boardId}`);
+      if (!response.ok) throw new Error("Failed to fetch labels");
+      return response.json();
+    },
+    enabled: isLabelsOpen,
+  });
+
+  // Fallback: Check watch status if not in DndProvider context
+  const { data: watchStatusFallback } = useQuery({
     queryKey: ["watch", boardId],
     queryFn: async () => {
       const response = await fetch(`/api/watch/check?boardId=${boardId}`);
       if (!response.ok) throw new Error("Failed to check watch status");
       return response.json();
     },
-    enabled: true,
+    enabled: !dndContext && !!boardId,
   });
 
-  // Update watch state when data changes
+  // Use batch watch map from context if available, otherwise use fallback query
   useEffect(() => {
-    if (watchStatus) {
-      setIsWatching(watchStatus.isWatching);
+    if (dndContext?.watchMap) {
+      setIsWatching(Boolean(dndContext.watchMap[`board:${boardId}`]));
+    } else if (watchStatusFallback) {
+      setIsWatching(watchStatusFallback.isWatching);
     }
-  }, [watchStatus]);
+  }, [dndContext?.watchMap, watchStatusFallback, boardId]);
 
   // Update board mutation
   const updateBoardMutation = useMutation({
@@ -186,7 +209,138 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     setIsMenuOpen(false);
   };
 
-  // Watch toggle mutation
+  const handleLabelsClick = () => {
+    setIsMenuOpen(false);
+    setIsLabelsOpen(true);
+  };
+
+  const handleLabelsBack = () => {
+    setIsLabelsOpen(false);
+    setIsMenuOpen(true);
+  };
+
+  const handleLabelsClose = () => {
+    setIsLabelsOpen(false);
+    setIsMenuOpen(false);
+    setEditingLabelId(null);
+    setIsCreatingLabel(false);
+    setLabelSearchQuery("");
+  };
+
+  const LABEL_COLORS = [
+    { name: "Red", value: "#ef4444" },
+    { name: "Orange", value: "#f97316" },
+    { name: "Yellow", value: "#eab308" },
+    { name: "Green", value: "#22c55e" },
+    { name: "Blue", value: "#3b82f6" },
+    { name: "Purple", value: "#a855f7" },
+    { name: "Pink", value: "#ec4899" },
+    { name: "Gray", value: "#6b7280" },
+    { name: "Teal", value: "#14b8a6" },
+    { name: "Indigo", value: "#6366f1" },
+  ];
+
+  // Create label mutation
+  const createLabelMutation = useMutation({
+    mutationFn: async ({ name, color }: { name: string; color: string }) => {
+      const response = await fetch("/api/labels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, color, boardId }),
+      });
+      if (!response.ok) throw new Error("Failed to create label");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["labels", boardId] });
+      setIsCreatingLabel(false);
+      setNewLabelName("");
+      setNewLabelColor("#ef4444");
+      toast.success("Label created successfully!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Update label mutation
+  const updateLabelMutation = useMutation({
+    mutationFn: async ({ labelId, name, color }: { labelId: string; name: string; color: string }) => {
+      const response = await fetch(`/api/labels/${labelId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, color }),
+      });
+      if (!response.ok) throw new Error("Failed to update label");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["labels", boardId] });
+      setEditingLabelId(null);
+      setEditLabelName("");
+      setEditLabelColor("");
+      toast.success("Label updated successfully!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Delete label mutation
+  const deleteLabelMutation = useMutation({
+    mutationFn: async (labelId: string) => {
+      const response = await fetch(`/api/labels/${labelId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete label");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["labels", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      setEditingLabelId(null);
+      toast.success("Label deleted successfully!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleEditLabel = (label: { id: string; name: string; color: string }) => {
+    setEditingLabelId(label.id);
+    setEditLabelName(label.name);
+    setEditLabelColor(label.color);
+  };
+
+  const handleSaveLabel = () => {
+    if (!editingLabelId || !editLabelName.trim()) {
+      toast.error("Please enter a label name");
+      return;
+    }
+    updateLabelMutation.mutate({
+      labelId: editingLabelId,
+      name: editLabelName.trim(),
+      color: editLabelColor,
+    });
+  };
+
+  const handleCreateLabel = () => {
+    if (!newLabelName.trim()) {
+      toast.error("Please enter a label name");
+      return;
+    }
+    createLabelMutation.mutate({
+      name: newLabelName.trim(),
+      color: newLabelColor,
+    });
+  };
+
+  // Filter labels based on search
+  const filteredLabels = boardLabels.filter((label: { id: string; name: string; color: string }) =>
+    label.name.toLowerCase().includes(labelSearchQuery.toLowerCase())
+  );
+
+  // Watch toggle mutation (fallback when not in DndProvider)
   const watchToggleMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch("/api/watch", {
@@ -215,7 +369,17 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const handleWatchToggle = () => {
     if (isWatchLoading) return;
     setIsWatchLoading(true);
-    watchToggleMutation.mutate();
+    
+    // Use context toggle if available, otherwise use mutation
+    if (dndContext?.toggleWatch) {
+      dndContext.toggleWatch({ boardId, watch: !isWatching })
+        .then(() => toast.success(!isWatching ? "Now watching board" : "Stopped watching board"))
+        .catch(() => {})
+        .finally(() => setIsWatchLoading(false));
+    } else {
+      watchToggleMutation.mutate();
+      setIsWatchLoading(false);
+    }
   };
 
   return (
@@ -499,6 +663,10 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                         <Activity className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-normal">Activity</span>
                       </div>
+                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors" onClick={handleLabelsClick}>
+                        <Tag className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm font-normal">Labels</span>
+                      </div>
                       <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
                         <Copy className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-normal">Copy board</span>
@@ -651,6 +819,271 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   )}
                 </TabsContent>
               </Tabs>
+            </div>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Labels Dropdown */}
+      <DropdownMenu open={isLabelsOpen} onOpenChange={setIsLabelsOpen}>
+        <DropdownMenuTrigger asChild>
+          <div />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent 
+          side="bottom" 
+          align="end" 
+          sideOffset={14} 
+          alignOffset={-14}
+          className="w-80 sm:w-96 h-[600px] sm:h-[800px] p-0 flex flex-col"
+        >
+          <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLabelsBack}
+                className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <HoverHint label="Back to menu" side="bottom">
+                  <ArrowLeft className="h-4 w-4" />
+                </HoverHint>
+              </Button>
+              <h3 className="text-[17px] font-bold">Labels</h3>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLabelsClose}
+              className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              <HoverHint label="Close labels" side="bottom">
+                <X className="h-4 w-4" />
+              </HoverHint>
+            </Button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
+            <div className="p-[14px] space-y-2">
+              {/* Search Input */}
+              {!labelsLoading && (
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <Input
+                    value={labelSearchQuery}
+                    onChange={(e) => setLabelSearchQuery(e.target.value)}
+                    placeholder="Search labels..."
+                    className="pl-9 h-9 text-sm"
+                  />
+                </div>
+              )}
+
+              {/* Create New Label Button */}
+              {!labelsLoading && !isCreatingLabel && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCreatingLabel(true)}
+                  className="w-full h-8 text-sm justify-start"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create a new label
+                </Button>
+              )}
+
+              {/* Create Label Form */}
+              {isCreatingLabel && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      Name
+                    </label>
+                    <Input
+                      value={newLabelName}
+                      onChange={(e) => setNewLabelName(e.target.value)}
+                      placeholder="Enter label name..."
+                      className="h-8 text-sm"
+                      autoFocus
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleCreateLabel();
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                      <Palette className="w-3 h-3" />
+                      Select a color
+                    </label>
+                    <div className="grid grid-cols-10 gap-1.5">
+                      {LABEL_COLORS.map((color) => (
+                        <button
+                          key={color.value}
+                          onClick={() => setNewLabelColor(color.value)}
+                          className={`w-7 h-7 rounded border-2 transition-all ${
+                            newLabelColor === color.value
+                              ? "border-slate-900 dark:border-white scale-110"
+                              : "border-slate-300 dark:border-slate-600 hover:scale-105"
+                          }`}
+                          style={{ backgroundColor: color.value }}
+                          title={color.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleCreateLabel}
+                      disabled={createLabelMutation.isPending || !newLabelName.trim()}
+                      size="sm"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {createLabelMutation.isPending ? "Creating..." : "Create"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsCreatingLabel(false);
+                        setNewLabelName("");
+                        setNewLabelColor("#ef4444");
+                      }}
+                      className="px-3"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Labels List */}
+              {labelsLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2.5 rounded-md">
+                    <div className="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                    <div className="flex-1 h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                  </div>
+                ))
+              ) : filteredLabels.length > 0 ? (
+                <div className="space-y-1">
+                  {filteredLabels.map((label: { id: string; name: string; color: string }) => {
+                    const isEditing = editingLabelId === label.id;
+                    return (
+                      <div key={label.id}>
+                        {isEditing ? (
+                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                Name
+                              </label>
+                              <Input
+                                value={editLabelName}
+                                onChange={(e) => setEditLabelName(e.target.value)}
+                                placeholder="Enter label name..."
+                                className="h-8 text-sm"
+                                autoFocus
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleSaveLabel();
+                                  } else if (e.key === "Escape") {
+                                    setEditingLabelId(null);
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                <Palette className="w-3 h-3" />
+                                Select a color
+                              </label>
+                              <div className="grid grid-cols-10 gap-1.5">
+                                {LABEL_COLORS.map((color) => (
+                                  <button
+                                    key={color.value}
+                                    onClick={() => setEditLabelColor(color.value)}
+                                    className={`w-7 h-7 rounded border-2 transition-all ${
+                                      editLabelColor === color.value
+                                        ? "border-slate-900 dark:border-white scale-110"
+                                        : "border-slate-300 dark:border-slate-600 hover:scale-105"
+                                    }`}
+                                    style={{ backgroundColor: color.value }}
+                                    title={color.name}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={handleSaveLabel}
+                                disabled={updateLabelMutation.isPending || !editLabelName.trim()}
+                                size="sm"
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                {updateLabelMutation.isPending ? "Saving..." : "Save"}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingLabelId(null);
+                                  setEditLabelName("");
+                                  setEditLabelColor("");
+                                }}
+                                className="px-3"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => deleteLabelMutation.mutate(label.id)}
+                                disabled={deleteLabelMutation.isPending}
+                                className="px-3 border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              >
+                                {deleteLabelMutation.isPending ? "..." : "Delete"}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div 
+                            className="flex items-center gap-3 p-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+                            onClick={() => handleEditLabel(label)}
+                          >
+                            <div
+                              className="w-10 h-5 rounded-sm flex-shrink-0"
+                              style={{ backgroundColor: label.color }}
+                            />
+                            <span className="flex-1 text-sm font-medium text-slate-900 dark:text-white">
+                              {label.name}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditLabel(label);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all"
+                              title="Edit label"
+                            >
+                              <Edit className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : labelSearchQuery ? (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                  <Search className="h-6 w-6 mx-auto mb-2" />
+                  <p className="text-sm">No labels found</p>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                  <Tag className="h-8 w-8 mx-auto mb-2" />
+                  <p className="text-sm">No labels yet</p>
+                  <p className="text-xs mt-1">Create a new label to get started</p>
+                </div>
+              )}
             </div>
           </div>
         </DropdownMenuContent>

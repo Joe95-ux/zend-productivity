@@ -29,8 +29,15 @@ export function ChecklistConfirmationModal({
   description,
   isLoading = false,
 }: ChecklistConfirmationModalProps) {
+  const handleOpenChange = (open: boolean) => {
+    // Prevent closing during loading
+    if (!open && !isLoading) {
+      onClose();
+    }
+  };
+
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
+    <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-slate-700 dark:text-slate-300">

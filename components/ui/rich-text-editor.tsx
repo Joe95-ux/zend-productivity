@@ -79,6 +79,11 @@ export function RichTextEditor({
     content: content,
     editable,
     immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        style: 'width: 100%; max-width: 100%; box-sizing: border-box; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;',
+      },
+    },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       const sanitizedHtml = DOMPurify.sanitize(html, { 
@@ -145,7 +150,7 @@ export function RichTextEditor({
   }
 
   return (
-    <div className={cn("border border-slate-200 dark:border-slate-700 rounded-md", className)}>
+    <div className={cn("border border-slate-200 dark:border-slate-700 rounded-md w-full max-w-full overflow-hidden", className)}>
       {showToolbar && (
         <div className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
           {/* First Line - Basic Tools */}
@@ -154,9 +159,14 @@ export function RichTextEditor({
               {/* Text Formatting */}
               <div className="flex items-center gap-1">
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleBold().run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleBold().run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('bold') && "bg-slate-200 dark:bg-slate-700"
@@ -165,9 +175,14 @@ export function RichTextEditor({
                   <BoldIcon className="w-4 h-4" />
                 </Button>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleItalic().run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('italic') && "bg-slate-200 dark:bg-slate-700"
@@ -176,9 +191,14 @@ export function RichTextEditor({
                   <ItalicIcon className="w-4 h-4" />
                 </Button>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleStrike().run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleStrike().run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('strike') && "bg-slate-200 dark:bg-slate-700"
@@ -187,9 +207,14 @@ export function RichTextEditor({
                   <StrikeIcon className="w-4 h-4" />
                 </Button>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleCode().run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleCode().run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('code') && "bg-slate-200 dark:bg-slate-700"
@@ -204,9 +229,14 @@ export function RichTextEditor({
               {/* Links and Images */}
               <div className="flex items-center gap-1">
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsLinkModalOpen(true)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsLinkModalOpen(true);
+                  }}
                   className="h-8 w-8 p-0"
                 >
                   <LinkIcon className="w-4 h-4" />
@@ -226,18 +256,28 @@ export function RichTextEditor({
               {/* History */}
               <div className="flex items-center gap-1">
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().undo().run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().undo().run();
+                  }}
                   disabled={!editor.can().undo()}
                   className="h-8 w-8 p-0"
                 >
                   <UndoIcon className="w-4 h-4" />
                 </Button>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().redo().run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().redo().run();
+                  }}
                   disabled={!editor.can().redo()}
                   className="h-8 w-8 p-0"
                 >
@@ -248,9 +288,14 @@ export function RichTextEditor({
 
             {/* Expand/Collapse Button */}
             <Button
+              type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsToolbarExpanded(!isToolbarExpanded);
+              }}
               className="h-8 w-8 p-0"
             >
               <svg
@@ -270,9 +315,14 @@ export function RichTextEditor({
               {/* Headings */}
               <div className="flex items-center gap-1">
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleHeading({ level: 1 }).run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('heading', { level: 1 }) && "bg-slate-200 dark:bg-slate-700"
@@ -281,9 +331,14 @@ export function RichTextEditor({
                   <H1Icon className="w-4 h-4" />
                 </Button>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleHeading({ level: 2 }).run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('heading', { level: 2 }) && "bg-slate-200 dark:bg-slate-700"
@@ -292,9 +347,14 @@ export function RichTextEditor({
                   <H2Icon className="w-4 h-4" />
                 </Button>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleHeading({ level: 3 }).run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('heading', { level: 3 }) && "bg-slate-200 dark:bg-slate-700"
@@ -309,9 +369,14 @@ export function RichTextEditor({
               {/* Lists */}
               <div className="flex items-center gap-1">
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleBulletList().run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleBulletList().run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('bulletList') && "bg-slate-200 dark:bg-slate-700"
@@ -320,9 +385,14 @@ export function RichTextEditor({
                   <ListIcon className="w-4 h-4" />
                 </Button>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleOrderedList().run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('orderedList') && "bg-slate-200 dark:bg-slate-700"
@@ -331,9 +401,14 @@ export function RichTextEditor({
                   <OrderedListIcon className="w-4 h-4" />
                 </Button>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editor.chain().focus().toggleBlockquote().run();
+                  }}
                   className={cn(
                     "h-8 w-8 p-0",
                     editor.isActive('blockquote') && "bg-slate-200 dark:bg-slate-700"
@@ -348,7 +423,7 @@ export function RichTextEditor({
       )}
 
       <div
-        className="prose prose-sm max-w-none p-3 focus-within:outline-none w-full"
+        className="prose prose-sm max-w-none p-3 focus-within:outline-none w-full max-w-full box-border"
         style={{
           minHeight,
           maxHeight: showToolbar ? maxHeight : 'none',
@@ -358,7 +433,7 @@ export function RichTextEditor({
       >
         <EditorContent 
           editor={editor}
-          className="[&_.ProseMirror]:outline-none 
+          className="w-full max-w-full [&_.ProseMirror]:outline-none 
                      [&_.ProseMirror]:border-none 
                      [&_.ProseMirror]:bg-transparent 
                      [&_.ProseMirror]:min-h-[2.5rem] 
@@ -368,22 +443,29 @@ export function RichTextEditor({
                      [&_.ProseMirror]:resize-none 
                      [&_.ProseMirror]:w-full 
                      [&_.ProseMirror]:max-w-full 
+                     [&_.ProseMirror]:box-border
                      [&_.ProseMirror]:break-words 
                      [&_.ProseMirror]:whitespace-pre-wrap 
-                     [&_.ProseMirror]:overflow-wrap-anywhere 
+                     [&_.ProseMirror]:overflow-wrap-break-word
                      [&_.ProseMirror]:word-break-break-word 
-                     [&_.ProseMirror]:box-border 
                      [&_.ProseMirror]:overflow-x-hidden 
                      [&_.ProseMirror]:overflow-y-auto 
                      [&_.ProseMirror>p]:max-w-full 
+                     [&_.ProseMirror>p]:w-full
+                     [&_.ProseMirror>p]:box-border
                      [&_.ProseMirror>p]:break-words
+                     [&_.ProseMirror>p]:overflow-wrap-break-word
+                     [&_.ProseMirror>p]:word-break-break-word
+                     [&_.ProseMirror>div]:max-w-full 
+                     [&_.ProseMirror>div]:w-full
+                     [&_.ProseMirror>div]:box-border
+                     [&_.ProseMirror>div]:break-words
                      [&_.ProseMirror>img]:max-w-full 
                      [&_.ProseMirror>img]:h-auto
                      [&_.ProseMirror>pre]:max-w-full 
                      [&_.ProseMirror>pre]:overflow-x-auto
                      [&_.ProseMirror>a]:break-all
-                     [&_.ProseMirror]:text-wrap 
-                     [&_.ProseMirror]:hyphens-auto"
+                     [&_.ProseMirror]:text-wrap"
         />
       </div>
 

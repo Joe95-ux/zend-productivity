@@ -4,6 +4,12 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/",
+  "/about-us",
+  "/contact-us",
+  "/pricing",
+  "/privacy",
+  "/terms",
+  "/api/cron/digest", // Cron job route uses Bearer token auth instead of Clerk
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
@@ -19,4 +25,4 @@ export const config = {
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],
-};
+}

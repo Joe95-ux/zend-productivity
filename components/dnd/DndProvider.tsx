@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ interface DndContextType {
   isLoading: boolean;
   error: Error | null;
   watchMap: Record<string, boolean> | null;
+  toggleWatch: (args: { boardId?: string; listId?: string; cardId?: string; watch: boolean }) => Promise<void>;
 }
 
 const DndContext = createContext<DndContextType | undefined>(undefined);
@@ -26,6 +27,11 @@ export const useDndContext = () => {
     throw new Error("useDndContext must be used within a DndProvider");
   }
   return context;
+};
+
+// Optional version that returns null if context is not available
+export const useDndContextOptional = () => {
+  return useContext(DndContext);
 };
 
 // Simple reorder function
@@ -89,6 +95,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
   });
 
   const [optimisticData, setOptimisticData] = useState<Board | null>(null);
+  const [localWatchMap, setLocalWatchMap] = useState<Record<string, boolean>>({});
   const isDragInProgressRef = useRef(false);
 
   const updateListOrderMutation = useMutation({
@@ -158,6 +165,40 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     }
   }, [serverData]);
   
+  // Sync local watch map when batch data arrives
+  useEffect(() => {
+    if (watchData?.watchMap) {
+      setLocalWatchMap(watchData.watchMap);
+    }
+  }, [watchData]);
+
+  const toggleWatch = useMemo(() => {
+    return async ({ boardId: bId, listId: lId, cardId: cId, watch }: { boardId?: string; listId?: string; cardId?: string; watch: boolean }) => {
+      const key = bId ? `board:${bId}` : lId ? `list:${lId}` : cId ? `card:${cId}` : undefined;
+      if (!key) return;
+      // Optimistic update
+      setLocalWatchMap((prev) => ({ ...prev, [key]: watch }));
+      try {
+        if (watch) {
+          await fetch('/api/watch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ boardId: bId, listId: lId, cardId: cId })
+          }).then(r => { if (!r.ok) throw new Error('Failed to watch'); });
+        } else {
+          await fetch('/api/watch', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ boardId: bId, listId: lId, cardId: cId })
+          }).then(r => { if (!r.ok) throw new Error('Failed to unwatch'); });
+        }
+      } catch (e) {
+        // rollback
+        setLocalWatchMap((prev) => ({ ...prev, [key]: !watch }));
+        toast.error((e as Error).message);
+      }
+    };
+  }, []);
 
   // Use local state if available, otherwise use server data
   const orderedData = optimisticData || serverData;
@@ -397,7 +438,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
   return (
     <DndContext.Provider
-      value={{ orderedData: orderedData || null, isLoading, error, watchMap: watchData?.watchMap || null }}
+      value={{ orderedData: orderedData || null, isLoading, error, watchMap: localWatchMap || null, toggleWatch }}
     >
       <DragDropContext onDragEnd={onDragEnd}>{children}</DragDropContext>
     </DndContext.Provider>

@@ -2,14 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useDndContext } from "@/components/dnd/DndProvider";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, Trash2, Check, Copy, MoreHorizontal, Move, Share } from "lucide-react";
+import { Edit, Trash2, Check, Copy, MoreHorizontal, Move, Share, Tag } from "lucide-react";
 import { CardModal } from "./CardModal";
 import { CopyCardModal } from "./CopyCardModal";
 import { MoveCardModal } from "./MoveCardModal";
 import { CardIndicators } from "./CardIndicators";
 import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
 import { ShootingStars } from "@/components/ui/ShootingStars";
+import { HoverHint } from "@/components/HoverHint";
+import { LabelDropdown } from "./LabelDropdown";
 import { motion } from "framer-motion";
 import {
   DropdownMenu,
@@ -42,6 +45,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
   const [isCompleted, setIsCompleted] = useState(card.isCompleted);
   const [showShootingStars, setShowShootingStars] = useState(false);
   const [watchStatus, setWatchStatus] = useState(false);
+  const [isLabelDropdownOpen, setIsLabelDropdownOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Get the current card data from query cache to stay in sync
@@ -55,15 +59,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
     enabled: false, // Don't fetch, just subscribe to cache updates
   });
 
-  // Check if user is watching this card
-  const { data: watchData } = useQuery({
-    queryKey: ["watch", card.id],
-    queryFn: async () => {
-      const response = await fetch(`/api/watch/check?cardId=${card.id}`);
-      if (!response.ok) throw new Error("Failed to check watch status");
-      return response.json();
-    },
-  });
+  const { watchMap } = useDndContext();
 
   // Sync local state with query cache updates
   useEffect(() => {
@@ -79,12 +75,10 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardData, list.id, card.id]);
 
-  // Update watch state when data changes
+  // Update watch state from batch map
   useEffect(() => {
-    if (watchData) {
-      setWatchStatus(watchData.isWatching);
-    }
-  }, [watchData]);
+    setWatchStatus(Boolean(watchMap && watchMap[`card:${card.id}`]));
+  }, [watchMap, card.id]);
 
   const updateCardMutation = useMutation({
     mutationFn: async ({ title, description, position, isCompleted }: UpdateCardParams) => {
@@ -224,6 +218,33 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
             onClick={() => setIsModalOpen(true)}
           >
             <CardContent className="p-0 relative">
+              {/* Label Bands - Above title, Trello style */}
+              {card.labels && card.labels.length > 0 && (
+                <div className="flex flex-wrap gap-1 px-3 pt-2 pb-1">
+                  {card.labels.map((label) => (
+                    <HoverHint
+                      key={label.id}
+                      label={`${label.name} (${label.color})`}
+                      side="top"
+                    >
+                      <div
+                        className="h-5 px-2 rounded-sm flex-shrink-0 cursor-pointer flex items-center justify-center text-white text-xs font-medium leading-tight hover:opacity-90 transition-opacity"
+                        style={{
+                          backgroundColor: label.color,
+                          maxWidth: "150px",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsLabelDropdownOpen(true);
+                        }}
+                      >
+                        <span className="truncate">{label.name}</span>
+                      </div>
+                    </HoverHint>
+                  ))}
+                </div>
+              )}
+
               {/* Card Header with Title and Radio Button */}
               <div className="flex items-center min-h-10 px-3 relative">
                 
@@ -291,10 +312,36 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               </div>
 
               {/* Card Indicators */}
-              <CardIndicators 
-                card={card} 
-                isWatching={watchStatus} 
-              />
+              <CardIndicators card={card} isWatching={watchStatus} />
+
+              {/* LabelDropdown - Controlled externally, positioned near the action buttons */}
+              <div 
+                className="absolute right-3 top-3 z-[100]"
+                style={{ 
+                  width: '1px', 
+                  height: '1px',
+                  pointerEvents: 'none'
+                }}
+              >
+                <LabelDropdown
+                  card={card}
+                  boardId={boardId}
+                  controlledOpen={isLabelDropdownOpen}
+                  onOpenChange={setIsLabelDropdownOpen}
+                  trigger={
+                    <button
+                      style={{ 
+                        width: '1px',
+                        height: '1px',
+                        opacity: 0,
+                        pointerEvents: 'none'
+                      }}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                    />
+                  }
+                />
+              </div>
 
               {/* Action Buttons - Positioned absolutely on the right, aligned with title */}
               <div className="absolute right-3 top-3 flex items-center gap-1 z-50">
@@ -348,6 +395,16 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                     }}>
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Card
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDropdownOpen(false); // Close the action menu
+                      setTimeout(() => {
+                        setIsLabelDropdownOpen(true);
+                      }, 100);
+                    }}>
+                      <Tag className="h-4 w-4 mr-2" />
+                      Edit Labels
                     </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => {
                         e.stopPropagation();
@@ -425,6 +482,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
         isLoading={deleteCardMutation.isPending}
         variant="card"
       />
+
     </>
   );
 }

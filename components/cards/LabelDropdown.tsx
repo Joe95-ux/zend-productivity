@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Tag, X, Plus, Palette, Edit } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tag, X, Plus, Palette, Edit, Search } from "lucide-react";
 import { toast } from "sonner";
 import { HexColorPicker } from "react-colorful";
 import { Card } from "@/lib/types";
@@ -22,6 +23,8 @@ interface LabelDropdownProps {
   card: CardModalCard;
   boardId: string;
   trigger?: React.ReactNode;
+  controlledOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const LABEL_COLORS = [
@@ -37,7 +40,7 @@ const LABEL_COLORS = [
   { name: "Indigo", value: "#6366f1" },
 ];
 
-export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
+export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenChange }: LabelDropdownProps) {
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState(LABEL_COLORS[0].value);
   const [customColor, setCustomColor] = useState("");
@@ -48,16 +51,32 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
   const [editLabelColor, setEditLabelColor] = useState("");
   const [editCustomColor, setEditCustomColor] = useState("");
   const queryClient = useQueryClient();
+  // Optimistic assignment map: boardLabelId -> checked state
+  const [optimisticChecked, setOptimisticChecked] = useState<Record<string, boolean>>({});
+  // Track which labels are currently being processed (attach/detach)
+  const [processingLabels, setProcessingLabels] = useState<Set<string>>(new Set());
+  // Search query for filtering labels
+  const [searchQuery, setSearchQuery] = useState("");
 
+  // Sync with external triggers - must happen before defining isDropdownOpen
+  useEffect(() => {
+    if (controlledOpen !== undefined) {
+      setIsOpen(controlledOpen);
+    }
+  }, [controlledOpen]);
+
+  // Use controlled or uncontrolled state
+  const isDropdownOpen = controlledOpen !== undefined ? controlledOpen : isOpen;
+  
   // Fetch available labels for this board
-  const { data: availableLabels = [] } = useQuery({
+  const { data: availableLabels = [], isLoading: isLoadingLabels } = useQuery({
     queryKey: ["labels", boardId],
     queryFn: async () => {
       const response = await fetch(`/api/labels?boardId=${boardId}`);
       if (!response.ok) throw new Error("Failed to fetch labels");
       return response.json();
     },
-    enabled: isOpen,
+    enabled: isDropdownOpen,
   });
 
   const createLabelMutation = useMutation({
@@ -94,6 +113,9 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
 
   const assignLabelMutation = useMutation({
     mutationFn: async (labelId: string) => {
+      // Mark as processing
+      setProcessingLabels((prev) => new Set(prev).add(labelId));
+      
       const response = await fetch(`/api/cards/${card.id}/labels`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -107,11 +129,35 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, labelId) => {
+      // Clear optimistic override after server confirms
+      setOptimisticChecked((prev) => {
+        const next = { ...prev };
+        delete next[labelId];
+        return next;
+      });
+      // Remove from processing set
+      setProcessingLabels((prev) => {
+        const next = new Set(prev);
+        next.delete(labelId);
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
-      toast.success("Label assigned successfully!");
+      // Don't show toast for optimistic updates to avoid noise
     },
-    onError: (error: Error) => {
+    onError: (error: Error, labelId) => {
+      // Rollback optimistic override
+      setOptimisticChecked((prev) => {
+        const next = { ...prev };
+        delete next[labelId];
+        return next;
+      });
+      // Remove from processing set
+      setProcessingLabels((prev) => {
+        const next = new Set(prev);
+        next.delete(labelId);
+        return next;
+      });
       toast.error(error.message);
     },
   });
@@ -172,6 +218,9 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
 
   const removeLabelMutation = useMutation({
     mutationFn: async (labelId: string) => {
+      // Mark as processing
+      setProcessingLabels((prev) => new Set(prev).add(labelId));
+      
       const response = await fetch(`/api/cards/${card.id}/labels?labelId=${labelId}`, {
         method: "DELETE",
       });
@@ -183,11 +232,33 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, labelId) => {
+      setOptimisticChecked((prev) => {
+        const next = { ...prev };
+        delete next[labelId];
+        return next;
+      });
+      // Remove from processing set
+      setProcessingLabels((prev) => {
+        const next = new Set(prev);
+        next.delete(labelId);
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
-      toast.success("Label removed successfully!");
+      // Don't show toast for optimistic updates to avoid noise
     },
-    onError: (error: Error) => {
+    onError: (error: Error, labelId) => {
+      setOptimisticChecked((prev) => {
+        const next = { ...prev };
+        delete next[labelId];
+        return next;
+      });
+      // Remove from processing set
+      setProcessingLabels((prev) => {
+        const next = new Set(prev);
+        next.delete(labelId);
+        return next;
+      });
       toast.error(error.message);
     },
   });
@@ -201,6 +272,7 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
     setEditLabelColor("");
     setEditCustomColor("");
     setIsCreatingNew(false);
+    setSearchQuery("");
     setIsOpen(false);
   }, []);
 
@@ -266,19 +338,38 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
     return "Labels";
   };
 
-  const isChecked = (boardLabelId: string) =>
-    card.labels.some((l) => l.boardLabelId === boardLabelId);
+  const isChecked = (boardLabelId: string) => {
+    if (boardLabelId in optimisticChecked) return optimisticChecked[boardLabelId];
+    return card.labels.some((l) => l.boardLabelId === boardLabelId);
+  };
 
   const toggleLabel = (boardLabelId: string, checked: boolean) => {
-    if (checked) {
-      assignLabelMutation.mutate(boardLabelId);
-    } else {
-      removeLabelMutation.mutate(boardLabelId);
+    // Prevent clicking if already processing
+    if (processingLabels.has(boardLabelId)) {
+      return;
     }
+    
+    // Set optimistic UI immediately
+    setOptimisticChecked((prev) => ({ ...prev, [boardLabelId]: checked }));
+    if (checked) assignLabelMutation.mutate(boardLabelId);
+    else removeLabelMutation.mutate(boardLabelId);
+  };
+
+  // Filter labels based on search query
+  const filteredLabels = availableLabels.filter((label: { id: string; name: string; color: string }) =>
+    label.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Handle open change
+  const handleOpenChange = (open: boolean) => {
+    if (controlledOpen === undefined) {
+      setIsOpen(open);
+    }
+    onOpenChange?.(open);
   };
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+    <DropdownMenu open={isDropdownOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         {trigger || (
           <Button
@@ -291,7 +382,12 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
           </Button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-80 p-0 dark:bg-[#0D1117] max-h-96 flex flex-col">
+      <DropdownMenuContent 
+        align={controlledOpen !== undefined ? "end" : "start"} 
+        side={controlledOpen !== undefined ? "bottom" : "bottom"}
+        sideOffset={controlledOpen !== undefined ? 8 : 4}
+        className="w-80 p-0 dark:bg-[#0D1117] max-h-96 flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 flex-shrink-0">
           <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">
@@ -306,37 +402,89 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
         </div>
         
         <div className="p-4 space-y-4 flex-1 overflow-y-auto scrollbar-thin">
+          {/* Search Input - Only show when labels are available */}
+          {!isLoadingLabels && availableLabels.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search labels..."
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+          )}
+
           {/* Board Labels with checkboxes */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Labels
             </Label>
             <div className="flex flex-col gap-2">
-              {availableLabels.map((label: { id: string; name: string; color: string }) => {
-                const checked = isChecked(label.id);
-                return (
-                  <label key={label.id} className="flex items-center justify-between gap-3 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-300"
-                        checked={checked}
-                        onChange={(e) => toggleLabel(label.id, e.target.checked)}
-                      />
-                      <div className="w-10 h-3 rounded-sm" style={{ backgroundColor: label.color }} />
-                      <span className="text-sm text-slate-800 dark:text-slate-200">{label.name}</span>
+              {isLoadingLabels ? (
+                // Loading skeletons
+                Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="flex items-center justify-between gap-3 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-3 flex-1">
+                      <Skeleton className="h-4 w-4 rounded" />
+                      <Skeleton className="h-3 w-10 rounded-sm" />
+                      <Skeleton className="h-4 w-24" />
                     </div>
-                    <button
-                      onClick={() => handleEditLabel({ id: label.id, name: label.name, color: label.color })}
-                      className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-sm transition-colors"
-                      title="Edit label"
-                      type="button"
+                    <Skeleton className="h-6 w-6 rounded-sm" />
+                  </div>
+                ))
+              ) : filteredLabels.length === 0 && searchQuery ? (
+                // No results message
+                <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+                  No labels found matching &quot;{searchQuery}&quot;
+                </div>
+              ) : filteredLabels.length === 0 && !searchQuery ? (
+                // No labels available
+                <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+                  No labels available
+                </div>
+              ) : (
+                filteredLabels.map((label: { id: string; name: string; color: string }) => {
+                  const checked = isChecked(label.id);
+                  const isProcessing = processingLabels.has(label.id);
+                  return (
+                    <label 
+                      key={label.id} 
+                      className={`flex items-center justify-between gap-3 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 ${
+                        isProcessing ? 'opacity-60 cursor-wait' : ''
+                      }`}
                     >
-                      <Edit className="w-3 h-3 text-slate-500 dark:text-slate-400" />
-                    </button>
-                  </label>
-                );
-              })}
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          className="rounded border-slate-300"
+                          checked={checked}
+                          disabled={isProcessing}
+                          onChange={(e) => toggleLabel(label.id, e.target.checked)}
+                        />
+                        <div className="w-10 h-3 rounded-sm" style={{ backgroundColor: label.color }} />
+                        <span className="text-sm text-slate-800 dark:text-slate-200">
+                          {label.name}
+                          {isProcessing && (
+                            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
+                              {checked ? 'Attaching...' : 'Removing...'}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleEditLabel({ id: label.id, name: label.name, color: label.color })}
+                        disabled={isProcessing}
+                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Edit label"
+                        type="button"
+                      >
+                        <Edit className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                      </button>
+                    </label>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -467,19 +615,6 @@ export function LabelDropdown({ card, boardId, trigger }: LabelDropdownProps) {
                   className="px-3 border-red-300 text-red-600 hover:bg-red-50"
                 >
                   Delete
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditingLabel(null);
-                    setEditLabelName("");
-                    setEditLabelColor("");
-                    setEditCustomColor("");
-                  }}
-                  className="px-3"
-                >
-                  Cancel
                 </Button>
               </div>
             </div>
