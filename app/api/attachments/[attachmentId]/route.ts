@@ -43,6 +43,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Card not found for attachment" }, { status: 404 });
     }
 
+    // Check if card has a list
+    if (!attachment.card.list) {
+      return NextResponse.json({ error: "List not found for attachment card" }, { status: 404 });
+    }
+
     // Check if user has access to the card
     const hasAccess = 
       attachment.card.list.board.ownerId === user.id ||
