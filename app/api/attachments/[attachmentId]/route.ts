@@ -44,12 +44,12 @@ export async function DELETE(
     }
 
     // Check if card has a list
-    if (!attachment.card.list) {
+    if (!attachment?.card?.list) {
       return NextResponse.json({ error: "List not found for attachment card" }, { status: 404 });
     }
 
     // Check if list has a board
-    const board = attachment.card.list.board;
+    const board = attachment?.card?.list?.board;
     if (!board) {
       return NextResponse.json({ error: "Board not found for attachment list" }, { status: 404 });
     }
