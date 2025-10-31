@@ -125,9 +125,10 @@ export async function POST(request: NextRequest) {
             create: card.checklists.map((checklist) => ({
               title: checklist.title,
               items: {
-                create: checklist.items.map((item) => ({
-                  text: item.text,
+                create: checklist.items.map((item, index) => ({
+                  content: item.content,
                   isCompleted: false, // Reset completion status
+                  position: index,
                 })),
               },
             })),
