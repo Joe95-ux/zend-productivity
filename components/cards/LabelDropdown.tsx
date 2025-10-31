@@ -290,10 +290,6 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
     });
   };
 
-  const _handleAssignLabel = (labelId: string) => {
-    assignLabelMutation.mutate(labelId);
-  };
-
   const handleEditLabel = (label: { id: string; name: string; color: string }) => {
     setEditingLabel(label);
     setEditLabelName(label.name);
@@ -313,10 +309,6 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
       name: editLabelName.trim(),
       color: colorToUse,
     });
-  };
-
-  const _handleRemoveLabel = (labelId: string) => {
-    removeLabelMutation.mutate(labelId);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

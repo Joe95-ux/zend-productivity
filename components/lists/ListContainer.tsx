@@ -332,7 +332,6 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                           list={{ id: list.id, title: list.title }}
                           boardId={boardId}
                           index={index}
-                          watchMap={watchMap || undefined}
                         />
                       ))}
                       {provided.placeholder}
@@ -415,23 +414,19 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   );
 }
 
-// Component to fetch watch status for individual cards
-function CardItemWithWatch({ card, list, boardId, index, watchMap }: {
+// Component wrapper for CardItem
+function CardItemWithWatch({ card, list, boardId, index }: {
   card: CardType;
   list: { id: string; title: string };
   boardId: string;
   index: number;
-  watchMap?: Record<string, boolean>;
 }) {
-  const isWatching = watchMap?.[`card:${card.id}`] || false;
-
   return (
     <CardItem
       card={card}
       list={list}
       boardId={boardId}
       index={index}
-      isWatching={isWatching}
     />
   );
 }

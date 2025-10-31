@@ -65,14 +65,13 @@ export function CreateListForm({ boardId, onSuccess }: CreateListFormProps) {
       const nextPosition = currentBoard?.lists?.length ? Math.max(...currentBoard.lists.map((l) => l.position)) + 1 : 1;
 
       // Create optimistic list
-      const optimisticList = {
+      const optimisticList: List = {
         id: `temp-${Date.now()}`, // Temporary ID
         title: newData.title,
         position: nextPosition,
-        boardId: boardId,
         cards: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       // Optimistically update the cache
@@ -80,7 +79,7 @@ export function CreateListForm({ boardId, onSuccess }: CreateListFormProps) {
         if (!old) return old;
         return {
           ...old,
-          lists: [...(old.lists || []), optimisticList]
+          lists: [...(old.lists || []), optimisticList] as List[]
         };
       });
 

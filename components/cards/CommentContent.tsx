@@ -81,14 +81,18 @@ export function CommentContent({ content, className = "" }: CommentContentProps)
         );
       } else if (node.nodeType === Node.TEXT_NODE) {
         return <span key={index}>{node.textContent}</span>;
-      } else {
-        // For other HTML elements, render them safely
+      } else if (node.nodeType === Node.ELEMENT_NODE && 'outerHTML' in node) {
+        // For HTML elements, render them safely
+        const element = node as HTMLElement;
         return (
           <div 
             key={index} 
-            dangerouslySetInnerHTML={{ __html: node.outerHTML }} 
+            dangerouslySetInnerHTML={{ __html: element.outerHTML }} 
           />
         );
+      } else {
+        // For other node types (comments, etc.), skip them
+        return null;
       }
     });
   };
