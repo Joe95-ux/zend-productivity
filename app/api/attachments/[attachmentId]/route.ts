@@ -48,10 +48,16 @@ export async function DELETE(
       return NextResponse.json({ error: "List not found for attachment card" }, { status: 404 });
     }
 
+    // Check if list has a board
+    const board = attachment.card.list.board;
+    if (!board) {
+      return NextResponse.json({ error: "Board not found for attachment list" }, { status: 404 });
+    }
+
     // Check if user has access to the card
     const hasAccess = 
-      attachment.card.list.board.ownerId === user.id ||
-      attachment.card.list.board.members.some(member => member.userId === user.id);
+      board.ownerId === user.id ||
+      board.members.some(member => member.userId === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
