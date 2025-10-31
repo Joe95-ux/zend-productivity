@@ -104,12 +104,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Card not found" }, { status: 404 });
     }
 
-    if (!card.list?.board) {
-      return NextResponse.json({ error: "board not found" }, { status: 404 });
-}
+    if (!card.list) {
+      return NextResponse.json({ error: "List not found for card" }, { status: 404 });
+    }
 
-    const hasAccess = card.list.board.ownerId === user.id || 
-      card.list.board.members.some(member => member.user.id === user.id);
+    if (!card.list.board) {
+      return NextResponse.json({ error: "Board not found" }, { status: 404 });
+    }
+
+    const board = card.list.board;
+    const hasAccess = board.ownerId === user.id || 
+      board.members.some(member => member.user.id === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

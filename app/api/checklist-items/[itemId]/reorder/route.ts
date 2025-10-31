@@ -60,9 +60,25 @@ export async function PUT(
       return NextResponse.json({ error: "Checklist not found" }, { status: 404 });
     }
 
+    // Check if checklist has a card
+    if (!checklist.card) {
+      return NextResponse.json({ error: "Card not found for checklist" }, { status: 404 });
+    }
+
+    // Check if card has a list
+    if (!checklist.card.list) {
+      return NextResponse.json({ error: "List not found for checklist card" }, { status: 404 });
+    }
+
+    // Check if list has a board
+    const board = checklist.card.list.board;
+    if (!board) {
+      return NextResponse.json({ error: "Board not found for checklist list" }, { status: 404 });
+    }
+
     // Check if user has access to the board
-    const hasAccess = checklist.card.list.board.ownerId === userId || 
-      checklist.card.list.board.members.some(member => member.userId === userId);
+    const hasAccess = board.ownerId === userId || 
+      board.members.some(member => member.userId === userId);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

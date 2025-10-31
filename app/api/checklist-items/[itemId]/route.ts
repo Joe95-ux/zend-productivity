@@ -68,9 +68,30 @@ export async function PUT(
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
+    // Check if item has a checklist
+    if (!item.checklist) {
+      return NextResponse.json({ error: "Checklist not found for item" }, { status: 404 });
+    }
+
+    // Check if checklist has a card
+    if (!item.checklist.card) {
+      return NextResponse.json({ error: "Card not found for checklist" }, { status: 404 });
+    }
+
+    // Check if card has a list
+    if (!item.checklist.card.list) {
+      return NextResponse.json({ error: "List not found for checklist card" }, { status: 404 });
+    }
+
+    // Check if list has a board
+    const board = item.checklist.card.list.board;
+    if (!board) {
+      return NextResponse.json({ error: "Board not found for checklist list" }, { status: 404 });
+    }
+
     // Check if user has access to the board
-    const hasAccess = item.checklist.card.list.board.ownerId === user.id || 
-      item.checklist.card.list.board.members.some(member => member.userId === user.id);
+    const hasAccess = board.ownerId === user.id || 
+      board.members.some(member => member.userId === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -91,7 +112,7 @@ export async function PUT(
         await createActivityWithNotifications({
           type: isCompleted ? "completed_checklist_item" : "uncompleted_checklist_item",
           message: `${isCompleted ? "Completed" : "Uncompleted"} item "${item.content}" in checklist "${item.checklist.title}"`,
-          boardId: item.checklist.card.list.boardId,
+          boardId: board.id,
           cardId: item.checklist.cardId,
           userId: user.id
         });
@@ -152,9 +173,30 @@ export async function DELETE(
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
+    // Check if item has a checklist
+    if (!item.checklist) {
+      return NextResponse.json({ error: "Checklist not found for item" }, { status: 404 });
+    }
+
+    // Check if checklist has a card
+    if (!item.checklist.card) {
+      return NextResponse.json({ error: "Card not found for checklist" }, { status: 404 });
+    }
+
+    // Check if card has a list
+    if (!item.checklist.card.list) {
+      return NextResponse.json({ error: "List not found for checklist card" }, { status: 404 });
+    }
+
+    // Check if list has a board
+    const board = item.checklist.card.list.board;
+    if (!board) {
+      return NextResponse.json({ error: "Board not found for checklist list" }, { status: 404 });
+    }
+
     // Check if user has access to the board
-    const hasAccess = item.checklist.card.list.board.ownerId === user.id || 
-      item.checklist.card.list.board.members.some(member => member.userId === user.id);
+    const hasAccess = board.ownerId === user.id || 
+      board.members.some(member => member.userId === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -170,7 +212,7 @@ export async function DELETE(
       await createActivityWithNotifications({
         type: "deleted_checklist_item",
         message: `Deleted item "${item.content}" from checklist "${item.checklist.title}"`,
-        boardId: item.checklist.card.list.boardId,
+        boardId: board.id,
         cardId: item.checklist.cardId,
         userId: user.id
       });

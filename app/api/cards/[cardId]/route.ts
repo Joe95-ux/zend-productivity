@@ -70,8 +70,9 @@ export async function PUT(
       return NextResponse.json({ error: "Board not found" }, { status: 404 });
     }
 
-    const hasAccess = card.list.board.ownerId === user.id || 
-      card.list.board.members.some(member => member.user.id === user.id);
+    const board = card.list.board;
+    const hasAccess = board.ownerId === user.id || 
+      board.members.some(member => member.user.id === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -234,8 +235,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Board not found" }, { status: 404 });
     }
 
-    const hasAccess = card.list.board.ownerId === user.id || 
-      card.list.board.members.some(member => member.user.id === user.id);
+    const board = card.list.board;
+    const hasAccess = board.ownerId === user.id || 
+      board.members.some(member => member.user.id === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
