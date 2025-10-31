@@ -29,9 +29,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Card not found" }, { status: 404 });
     }
 
+    // Check if card has a list
+    if (!cardToMove?.list) {
+      return NextResponse.json({ error: "List not found for card" }, { status: 404 });
+    }
+
     // Check if user has access to both boards
     const sourceBoard = await db.board.findFirst({
-      where: { id: cardToMove.list.boardId, ownerId: user.id }
+      where: { id: cardToMove?.list?.boardId, ownerId: user.id }
     });
 
     const targetBoard = await db.board.findFirst({
