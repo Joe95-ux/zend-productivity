@@ -83,14 +83,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Create activity log with notifications
     try {
       console.log("Creating activity with notifications");
-      await createActivityWithNotifications({
-        type: "added_checklist_item",
-        message: `Added item "${content}" to checklist "${checklist?.title}"`,
-        boardId: checklist?.card?.list?.boardId || "",
-        cardId: checklist?.cardId,
-        userId: user.id
-      });
-      console.log("Activity created successfully");
+      const boardId = checklist?.card?.list?.boardId;
+      const cardId = checklist?.cardId;
+      if (boardId && cardId) {
+        await createActivityWithNotifications({
+          type: "added_checklist_item",
+          message: `Added item "${content}" to checklist "${checklist?.title}"`,
+          boardId: boardId,
+          cardId: cardId,
+          userId: user.id
+        });
+        console.log("Activity created successfully");
+      }
     } catch (activityError) {
       console.error("Error creating activity for checklist item:", activityError);
     }

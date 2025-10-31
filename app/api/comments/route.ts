@@ -158,23 +158,26 @@ export async function POST(request: NextRequest) {
 
     // Create activity log with notifications (with error handling)
     try {
-      console.log("Creating activity for comment:", {
-        type: "added_comment",
-        message: `Added a comment to card "${card.title}"`,
-        boardId: card.list?.boardId,
-        cardId: cardId,
-        userId: user.id
-      });
+      const boardId = card.list?.boardId;
+      if (boardId) {
+        console.log("Creating activity for comment:", {
+          type: "added_comment",
+          message: `Added a comment to card "${card.title}"`,
+          boardId: boardId,
+          cardId: cardId,
+          userId: user.id
+        });
+        
+        const result = await createActivityWithNotifications({
+          type: "added_comment",
+          message: `Added a comment to card "${card.title}"`,
+          boardId: boardId,
+          cardId: cardId,
+          userId: user.id
+        });
       
-      const result = await createActivityWithNotifications({
-        type: "added_comment",
-        message: `Added a comment to card "${card.title}"`,
-        boardId: card.list?.boardId,
-        cardId: cardId,
-        userId: user.id
-      });
-      
-      console.log("Activity and notifications created:", result);
+        console.log("Activity and notifications created:", result);
+      }
     } catch (activityError) {
       console.error("Error creating activity for comment:", activityError);
       // Don't fail the comment creation if activity creation fails

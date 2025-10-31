@@ -72,13 +72,17 @@ export async function PUT(
 
     // Create activity log with notifications
     try {
-      await createActivityWithNotifications({
-        type: "updated_checklist",
-        message: `Updated checklist "${title}" in card "${checklist.card?.title}"`,
-        boardId: checklist.card?.list?.boardId || "",
-        cardId: checklist.cardId || "",
-        userId: user.id
-      });
+      const boardId = checklist.card?.list?.boardId;
+      const cardId = checklist.cardId;
+      if (boardId && cardId) {
+        await createActivityWithNotifications({
+          type: "updated_checklist",
+          message: `Updated checklist "${title}" in card "${checklist.card?.title}"`,
+          boardId: boardId,
+          cardId: cardId,
+          userId: user.id
+        });
+      }
     } catch (activityError) {
       console.error("Error creating activity for checklist update:", activityError);
     }
@@ -146,13 +150,17 @@ export async function DELETE(
 
     // Create activity log with notifications
     try {
-      await createActivityWithNotifications({
-        type: "deleted_checklist",
-        message: `Deleted checklist "${checklist.title}" from card "${checklist.card?.title}"`,
-        boardId: checklist.card?.list?.boardId || "",
-        cardId: checklist.cardId || "",
-        userId: user.id
-      });
+      const boardId = checklist.card?.list?.boardId;
+      const cardId = checklist.cardId;
+      if (boardId && cardId) {
+        await createActivityWithNotifications({
+          type: "deleted_checklist",
+          message: `Deleted checklist "${checklist.title}" from card "${checklist.card?.title}"`,
+          boardId: boardId,
+          cardId: cardId,
+          userId: user.id
+        });
+      }
     } catch (activityError) {
       console.error("Error creating activity for checklist deletion:", activityError);
     }

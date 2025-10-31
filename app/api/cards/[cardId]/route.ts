@@ -170,13 +170,16 @@ export async function PUT(
 
     // Create activity log with notifications (with error handling)
     try {
-      await createActivityWithNotifications({
-        type: activityType,
-        message: activityMessage,
-        boardId: card.list?.boardId,
-        cardId: cardId,
-        userId: user.id
-      });
+      const boardId = card.list?.boardId;
+      if (boardId) {
+        await createActivityWithNotifications({
+          type: activityType,
+          message: activityMessage,
+          boardId: boardId,
+          cardId: cardId,
+          userId: user.id
+        });
+      }
     } catch (activityError) {
       console.error("Error creating activity for card update:", activityError);
       // Don't fail the card update if activity creation fails
@@ -249,10 +252,11 @@ export async function DELETE(
 
     // Create activity log with notifications (with error handling)
     try {
+      const boardId = board.id;
       await createActivityWithNotifications({
         type: "deleted_card",
         message: `Deleted card "${card.title}"`,
-        boardId: card.list?.boardId,
+        boardId: boardId,
         cardId: cardId,
         userId: user.id
       });

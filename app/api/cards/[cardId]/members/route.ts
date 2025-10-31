@@ -46,15 +46,22 @@ export async function POST(
       return NextResponse.json({ error: "Card not found or unauthorized" }, { status: 404 });
     }
 
+    // Check if card has a list and board
+    if (!card.list || !card.list.board) {
+      return NextResponse.json({ error: "Board not found for card" }, { status: 404 });
+    }
+
+    const board = card.list.board;
+
     // Verify the user to be assigned is a member of the board
     const boardMember = await db.member.findFirst({
       where: {
-        boardId: card?.list?.board?.id,
+        boardId: board.id,
         userId: userId
       }
     });
 
-    if (!boardMember && card?.list?.board?.ownerId !== userId) {
+    if (!boardMember && board.ownerId !== userId) {
       return NextResponse.json({ error: "User is not a member of this board" }, { status: 400 });
     }
 
