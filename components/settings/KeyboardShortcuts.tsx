@@ -1,8 +1,7 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Keyboard, Plus, Search, Edit, Trash, Copy, Move } from "lucide-react";
+import { Plus, Search, Edit, Trash, Copy, Move } from "lucide-react";
 
 export function KeyboardShortcuts() {
   const shortcuts = [

@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Accessibility, Eye, Type, MousePointer } from "lucide-react";
+import { Eye, Type, MousePointer } from "lucide-react";
 
 export function AccessibilitySettings() {
   const [highContrast, setHighContrast] = useState(false);

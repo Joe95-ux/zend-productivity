@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, RotateCcw, Bell, X } from "lucide-react";
 import { toast } from "sonner";
-import { format, addDays, addWeeks, addMonths, addYears } from "date-fns";
+import { format, addDays, addWeeks, addMonths } from "date-fns";
 
 interface DueDateModalProps {
   isOpen: boolean;

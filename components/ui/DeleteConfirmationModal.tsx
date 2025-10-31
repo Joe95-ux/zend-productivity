@@ -29,7 +29,7 @@ export function DeleteConfirmationModal({
   onConfirm,
   title,
   description,
-  itemName,
+  itemName: _itemName,
   isLoading = false,
   variant = "card",
 }: DeleteConfirmationModalProps) {

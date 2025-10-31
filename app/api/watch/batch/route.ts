@@ -32,7 +32,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Build the where clause for the watch query
-    const whereClause: any = {
+    interface WatchWhereClause {
+      userId: string;
+      OR?: Array<{ boardId?: string; listId?: { in: string[] }; cardId?: { in: string[] } }>;
+    }
+    
+    const whereClause: WatchWhereClause = {
       userId: user.id
     };
 

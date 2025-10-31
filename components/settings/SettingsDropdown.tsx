@@ -11,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { 
@@ -32,7 +31,7 @@ export function SettingsDropdown() {
   const queryClient = useQueryClient();
 
   // Fetch current email preferences
-  const { data: preferences, isLoading } = useQuery({
+  const { data: preferences } = useQuery({
     queryKey: ["email-preferences"],
     queryFn: async () => {
       const response = await fetch("/api/user/email-preferences");

@@ -63,12 +63,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Target list not found" }, { status: 404 });
     }
 
-    // Get all cards in target list to determine position
-    const targetListCards = await db.card.findMany({
-      where: { listId: targetListId },
-      orderBy: { position: "asc" },
-    });
-
     // Update positions of cards at or after the target position
     await db.card.updateMany({
       where: {

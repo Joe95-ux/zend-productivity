@@ -13,7 +13,7 @@ import { ListContainer } from "@/components/lists/ListContainer";
 import { Droppable } from "@hello-pangea/dnd";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Link from "next/link";
-import { generateCardSlug, parseCardSlug, slugify } from "@/lib/utils";
+import { generateCardSlug, parseCardSlug } from "@/lib/utils";
 
 interface BoardContentWithCardModalProps {
   boardId: string;

@@ -147,7 +147,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
       const previousBoard = queryClient.getQueryData(["board", boardId]);
       
       // Optimistically update the cache
-      queryClient.setQueryData(["board", boardId], (old: any) => {
+      queryClient.setQueryData(["board", boardId], (old: { title?: string; description?: string; [key: string]: unknown } | undefined) => {
         if (!old) return old;
         return {
           ...old,

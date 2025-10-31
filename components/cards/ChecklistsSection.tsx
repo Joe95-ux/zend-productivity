@@ -1,9 +1,10 @@
 "use client";
 
 import { ChecklistsSkeleton } from "./ChecklistSkeleton";
+import { Checklist } from "@/lib/types";
 
 interface ChecklistsSectionProps {
-  checklists: any[];
+  checklists: Checklist[];
   isLoading?: boolean;
   children: React.ReactNode;
 }

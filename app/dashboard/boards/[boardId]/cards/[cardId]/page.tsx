@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { DndProvider, useDndContext } from "@/components/dnd/DndProvider";
 import { Card as CardType, List as ListType } from "@/lib/types";
 import { generateCardSlug } from "@/lib/utils";

@@ -22,7 +22,7 @@ export function AttachmentUpload({
   onFileUpload,
   onUrlUpload,
   onUploadComplete,
-  isUploading = false,
+  isUploading: _isUploading = false,
   acceptedTypes = "image/*",
   maxSize = 5,
   children,
@@ -55,7 +55,7 @@ export function AttachmentUpload({
     // Close modal after upload starts
     setIsOpen(false);
     onUploadComplete?.();
-  }, [onFileUpload, acceptedTypes, maxSize]);
+  }, [onFileUpload, acceptedTypes, maxSize, onUploadComplete]);
 
   const handleUrlUpload = useCallback(() => {
     if (url.trim()) {
@@ -66,7 +66,7 @@ export function AttachmentUpload({
       setIsOpen(false);
       onUploadComplete?.();
     }
-  }, [url, displayName, onUrlUpload]);
+  }, [url, displayName, onUrlUpload, onUploadComplete]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {

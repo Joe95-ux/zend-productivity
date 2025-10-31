@@ -127,7 +127,7 @@ export function ChecklistItemDndProvider({
       itemId: item.id,
       newPosition: endIndex
     });
-  }, [items, reorderItemsMutation, checklistId]);
+  }, [items, reorderItemsMutation]);
 
   const contextValue = {
     reorderItems,

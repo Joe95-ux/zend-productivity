@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Check, Plus, Trash2, Edit, X, ListTodo } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Checklist, ChecklistItem } from "@/lib/types";
+import { Checklist } from "@/lib/types";
 import { ChecklistConfirmationModal } from "@/components/ui/ChecklistConfirmationModal";
 
 interface ChecklistModalProps {

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
+import { Board, List } from "@/lib/types";
 
 const createListSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -60,8 +61,8 @@ export function CreateListForm({ boardId, onSuccess }: CreateListFormProps) {
       const previousBoard = queryClient.getQueryData(["board", boardId]);
 
       // Get current lists to determine next position
-      const currentBoard = queryClient.getQueryData(["board", boardId]) as any;
-      const nextPosition = currentBoard?.lists?.length ? Math.max(...currentBoard.lists.map((l: any) => l.position)) + 1 : 1;
+      const currentBoard = queryClient.getQueryData<Board>(["board", boardId]);
+      const nextPosition = currentBoard?.lists?.length ? Math.max(...currentBoard.lists.map((l) => l.position)) + 1 : 1;
 
       // Create optimistic list
       const optimisticList = {
@@ -75,7 +76,7 @@ export function CreateListForm({ boardId, onSuccess }: CreateListFormProps) {
       };
 
       // Optimistically update the cache
-      queryClient.setQueryData(["board", boardId], (old: any) => {
+      queryClient.setQueryData<Board>(["board", boardId], (old) => {
         if (!old) return old;
         return {
           ...old,
@@ -88,11 +89,11 @@ export function CreateListForm({ boardId, onSuccess }: CreateListFormProps) {
     },
     onSuccess: (data, variables, context) => {
       // Update the cache with the real data from server
-      queryClient.setQueryData(["board", boardId], (old: any) => {
+      queryClient.setQueryData<Board>(["board", boardId], (old) => {
         if (!old) return old;
         return {
           ...old,
-          lists: old.lists.map((list: any) => 
+          lists: old.lists.map((list) => 
             list.id === context?.optimisticList.id ? data : list
           )
         };

@@ -2,14 +2,14 @@
 
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Logo from "@/components/Logo";
 import { ArrowRight, CheckCircle, Zap, Users, Shield, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export default function LandingPage() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded } = useUser();
 
   if (!isLoaded) {
     return (

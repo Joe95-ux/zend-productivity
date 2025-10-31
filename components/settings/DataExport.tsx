@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileText, Database, Archive } from "lucide-react";
@@ -40,7 +39,7 @@ export function DataExport() {
       URL.revokeObjectURL(url);
 
       toast.success("Data exported successfully!");
-    } catch (error) {
+    } catch {
       toast.error("Failed to export data. Please try again.");
     } finally {
       setIsExporting(false);

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Board not found or unauthorized" }, { status: 404 });
     }
 
-    let whereClause: any = { boardId };
+    const whereClause: { boardId: string; cardId?: string } = { boardId };
     
     // If cardId is provided, filter activities for that specific card
     if (cardId) {

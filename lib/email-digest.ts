@@ -17,6 +17,7 @@ interface NotificationWithActivity {
   cardId?: string | null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface DigestEmailData {
   notifications: NotificationWithActivity[];
   type: "daily" | "weekly";
