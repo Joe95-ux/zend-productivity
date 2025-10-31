@@ -4,15 +4,15 @@ import { db } from "@/lib/db";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { itemId } = params;
+    const { itemId } = await params;
     
     // Parse request body with error handling
     let requestBody: { checklistId: string; newPosition: number };
