@@ -156,17 +156,34 @@ export async function POST(request: NextRequest) {
     });
 
     // Extract images from comment content and create attachments
+    const duplicateUrls: string[] = [];
     try {
       const imageRegex = /<img[^>]+src="([^"]+)"[^>]*>/g;
-      const images = [];
+      const images: string[] = [];
       let match;
       
       while ((match = imageRegex.exec(content)) !== null) {
         images.push(match[1]);
       }
 
-      // Create attachments for each image
+      // Get existing attachments to avoid duplicates (case-insensitive comparison)
+      const existingAttachments = await db.attachment.findMany({
+        where: { cardId },
+        select: { url: true }
+      });
+      // Normalize URLs to lowercase for case-insensitive comparison
+      const existingUrlsLower = new Set(existingAttachments.map(att => att.url.toLowerCase()));
+
+      // Create attachments for each new image (not already in attachments)
       for (const imageUrl of images) {
+        const normalizedUrl = imageUrl.toLowerCase();
+        
+        // Check if attachment already exists (case-insensitive)
+        if (existingUrlsLower.has(normalizedUrl)) {
+          duplicateUrls.push(imageUrl);
+          continue;
+        }
+
         await db.attachment.create({
           data: {
             url: imageUrl,
@@ -207,7 +224,10 @@ export async function POST(request: NextRequest) {
       // Don't fail the comment creation if activity creation fails
     }
 
-    return NextResponse.json(comment, { status: 201 });
+    return NextResponse.json({
+      ...comment,
+      duplicateImages: duplicateUrls.length > 0 ? duplicateUrls : undefined
+    }, { status: 201 });
   } catch (error) {
     console.error("Error creating comment:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -77,6 +77,48 @@ export async function PUT(
       }
     });
 
+    // Extract images from updated comment content and create attachments for new images
+    const duplicateUrls: string[] = [];
+    try {
+      const imageRegex = /<img[^>]+src="([^"]+)"[^>]*>/g;
+      const images: string[] = [];
+      let match;
+      
+      while ((match = imageRegex.exec(content)) !== null) {
+        images.push(match[1]);
+      }
+
+      // Get existing attachments to avoid duplicates (case-insensitive comparison)
+      const existingAttachments = await db.attachment.findMany({
+        where: { cardId: updatedComment.cardId },
+        select: { url: true }
+      });
+      // Normalize URLs to lowercase for case-insensitive comparison
+      const existingUrlsLower = new Set(existingAttachments.map(att => att.url.toLowerCase()));
+
+      // Create attachments for each new image (not already in attachments)
+      for (const imageUrl of images) {
+        const normalizedUrl = imageUrl.toLowerCase();
+        
+        // Check if attachment already exists (case-insensitive)
+        if (existingUrlsLower.has(normalizedUrl)) {
+          duplicateUrls.push(imageUrl);
+          continue;
+        }
+
+        await db.attachment.create({
+          data: {
+            url: imageUrl,
+            type: 'image',
+            cardId: updatedComment.cardId
+          }
+        });
+      }
+    } catch (attachmentError) {
+      console.error("Error creating attachments from comment update images:", attachmentError);
+      // Don't fail the comment update if attachment creation fails
+    }
+
     // Create activity log (with error handling)
     try {
       const boardId = existingComment.card?.list?.boardId || updatedComment.card?.list?.boardId;
@@ -96,7 +138,10 @@ export async function PUT(
       // Don't fail the comment update if activity creation fails
     }
 
-    return NextResponse.json(updatedComment);
+    return NextResponse.json({
+      ...updatedComment,
+      duplicateImages: duplicateUrls.length > 0 ? duplicateUrls : undefined
+    });
   } catch (error) {
     console.error("Error updating comment:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

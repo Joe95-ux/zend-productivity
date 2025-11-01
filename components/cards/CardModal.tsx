@@ -44,7 +44,6 @@ import {
   Megaphone,
   FileText,
   Check,
-  Clock,
   Eye,
   EyeOff,
   Calendar,
@@ -54,7 +53,7 @@ import {
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { ActivityTimeline } from "@/components/activities/ActivityTimeline";
 import { HoverHint } from "@/components/HoverHint";
 import { ShootingStars } from "@/components/ui/ShootingStars";
 import { motion, AnimatePresence } from "framer-motion";
@@ -598,6 +597,14 @@ export function CardModal({
       return response.json();
     },
     onSuccess: (data, variables) => {
+      // Show info toast if duplicates were found
+      if (data.duplicateImages && data.duplicateImages.length > 0) {
+        const count = data.duplicateImages.length;
+        toast.info(
+          `${count} image${count > 1 ? 's' : ''} already exist${count > 1 ? '' : 's'} as attachment${count > 1 ? 's' : ''} and ${count > 1 ? 'were' : 'was'} not added again.`
+        );
+      }
+
       // Update the query cache immediately with the new data
       queryClient.setQueryData(
         ["board", boardId],
@@ -653,7 +660,15 @@ export function CardModal({
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Show info toast if duplicates were found
+      if (data.duplicateImages && data.duplicateImages.length > 0) {
+        const count = data.duplicateImages.length;
+        toast.info(
+          `${count} image${count > 1 ? 's' : ''} already exist${count > 1 ? '' : 's'} as attachment${count > 1 ? 's' : ''} and ${count > 1 ? 'were' : 'was'} not added again.`
+        );
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       queryClient.invalidateQueries({ queryKey: ["comments"] });
       commentForm.reset();
@@ -688,7 +703,15 @@ export function CardModal({
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Show info toast if duplicates were found
+      if (data.duplicateImages && data.duplicateImages.length > 0) {
+        const count = data.duplicateImages.length;
+        toast.info(
+          `${count} image${count > 1 ? 's' : ''} already exist${count > 1 ? '' : 's'} as attachment${count > 1 ? 's' : ''} and ${count > 1 ? 'were' : 'was'} not added again.`
+        );
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       setEditingCommentId(null);
       setEditingCommentContent("");
@@ -2766,89 +2789,12 @@ export function CardModal({
                     )}
 
                     {/* Activities Section */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-medium text-strong dark:text-slate-300">
-                        <Clock className="w-4 h-4" />
-                        Recent Activity
-                      </div>
-                      <div className="space-y-2">
-                        {activitiesLoading ? (
-                          <div className="text-sm text-slate-500 dark:text-slate-400">
-                            Loading activities...
-                          </div>
-                        ) : activities && activities.length > 0 ? (
-                          (showDetails
-                            ? activities
-                            : activities.slice(0, 1)
-                          ).map(
-                            (activity: {
-                              id: string;
-                              message: string;
-                              user: {
-                                name?: string;
-                                email: string;
-                                avatarUrl?: string;
-                              };
-                              createdAt: string;
-                            }) => (
-                              <div
-                                key={activity.id}
-                                className="flex gap-3 items-center"
-                              >
-                                <ConditionalUserProfile
-                                  user={activity.user}
-                                  size="md"
-                                />
-                                <div className="flex-1 space-y-1">
-                                  <p className="text-sm">
-                                    <span className="font-medium text-strong dark:text-slate-300">
-                                      {activity.user.name ||
-                                        activity.user.email}
-                                    </span>{" "}
-                                    {activity.message}
-                                  </p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    {format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                                  </p>
-                                </div>
-                              </div>
-                            )
-                          )
-                        ) : (
-                          <div className="text-sm text-slate-500 dark:text-slate-400">
-                            No recent activity
-                          </div>
-                        )}
-                        {/* Show more activities indicator when details are hidden */}
-                        {!showDetails &&
-                          activities &&
-                          activities.length > 1 && (
-                            <div className="text-center py-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowDetails(true)}
-                                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                              >
-                                Show {activities.length - 1} more activities
-                              </Button>
-                            </div>
-                          )}
-                        {card.comments.length === 0 && (
-                          <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                            <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-full w-fit mx-auto mb-3">
-                              <MessageSquare className="h-6 w-6" />
-                            </div>
-                            <p className="text-sm font-medium">
-                              No comments yet
-                            </p>
-                            <p className="text-xs mt-1">
-                              Be the first to add a comment
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <ActivityTimeline
+                      activities={activities || []}
+                      isLoading={activitiesLoading}
+                      showDetails={showDetails}
+                      onShowMore={() => setShowDetails(true)}
+                    />
                   </div>
                 </TabsContent>
               </Tabs>
@@ -4054,81 +4000,12 @@ export function CardModal({
                   )}
 
                   {/* Activities Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm font-medium text-strong dark:text-slate-300">
-                      <Clock className="w-4 h-4" />
-                      Recent Activity
-                    </div>
-                    <div className="space-y-2">
-                      {activitiesLoading ? (
-                        <div className="text-sm text-slate-500 dark:text-slate-400">
-                          Loading activities...
-                        </div>
-                      ) : activities && activities.length > 0 ? (
-                        (showDetails ? activities : activities.slice(0, 1)).map(
-                          (activity: {
-                            id: string;
-                            message: string;
-                            user: {
-                              name?: string;
-                              email: string;
-                              avatarUrl?: string;
-                            };
-                            createdAt: string;
-                          }) => (
-                            <div
-                              key={activity.id}
-                              className="flex gap-3 items-center"
-                            >
-                              <ConditionalUserProfile
-                                user={activity.user}
-                                size="md"
-                              />
-                              <div className="flex-1 space-y-1">
-                                <p className="text-sm">
-                                  <span className="font-medium text-strong dark:text-slate-300">
-                                    {activity.user.name || activity.user.email}
-                                  </span>{" "}
-                                  {activity.message}
-                                </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                  {format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                                </p>
-                              </div>
-                            </div>
-                          )
-                        )
-                      ) : (
-                        <div className="text-sm text-slate-500 dark:text-slate-400">
-                          No recent activity
-                        </div>
-                      )}
-                      {/* Show more activities indicator when details are hidden */}
-                      {!showDetails && activities && activities.length > 1 && (
-                        <div className="text-center py-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowDetails(true)}
-                            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                          >
-                            Show {activities.length - 1} more activities
-                          </Button>
-                        </div>
-                      )}
-                      {card.comments.length === 0 && (
-                        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                          <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-full w-fit mx-auto mb-3">
-                            <MessageSquare className="h-6 w-6" />
-                          </div>
-                          <p className="text-sm font-medium">No comments yet</p>
-                          <p className="text-xs mt-1">
-                            Be the first to add a comment
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <ActivityTimeline
+                    activities={activities || []}
+                    isLoading={activitiesLoading}
+                    showDetails={showDetails}
+                    onShowMore={() => setShowDetails(true)}
+                  />
                 </div>
               </div>
             </div>

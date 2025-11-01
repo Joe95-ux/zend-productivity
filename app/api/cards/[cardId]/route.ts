@@ -142,6 +142,50 @@ export async function PUT(
     const dbUpdateEnd = Date.now();
     console.log(`PUT /api/cards/${cardId} - Database update completed in ${dbUpdateEnd - dbUpdateStart}ms`);
 
+    // Extract images from description and create attachments (if description was updated)
+    const duplicateUrls: string[] = [];
+    if (description !== undefined && description !== card.description && description) {
+      try {
+        const imageRegex = /<img[^>]+src="([^"]+)"[^>]*>/g;
+        const images: string[] = [];
+        let match;
+        
+        while ((match = imageRegex.exec(description)) !== null) {
+          images.push(match[1]);
+        }
+
+        // Get existing attachments to avoid duplicates (case-insensitive comparison)
+        const existingAttachments = await db.attachment.findMany({
+          where: { cardId },
+          select: { url: true }
+        });
+        // Normalize URLs to lowercase for case-insensitive comparison
+        const existingUrlsLower = new Set(existingAttachments.map(att => att.url.toLowerCase()));
+
+        // Create attachments for each new image (not already in attachments)
+        for (const imageUrl of images) {
+          const normalizedUrl = imageUrl.toLowerCase();
+          
+          // Check if attachment already exists (case-insensitive)
+          if (existingUrlsLower.has(normalizedUrl)) {
+            duplicateUrls.push(imageUrl);
+            continue;
+          }
+
+          await db.attachment.create({
+            data: {
+              url: imageUrl,
+              type: 'image',
+              cardId
+            }
+          });
+        }
+      } catch (attachmentError) {
+        console.error("Error creating attachments from description images:", attachmentError);
+        // Don't fail the card update if attachment creation fails
+      }
+    }
+
     // Create activity log with specific details
     let activityMessage = `Updated card "${updatedCard.title}"`;
     let activityType = "updated_card";
@@ -188,7 +232,10 @@ export async function PUT(
     const totalTime = Date.now() - startTime;
     console.log(`PUT /api/cards/${cardId} - Request completed in ${totalTime}ms at ${new Date().toISOString()}`);
     
-    return NextResponse.json(updatedCard);
+    return NextResponse.json({
+      ...updatedCard,
+      duplicateImages: duplicateUrls.length > 0 ? duplicateUrls : undefined
+    });
   } catch (error) {
     console.error("Error updating card:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
