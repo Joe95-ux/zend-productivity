@@ -97,8 +97,8 @@ export async function POST(
     });
 
     return NextResponse.json(reaction, { status: 201 });
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       // Unique constraint violation (shouldn't happen with our unique constraint)
       return NextResponse.json({ error: "Reaction already exists" }, { status: 409 });
     }
