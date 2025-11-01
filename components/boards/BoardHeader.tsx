@@ -526,8 +526,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   side="bottom" 
                   align="end" 
                   sideOffset={isMobile ? -14 : 4} 
-                  alignOffset={-14}
-                  className="w-full sm:w-85 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
+                  alignOffset={-10}
+                  className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
                 >
                   <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
                     <h3 className="text-[17px] font-bold">Menu</h3>
@@ -714,8 +714,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           side="bottom" 
           align="end" 
           sideOffset={isMobile ? -14 : 4} 
-          alignOffset={-14}
-          className="w-full sm:w-85 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
+          alignOffset={-10}
+          className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -842,8 +842,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           side="bottom" 
           align="end" 
           sideOffset={isMobile ? -14 : 4} 
-          alignOffset={-14}
-          className="w-full sm:w-85 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
+          alignOffset={-10}
+          className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">

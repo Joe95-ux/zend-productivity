@@ -390,7 +390,9 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
         align={controlledOpen !== undefined ? "end" : "start"} 
         side={controlledOpen !== undefined ? "bottom" : "bottom"}
         sideOffset={isMobile ? -25 : 4}
-        className="w-80 p-0 dark:bg-[#0D1117] max-h-[calc(85vh-10rem)] flex flex-col"
+        avoidCollisions={true}
+        collisionPadding={12}
+        className="w-80 p-0 dark:bg-[#0D1117] max-h-[calc(85vh-10rem)] flex flex-col z-50"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
         data-label-dropdown-content

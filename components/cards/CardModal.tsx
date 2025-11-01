@@ -1323,7 +1323,7 @@ export function CardModal({
       <Dialog open={isOpen}>
         <DialogContent
           showCloseButton={false}
-          className="w-[calc(100vw-16px)] max-w-[calc(100vw-16px)] lg:max-w-[64rem] sm:max-w-full xl:max-w-[76rem] h-auto max-h-[95vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900 flex flex-col"
+          className="w-[calc(100vw-16px)] max-w-[calc(100vw-16px)] lg:max-w-[64rem] sm:max-w-full xl:max-w-[76rem] h-auto max-h-[87vh] p-0 overflow-hidden gap-0 rounded-lg shadow-2xl border-0 bg-white dark:bg-slate-900 flex flex-col"
         >
           {/* Original Header */}
           <DialogHeader>
