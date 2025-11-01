@@ -19,6 +19,7 @@ import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
 import { HexColorPicker } from "react-colorful";
 import { CommentContent } from "@/components/cards/CommentContent";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BoardHeaderProps {
   boardId: string;
@@ -78,7 +79,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [isWatchLoading, setIsWatchLoading] = useState(false);
   const dndContext = useDndContextOptional();
   const queryClient = useQueryClient();
-
+  const isMobile = useIsMobile();
   // Fetch activities
   const { data: activities, isLoading: activitiesLoading } = useQuery({
     queryKey: ["activities", boardId],
@@ -524,8 +525,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                 <DropdownMenuContent 
                   side="bottom" 
                   align="end" 
-                  sideOffset={18} 
-                  alignOffset={-18}
+                  sideOffset={isMobile ? -14 : 4} 
+                  alignOffset={-14}
                   className="w-full sm:w-85 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
                 >
                   <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
@@ -712,8 +713,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
         <DropdownMenuContent 
           side="bottom" 
           align="end" 
-          sideOffset={18} 
-          alignOffset={-18}
+          sideOffset={isMobile ? -14 : 4} 
+          alignOffset={-14}
           className="w-full sm:w-85 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
@@ -799,7 +800,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       <div key={comment.id} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                         <ConditionalUserProfile user={comment.user} size="md" />
                         <div className="flex-1">
-                          <div className="space-x-1 sm:space-x-2 mb-1">
+                          <div className="space-x-1 mb-1">
                             <span className="text-sm font-medium text-slate-900 dark:text-white">
                               {comment.user.name || comment.user.email}
                             </span>
@@ -840,8 +841,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
         <DropdownMenuContent 
           side="bottom" 
           align="end" 
-          sideOffset={18} 
-          alignOffset={-18}
+          sideOffset={isMobile ? -14 : 4} 
+          alignOffset={-14}
           className="w-full sm:w-85 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
