@@ -18,7 +18,6 @@ import { toast } from "sonner";
 import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
 import { HexColorPicker } from "react-colorful";
-import { CommentContent } from "@/components/cards/CommentContent";
 import { CommentItem } from "@/components/comments/CommentItem";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -45,6 +44,7 @@ interface Comment {
   content: string;
   createdAt: string;
   user: {
+    id: string;
     name?: string;
     email: string;
     avatarUrl?: string;
@@ -800,7 +800,12 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     comments.map((comment: Comment) => (
                       <CommentItem
                         key={comment.id}
-                        comment={comment}
+                        comment={{
+                          id: comment.id,
+                          content: comment.content,
+                          createdAt: comment.createdAt,
+                          user: comment.user,
+                        }}
                         boardId={boardId}
                         showCardInfo={true}
                         cardTitle={comment.card.title}
