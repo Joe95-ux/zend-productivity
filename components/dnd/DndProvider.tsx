@@ -118,6 +118,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
       return response.json();
     },
     onSuccess: () => {
+      toast.success("Lists reordered successfully");
       // Keep drag flag true a bit longer to prevent snap-back
       // Invalidate after a delay to allow server to fully process
       setTimeout(() => {
@@ -157,6 +158,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
       return response.json();
     },
     onSuccess: () => {
+      toast.success("Cards reordered successfully");
       // Keep drag flag true a bit longer to prevent snap-back
       // Invalidate after a delay to allow server to fully process
       setTimeout(() => {

@@ -44,7 +44,6 @@ import {
   Megaphone,
   FileText,
   Check,
-  MoreVertical,
   Clock,
   Eye,
   EyeOff,
@@ -78,7 +77,6 @@ import { DraggableChecklistItem } from "./DraggableChecklistItem";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { ChecklistConfirmationModal } from "@/components/ui/ChecklistConfirmationModal";
 import { Attachments } from "./Attachments";
-import { CommentContent } from "./CommentContent";
 import { ChecklistsSection } from "./ChecklistsSection";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { fileToBase64, validateFile, extractFilename } from "@/lib/file-utils";
@@ -87,7 +85,6 @@ import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal
 import { MoveCardModal } from "./MoveCardModal";
 import { CopyCardModal } from "./CopyCardModal";
 import { ShareCardModal } from "./ShareCardModal";
-import { CommentReactions } from "@/components/comments/CommentReactions";
 import { CommentItem } from "@/components/comments/CommentItem";
 import { useCurrentUserId } from "@/hooks/use-current-user-id";
 
@@ -2738,8 +2735,6 @@ export function CardModal({
                                       Cancel
                                     </Button>
                                   </div>
-                                </div>
-                              ) : null}
                               </div>
                             </div>
                           ) : (
@@ -3904,8 +3899,15 @@ export function CardModal({
                         : card.comments.slice(0, 5)
                       ).map((comment) => (
                         editingCommentId === comment.id ? (
-                          <div key={comment.id} className="space-y-3">
-                              <div className="space-y-3">
+                          <div 
+                            key={comment.id} 
+                            className="flex gap-3 p-3 items-start rounded-lg bg-slate-50 dark:bg-slate-800/50 ring-1 ring-slate-200 dark:ring-slate-700"
+                          >
+                            <ConditionalUserProfile
+                              user={comment.user as UserWithAvatar}
+                              size="md"
+                            />
+                            <div className="flex-1 space-y-3">
                                 {/* Existing Images */}
                                 {editingCommentExistingImages.length > 0 && (
                                   <div className="space-y-2">
@@ -4024,8 +4026,6 @@ export function CardModal({
                                     Cancel
                                   </Button>
                                 </div>
-                              </div>
-                            ) : null}
                             </div>
                           </div>
                         ) : (
