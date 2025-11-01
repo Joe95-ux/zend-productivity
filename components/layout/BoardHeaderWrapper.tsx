@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { BoardHeader } from "@/components/boards/BoardHeader";
+import { BoardFilterProvider } from "@/contexts/BoardFilterContext";
 
 export function BoardHeaderWrapper() {
   const pathname = usePathname();
@@ -47,11 +48,13 @@ export function BoardHeaderWrapper() {
   }
 
   return (
-    <BoardHeader 
-      boardId={boardId || ""} 
-      boardTitle={board.title || "Board Title"} 
-      boardDescription={board.description || "Board Description"}
-      membersCount={board.members ? board.members.length + 1 : 1}
-    />
+    <BoardFilterProvider>
+      <BoardHeader 
+        boardId={boardId || ""} 
+        boardTitle={board.title || "Board Title"} 
+        boardDescription={board.description || "Board Description"}
+        membersCount={board.members ? board.members.length + 1 : 1}
+      />
+    </BoardFilterProvider>
   );
 }
