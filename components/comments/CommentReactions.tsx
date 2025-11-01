@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { EmojiPicker } from "./EmojiPicker";
+import { EmojiPickerComponent } from "./EmojiPicker";
 import { Smile } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -102,7 +102,7 @@ export function CommentReactions({
           })}
         </div>
       )}
-      <EmojiPicker
+      <EmojiPickerComponent
         onEmojiSelect={handleEmojiSelect}
         trigger={
           <button

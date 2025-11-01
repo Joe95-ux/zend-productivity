@@ -19,6 +19,7 @@ import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
 import { HexColorPicker } from "react-colorful";
 import { CommentContent } from "@/components/cards/CommentContent";
+import { CommentItem } from "@/components/comments/CommentItem";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BoardHeaderProps {
@@ -797,28 +798,14 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     ))
                   ) : comments && comments.length > 0 ? (
                     comments.map((comment: Comment) => (
-                      <div key={comment.id} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <ConditionalUserProfile user={comment.user} size="md" />
-                        <div className="flex-1">
-                          <div className="space-x-1 mb-1">
-                            <span className="text-sm font-medium text-slate-900 dark:text-white">
-                              {comment.user.name || comment.user.email}
-                            </span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">on</span>
-                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                              {comment.card.title}
-                            </span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">in</span>
-                            <span className="text-xs text-slate-600 dark:text-slate-300">
-                              {comment.card.list.title}
-                            </span>
-                          </div>
-                          <CommentContent content={comment.content} className="mb-2" />
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {new Date(comment.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
+                      <CommentItem
+                        key={comment.id}
+                        comment={comment}
+                        boardId={boardId}
+                        showCardInfo={true}
+                        cardTitle={comment.card.title}
+                        listTitle={comment.card.list.title}
+                      />
                     ))
                   ) : (
                     <div className="text-center py-8 text-slate-500 dark:text-slate-400">
