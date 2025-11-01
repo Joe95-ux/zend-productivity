@@ -67,7 +67,6 @@ import {
   Attachment,
   Card,
 } from "@/lib/types";
-import { generateCardSlug } from "@/lib/utils";
 import { DueDateDropdown } from "./DueDateDropdown";
 import { ChecklistDropdown } from "./ChecklistDropdown";
 import { LabelDropdown } from "./LabelDropdown";
@@ -84,6 +83,12 @@ import { ChecklistsSection } from "./ChecklistsSection";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { fileToBase64, validateFile, extractFilename } from "@/lib/file-utils";
 import { AddToCardDropdown } from "./AddToCardDropdown";
+import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal";
+import { MoveCardModal } from "./MoveCardModal";
+import { CopyCardModal } from "./CopyCardModal";
+import { ShareCardModal } from "./ShareCardModal";
+import { CommentReactions } from "@/components/comments/CommentReactions";
+import { useCurrentUserId } from "@/hooks/use-current-user-id";
 
 const updateCardSchema = z.object({
   title: z
@@ -149,6 +154,8 @@ export function CardModal({
   isLoadingAttachments = false,
   isLoadingChecklists = false,
 }: CardModalProps) {
+  const currentUserId = useCurrentUserId();
+  
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [isCommentFormExpanded, setIsCommentFormExpanded] = useState(false);
@@ -173,6 +180,12 @@ export function CardModal({
   const [checklistToCopy, setChecklistToCopy] = useState<Checklist | null>(
     null
   );
+
+  // Card action modals state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Checklist inline editing state
   const [editingChecklistId, setEditingChecklistId] = useState<string | null>(
@@ -710,6 +723,26 @@ export function CardModal({
       // Close modal only after everything is settled
       setIsDeleteCommentModalOpen(false);
       setCommentToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Delete card mutation
+  const deleteCardMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/cards/${card.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete card");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Card deleted successfully!");
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      setIsDeleteModalOpen(false);
+      onClose(); // Close the card modal after deletion
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -1295,27 +1328,25 @@ export function CardModal({
   const handleMenuAction = (action: string) => {
     switch (action) {
       case "delete":
-        // TODO: Implement delete functionality
-        toast.info("Delete functionality coming soon");
+        setIsDeleteModalOpen(true);
         break;
       case "copy":
-        // TODO: Implement copy functionality
-        toast.info("Copy functionality coming soon");
+        setIsCopyModalOpen(true);
         break;
       case "move":
-        // TODO: Implement move functionality
-        toast.info("Move functionality coming soon");
+        setIsMoveModalOpen(true);
         break;
       case "share":
-        const cardSlug = generateCardSlug(card.title, card.position);
-        const cardUrl = `${window.location.origin}/dashboard/boards/${boardId}/cards/${card.id}/${cardSlug}`;
-        navigator.clipboard.writeText(cardUrl);
-        toast.success("Card link copied to clipboard!");
+        setIsShareModalOpen(true);
         break;
       case "watch":
         handleWatchToggle();
         break;
     }
+  };
+
+  const confirmDelete = () => {
+    deleteCardMutation.mutate();
   };
 
   return (
@@ -2763,7 +2794,15 @@ export function CardModal({
                                   </div>
                                 </div>
                               ) : (
-                                <CommentContent content={comment.content} />
+                                <>
+                                  <CommentContent content={comment.content} />
+                                  <CommentReactions
+                                    commentId={comment.id}
+                                    reactions={comment.reactions || []}
+                                    currentUserId={currentUserId || undefined}
+                                    boardId={boardId}
+                                  />
+                                </>
                               )}
                             </div>
                           </div>
@@ -4103,7 +4142,15 @@ export function CardModal({
                                 </div>
                               </div>
                             ) : (
-                              <CommentContent content={comment.content} />
+                              <>
+                                <CommentContent content={comment.content} />
+                                <CommentReactions
+                                  commentId={comment.id}
+                                  reactions={comment.reactions || []}
+                                  currentUserId={currentUserId || undefined}
+                                  boardId={boardId}
+                                />
+                              </>
                             )}
                           </div>
                         </div>
@@ -4326,6 +4373,44 @@ export function CardModal({
         description="Are you sure you want to delete this comment? This action cannot be undone."
         isLoading={deleteCommentMutation.isPending}
       />
+
+      {/* Card Action Modals */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Card"
+        description={`Are you sure you want to delete "${card.title}"? This action cannot be undone.`}
+        itemName={`card "${card.title}"`}
+        isLoading={deleteCardMutation.isPending}
+        variant="card"
+      />
+
+      <MoveCardModal
+        isOpen={isMoveModalOpen}
+        onClose={() => setIsMoveModalOpen(false)}
+        card={{ ...card, createdAt: card.createdAt ?? new Date().toISOString(), updatedAt: card.updatedAt ?? new Date().toISOString() } as Card}
+        currentBoardId={boardId}
+        currentListId={list.id}
+      />
+
+      <CopyCardModal
+        isOpen={isCopyModalOpen}
+        onClose={() => setIsCopyModalOpen(false)}
+        card={{ ...card, createdAt: card.createdAt ?? new Date().toISOString(), updatedAt: card.updatedAt ?? new Date().toISOString() } as Card}
+        currentBoardId={boardId}
+        currentListId={list.id}
+      />
+
+      {/* Share Modal */}
+      {isShareModalOpen && (
+        <ShareCardModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          card={{ ...card, createdAt: card.createdAt ?? new Date().toISOString(), updatedAt: card.updatedAt ?? new Date().toISOString() } as Card}
+          boardId={boardId}
+        />
+      )}
     </>
   );
 }

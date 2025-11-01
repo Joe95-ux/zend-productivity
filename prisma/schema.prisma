@@ -19,6 +19,7 @@ model User {
   activities    Activity[]
   members       Member[]
   comments      Comment[]
+  reactions     Reaction[]
   watches       Watch[]
   notifications Notification[]
   
@@ -142,13 +143,29 @@ model Attachment {
 }
 
 model Comment {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
   content   String
+  userId    String    @db.ObjectId
+  user      User?     @relation(fields: [userId], references: [id])
+  cardId    String    @db.ObjectId
+  card      Card?     @relation(fields: [cardId], references: [id])
+  reactions Reaction[]
+  createdAt DateTime  @default(now())
+}
+
+model Reaction {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  emoji     String   // Unicode emoji character (e.g., "👍", "❤️")
+  commentId String   @db.ObjectId
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
   userId    String   @db.ObjectId
   user      User?    @relation(fields: [userId], references: [id])
-  cardId    String   @db.ObjectId
-  card      Card?    @relation(fields: [cardId], references: [id])
   createdAt DateTime @default(now())
+  
+  // Ensure one user can only react once per comment with the same emoji
+  @@unique([commentId, userId, emoji])
+  @@index([commentId])
+  @@index([userId])
 }
 
 model Activity {

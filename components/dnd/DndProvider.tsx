@@ -111,13 +111,22 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items, boardId }),
       });
-      if (!response.ok) throw new Error("Failed to reorder lists");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to reorder lists");
+      }
       return response.json();
     },
     onSuccess: () => {
-      toast.success("List reordered");
-      isDragInProgressRef.current = false;
-      // Server data will update automatically, no need to invalidate
+      // Keep drag flag true a bit longer to prevent snap-back
+      // Invalidate after a delay to allow server to fully process
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+        // Clear flag after invalidation to allow sync
+        setTimeout(() => {
+          isDragInProgressRef.current = false;
+        }, 100);
+      }, 300);
     },
     onError: (error) => {
       console.error("List reorder error:", error);
@@ -141,13 +150,22 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items, boardId }),
       });
-      if (!response.ok) throw new Error("Failed to reorder cards");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to reorder cards");
+      }
       return response.json();
     },
     onSuccess: () => {
-      toast.success("Card reordered");
-      isDragInProgressRef.current = false;
-      // Server data will update automatically, no need to invalidate
+      // Keep drag flag true a bit longer to prevent snap-back
+      // Invalidate after a delay to allow server to fully process
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+        // Clear flag after invalidation to allow sync
+        setTimeout(() => {
+          isDragInProgressRef.current = false;
+        }, 100);
+      }, 300);
     },
     onError: (error) => {
       console.error("Card reorder error:", error);
@@ -160,8 +178,17 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
 
   // Initialize local state with server data when it changes, but not during drag operations
   useEffect(() => {
+    // Only sync server data if drag is not in progress
+    // If we have optimistic data and drag is not in progress, allow sync after a delay
+    // This prevents immediate snap-back while still allowing eventual consistency
     if (serverData && !isDragInProgressRef.current) {
-      setOptimisticData(serverData);
+      // Small delay to prevent race conditions with optimistic updates
+      const timeoutId = setTimeout(() => {
+        if (!isDragInProgressRef.current) {
+          setOptimisticData(serverData);
+        }
+      }, 200);
+      return () => clearTimeout(timeoutId);
     }
   }, [serverData]);
   
@@ -231,7 +258,12 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         source.index,
         destination.index
       );
-      const items = reorderedLists.map((item, index) => ({ ...item, position: index + 1 }));
+      
+      // Create items array with only id and position for the API
+      const items = reorderedLists.map((list, index) => ({ 
+        id: list.id, 
+        position: index + 1 
+      }));
 
       // Immediately update optimistic state
       setOptimisticData({
@@ -240,6 +272,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
       });
 
       updateListOrderMutation.mutate({ items, boardId });
+      return; // Important: return early to prevent further processing
     }
 
     // User moves a checklist item
@@ -307,17 +340,20 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         return response.json();
       })
       .then(() => {
+        // Invalidate to refresh server data
         queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       })
       .catch(error => {
         console.error("Error reordering checklist item:", error);
         toast.error("Failed to reorder item");
+        // Revert optimistic update on error
+        queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       })
       .finally(() => {
         isDragInProgressRef.current = false;
       });
       
-      return;
+      return; // Important: return early to prevent further processing
     }
 
     // User moves a card
@@ -361,7 +397,7 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
           items: updatedCards.map((card) => ({
             id: card.id, 
             position: card.position, 
-            listId: card.listId || source.droppableId,
+            listId: card.listId || sourceList.id,
           })),
         };
         
@@ -390,12 +426,14 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
         // Update positions for both lists (create new card objects)
         const updatedSourceCards = sourceCards.map((card, idx) => ({
           ...card,
-          position: idx + 1
+          position: idx + 1,
+          listId: card.listId || sourceList.id
         }));
 
         const updatedDestCards = destCards.map((card, idx) => ({
           ...card,
-          position: idx + 1
+          position: idx + 1,
+          listId: card.listId || destination.droppableId
         }));
 
         // Immediately update optimistic state
@@ -412,14 +450,23 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
           lists: updatedLists
         });
 
-        // Send all cards from destination list to update their positions
-        const mutationData = { 
-          boardId, 
-          items: updatedDestCards.map((card) => ({
+        // Send all cards from BOTH source and destination lists to update their positions
+        const allItems = [
+          ...updatedSourceCards.map((card) => ({
             id: card.id, 
             position: card.position, 
-            listId: card.listId || destination.droppableId,
+            listId: card.listId,
           })),
+          ...updatedDestCards.map((card) => ({
+            id: card.id, 
+            position: card.position, 
+            listId: card.listId,
+          })),
+        ];
+
+        const mutationData = { 
+          boardId, 
+          items: allItems,
         };
         
         // Validate data before sending

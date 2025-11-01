@@ -27,11 +27,21 @@ export interface Checklist {
   items: ChecklistItem[];
 }
 
+// Reaction types
+export interface Reaction {
+  id: string;
+  emoji: string;
+  userId: string;
+  user?: User;
+  createdAt?: string;
+}
+
 // Comment types
 export interface Comment {
   id: string;
   content: string;
   user: User;
+  reactions?: Reaction[];
   createdAt: string;
 }
 

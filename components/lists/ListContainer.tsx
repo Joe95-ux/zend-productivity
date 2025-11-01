@@ -321,8 +321,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                       {...provided.droppableProps}
                       className={cn(
                         "space-y-2 min-h-[20px]",
-                        snapshot.isDraggingOver &&
-                          "bg-blue-50 dark:bg-blue-900/20 rounded-md"
+                        snapshot.isDraggingOver && "relative"
                       )}
                     >
                       {displayCards.map((card: CardType, index: number) => (

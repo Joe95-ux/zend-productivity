@@ -127,7 +127,19 @@ export async function POST(request: NextRequest) {
         userId: user.id
       },
       include: {
-        user: true
+        user: true,
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true
+              }
+            }
+          }
+        }
       }
     });
 

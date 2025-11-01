@@ -43,7 +43,19 @@ export async function GET(
                 labels: true,
                 comments: {
                   include: {
-                    user: true
+                    user: true,
+                    reactions: {
+                      include: {
+                        user: {
+                          select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            avatarUrl: true
+                          }
+                        }
+                      }
+                    }
                   },
                   orderBy: { createdAt: "desc" }
                 },

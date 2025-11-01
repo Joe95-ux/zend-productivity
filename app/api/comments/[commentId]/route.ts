@@ -57,6 +57,18 @@ export async function PUT(
       data: { content },
       include: {
         user: true,
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true
+              }
+            }
+          }
+        },
         card: {
           include: {
             list: true

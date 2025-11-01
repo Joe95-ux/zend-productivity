@@ -152,8 +152,8 @@ export function AddToCardDropdown({
           
           {/* Sub-menu Content */}
           <div className="p-4">
-            {currentDropdownView === 'labels' && <LabelDropdown card={card} boardId={boardId} sideOffset={-45} />}
-            {currentDropdownView === 'dates' && <DueDateDropdown card={card} boardId={boardId} sideOffset={-45} />}
+            {currentDropdownView === 'labels' && <LabelDropdown card={card} boardId={boardId} sideOffset={-65} />}
+            {currentDropdownView === 'dates' && <DueDateDropdown card={card} boardId={boardId} sideOffset={-65} />}
             {currentDropdownView === 'checklist' && <ChecklistDropdown cardId={card.id} boardId={boardId} existingChecklists={card.checklists || []} />}
             {currentDropdownView === 'members' && <MembersDropdown card={card} boardId={boardId} />}
             {currentDropdownView === 'attachment' && (

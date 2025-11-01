@@ -30,6 +30,9 @@ export const metadata: Metadata = {
     "boards",
   ],
   authors: [{ name: "Zendllo Team" }],
+  icons: {
+    icon: "/favicon.ico",
+  },
   openGraph: {
     title: "Zendllo - Organize Your Work Like Never Before",
     description:

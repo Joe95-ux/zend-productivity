@@ -208,10 +208,12 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
               "transition-all duration-200 ease-out",
               "hover:shadow-md hover:shadow-slate-900/20 hover:border-slate-300 dark:hover:border-slate-600",
               "hover:ring-2 hover:ring-slate-300 dark:hover:ring-slate-600",
-              snapshot.isDragging && "opacity-90 scale-105 rotate-2 shadow-2xl z-50",
+              snapshot.isDragging && "opacity-50 scale-105 rotate-2 shadow-2xl z-50 border-blue-300 dark:border-blue-600",
+              // Keep a ghost/shadow at source position - the card becomes semi-transparent
               isCompleted && "opacity-40 bg-slate-100 dark:bg-slate-700",
               // Removed loading state since we're doing optimistic updates
             )}
+            style={provided.draggableProps.style}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => {
               if (!isDropdownOpen) {
