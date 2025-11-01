@@ -473,6 +473,18 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
 
             {/* Right side - All clickable actions */}
             <div className="flex items-center gap-1 min-[320px]:gap-2">
+              {/* User Profile - Hidden on mobile, shown in menu */}
+              <div className="hidden lg:block">
+                <UserButton 
+                  afterSignOutUrl="/"
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8"
+                    }
+                  }}
+                />
+              </div>
+
               {/* Members count - Clickable - Hidden on mobile */}
               <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
                 <HoverHint label={`${membersCount} members`} side="bottom">
@@ -495,18 +507,6 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                 </HoverHint>
               </Button>
 
-              {/* User Profile - Hidden on mobile, shown in menu */}
-              <div className="hidden lg:block">
-                <UserButton 
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-8 h-8"
-                    }
-                  }}
-                />
-              </div>
-
               {/* Menu - Clickable */}
               <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                 <DropdownMenuTrigger asChild>
@@ -525,7 +525,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   align="end" 
                   sideOffset={14} 
                   alignOffset={-14}
-                  className="w-80 sm:w-96 h-[600px] sm:h-[800px] p-0 flex flex-col"
+                  className="w-72 sm:w-80 h-auto max-h-[80vh] sm:max-h-[90vh] p-0 flex flex-col"
                 >
                   <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
                     <h3 className="text-[17px] font-bold">Menu</h3>
@@ -631,7 +631,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     </div>
 
                     {/* Upgrade Plan Card */}
-                    <Card className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 shadow-lg dark:shadow-slate-900/50 rounded-[4px] py-6">
+                    <Card className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 shadow-lg dark:shadow-slate-900/50 rounded-md py-6">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-sm font-semibold text-slate-900 dark:text-white">Upgrade to Pro</CardTitle>
                         <CardDescription className="text-xs text-slate-600 dark:text-slate-400">
@@ -713,7 +713,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           align="end" 
           sideOffset={14} 
           alignOffset={-14}
-          className="w-80 sm:w-96 h-[600px] sm:h-[800px] p-0 flex flex-col"
+          className="w-72 sm:w-80 h-auto max-h-[80vh] sm:max-h-[90vh] p-0 flex flex-col"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -841,7 +841,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           align="end" 
           sideOffset={14} 
           alignOffset={-14}
-          className="w-80 sm:w-96 max-h-[70vh] sm:max-h-[600px] md:max-h-[800px] p-0 flex flex-col"
+          className="w-72 sm:w-80 h-auto max-h-[80vh] sm:max-h-[90vh] p-0 flex flex-col"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
