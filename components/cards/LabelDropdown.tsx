@@ -11,6 +11,7 @@ import { Tag, X, Plus, Palette, Edit, Search } from "lucide-react";
 import { toast } from "sonner";
 import { HexColorPicker } from "react-colorful";
 import { Card } from "@/lib/types";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type CardModalCard = Omit<Card, 'createdAt' | 'updatedAt'> & {
   createdAt?: string;
@@ -49,6 +50,7 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
   const [editLabelName, setEditLabelName] = useState("");
   const [editLabelColor, setEditLabelColor] = useState("");
   const [editCustomColor, setEditCustomColor] = useState("");
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   // Optimistic assignment map: boardLabelId -> checked state
   const [optimisticChecked, setOptimisticChecked] = useState<Record<string, boolean>>({});
@@ -387,9 +389,9 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
       <DropdownMenuContent 
         align={controlledOpen !== undefined ? "end" : "start"} 
         side={controlledOpen !== undefined ? "bottom" : "bottom"}
-        sideOffset={controlledOpen !== undefined ? 8 : 4}
+        sideOffset={controlledOpen !== undefined ? 8 : isMobile ? -14 : 4}
         avoidCollisions={false}
-        className="w-80 p-0 dark:bg-[#0D1117] max-h-[calc(65vh-10rem)] flex flex-col"
+        className="w-80 p-0 dark:bg-[#0D1117] max-h-[calc(90vh-10rem)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
         data-label-dropdown-content
