@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search, Filter } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,6 +125,16 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     enabled: isActivityOpen,
   });
 
+  // Fetch board data (for owner and members for filter)
+  const { data: boardData } = useQuery({
+    queryKey: ["board", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/boards/${boardId}`);
+      if (!response.ok) throw new Error("Failed to fetch board");
+      return response.json();
+    },
+  });
+
   // Fetch board labels
   const { data: boardLabels = [], isLoading: labelsLoading } = useQuery({
     queryKey: ["labels", boardId],
@@ -135,6 +145,13 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     },
     enabled: isLabelsOpen,
   });
+
+  // Get members array for filter (from boardData or dndContext as fallback)
+  const filterMembers = boardData?.owner && boardData?.members
+    ? [boardData.owner, ...(boardData.members.map((m: { user: unknown }) => m.user).filter(Boolean) || [])]
+    : dndContext?.orderedData
+    ? [dndContext.orderedData.owner, ...(dndContext.orderedData.members?.map(m => m.user).filter(Boolean) || [])]
+    : [];
 
   // Fallback: Check watch status if not in DndProvider context
   const { data: watchStatusFallback } = useQuery({
@@ -602,12 +619,10 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </Button>
 
               {/* Filter button */}
-              {dndContext?.orderedData && (
-                <BoardFilter
-                  labels={boardLabels}
-                  members={[dndContext.orderedData.owner, ...(dndContext.orderedData.members?.map(m => m.user).filter(Boolean) || [])]}
-                />
-              )}
+              <BoardFilter
+                labels={boardLabels}
+                members={filterMembers}
+              />
 
               {/* Menu - Clickable */}
               <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
