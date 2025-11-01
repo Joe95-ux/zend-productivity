@@ -62,6 +62,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editLabelName, setEditLabelName] = useState("");
   const [editLabelColor, setEditLabelColor] = useState("");
+  const [editLabelCustomColor, setEditLabelCustomColor] = useState("");
   const [isCreatingLabel, setIsCreatingLabel] = useState(false);
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState("#ef4444");
@@ -313,6 +314,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     setEditingLabelId(label.id);
     setEditLabelName(label.name);
     setEditLabelColor(label.color);
+    setEditLabelCustomColor("");
   };
 
   const handleSaveLabel = () => {
@@ -320,10 +322,11 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
       toast.error("Please enter a label name");
       return;
     }
+    const colorToUse = editLabelCustomColor.trim() || editLabelColor;
     updateLabelMutation.mutate({
       labelId: editingLabelId,
       name: editLabelName.trim(),
-      color: editLabelColor,
+      color: colorToUse,
     });
   };
 
@@ -838,7 +841,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           align="end" 
           sideOffset={14} 
           alignOffset={-14}
-          className="w-80 sm:w-96 h-[600px] sm:h-[800px] p-0 flex flex-col"
+          className="w-80 sm:w-96 max-h-[70vh] sm:max-h-[600px] md:max-h-[800px] p-0 flex flex-col"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -927,9 +930,12 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                                 {LABEL_COLORS.map((color) => (
                                   <button
                                     key={color.value}
-                                    onClick={() => setEditLabelColor(color.value)}
+                                    onClick={() => {
+                                      setEditLabelColor(color.value);
+                                      setEditLabelCustomColor(""); // Clear custom color when selecting predefined
+                                    }}
                                     className={`w-7 h-7 rounded border-2 transition-all ${
-                                      editLabelColor === color.value
+                                      editLabelColor === color.value && !editLabelCustomColor
                                         ? "border-slate-900 dark:border-white scale-110"
                                         : "border-slate-300 dark:border-slate-600 hover:scale-105"
                                     }`}
@@ -937,6 +943,72 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                                     title={color.name}
                                   />
                                 ))}
+                              </div>
+                              
+                              {/* Custom Color Picker for Edit */}
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-xs text-slate-600 dark:text-slate-400">
+                                    Or choose custom color:
+                                  </label>
+                                  {!editLabelCustomColor && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setEditLabelCustomColor(editLabelColor)}
+                                      className="h-6 px-2 text-xs"
+                                    >
+                                      <Palette className="w-3 h-3 mr-1" />
+                                      Custom
+                                    </Button>
+                                  )}
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 rounded-sm cursor-pointer"
+                                      style={{ backgroundColor: editLabelCustomColor || editLabelColor }}
+                                      onClick={() => {
+                                        if (!editLabelCustomColor) {
+                                          setEditLabelCustomColor(editLabelColor);
+                                        }
+                                      }}
+                                    />
+                                    <Input
+                                      type="text"
+                                      value={editLabelCustomColor}
+                                      onChange={(e) => {
+                                        setEditLabelCustomColor(e.target.value);
+                                        setEditLabelColor(e.target.value);
+                                      }}
+                                      placeholder="#000000"
+                                      className="flex-1 h-8 text-sm"
+                                    />
+                                    {editLabelCustomColor && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setEditLabelCustomColor("")}
+                                        className="h-8 px-2"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  {editLabelCustomColor && (
+                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-sm border border-slate-200 dark:border-slate-700">
+                                      <HexColorPicker
+                                        color={editLabelCustomColor}
+                                        onChange={(color) => {
+                                          setEditLabelCustomColor(color);
+                                          setEditLabelColor(color);
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="flex gap-2">
@@ -955,6 +1027,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                                   setEditingLabelId(null);
                                   setEditLabelName("");
                                   setEditLabelColor("");
+                                  setEditLabelCustomColor("");
                                 }}
                                 className="px-3"
                               >
@@ -972,30 +1045,28 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                             </div>
                           </div>
                         ) : (
-                          <div 
-                            className="h-12 flex items-center gap-3 px-3 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+                          <label 
+                            className="h-12 flex items-center justify-between gap-3 px-3 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
                             onClick={() => handleEditLabel(label)}
                           >
-                            <div
-                              className="h-8 rounded-sm flex-shrink-0 px-3 flex items-center justify-center text-white text-xs font-medium"
-                              style={{ backgroundColor: label.color }}
-                            >
-                              {label.name}
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="w-10 h-3 rounded-sm" style={{ backgroundColor: label.color }} />
+                              <span className="text-sm text-slate-800 dark:text-slate-200">
+                                {label.name}
+                              </span>
                             </div>
-                            <span className="flex-1 text-sm font-medium text-slate-900 dark:text-white">
-                              {label.name}
-                            </span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditLabel(label);
                               }}
-                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all"
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-sm transition-all"
                               title="Edit label"
+                              type="button"
                             >
-                              <Edit className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                              <Edit className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                             </button>
-                          </div>
+                          </label>
                         )}
                       </div>
                     );

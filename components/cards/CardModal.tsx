@@ -1442,14 +1442,14 @@ export function CardModal({
                 >
                   {/* Card Title with Check Radio - Fixed when scrolling */}
                   <div
-                    className={`sticky top-0 z-30 bg-slate-50 dark:bg-slate-900 w-full flex items-start gap-3 transition-all duration-200 ease-in ${
+                    className={`sticky top-0 z-30 bg-slate-50 dark:bg-slate-900 w-full flex items-start mx-4 gap-3 transition-all duration-200 ease-in ${
                       isSticky
                         ? "border-b border-slate-200 dark:border-slate-700 py-2 shadow-sm scale-[0.98]"
                         : "py-4"
                     }`}
                   >
                     <div
-                      className={`relative w-5 h-5 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
+                      className={`relative w-4 h-4 border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 mt-0.5 ${
                         isCompleted
                           ? "bg-teal-600 border-teal-600 hover:bg-teal-700 hover:border-teal-700"
                           : "border-slate-300 dark:border-slate-600 hover:border-teal-600 dark:hover:border-teal-600"
@@ -1523,7 +1523,7 @@ export function CardModal({
                     ) : (
                       <div className="flex items-center gap-2 flex-1">
                         <h1
-                          className="text-lg font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 -m-2 rounded-lg transition-all duration-200 flex-1 text-slate-900 dark:text-white"
+                          className="text-base font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 -m-2 rounded-lg transition-all duration-200 flex-1 text-slate-900 dark:text-white"
                           onClick={handleTitleEdit}
                         >
                           {card.title}

@@ -161,8 +161,8 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
     }] : [])
   ];
 
-  // If 5 or fewer indicators, show all
-  if (allIndicators.length <= 5) {
+  // If 4 or fewer indicators, show all
+  if (allIndicators.length <= 4) {
     return (
       <div className="flex items-center justify-between px-3 pb-2">
         {/* Left side indicators */}
@@ -194,13 +194,13 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
   const priorityIndicators = allIndicators.filter(ind => ind.id === 'watch' || ind.id === 'dueDate');
   const otherIndicators = allIndicators.filter(ind => ind.id !== 'watch' && ind.id !== 'dueDate');
   
-  // Take up to 3 more indicators to reach 5 total
+  // Take up to 3 more indicators to reach 4 total
   const visibleIndicators = [
     ...priorityIndicators,
-    ...otherIndicators.slice(0, 5 - priorityIndicators.length)
+    ...otherIndicators.slice(0, 4 - priorityIndicators.length)
   ];
   
-  const hiddenIndicators = otherIndicators.slice(5 - priorityIndicators.length);
+  const hiddenIndicators = otherIndicators.slice(4 - priorityIndicators.length);
 
   return (
     <div className="flex items-center justify-between px-3 pb-2">
@@ -215,7 +215,7 @@ export function CardIndicators({ card, isWatching = false }: CardIndicatorsProps
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-sm transition-colors"
+                className="flex items-center justify-center p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-sm transition-colors"
               >
                 <HoverHint label="More" side="bottom">
                   <MoreVertical className="w-4 h-4 cursor-pointer text-slate-500 dark:text-slate-400" />
