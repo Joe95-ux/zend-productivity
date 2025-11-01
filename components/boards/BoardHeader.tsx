@@ -18,8 +18,10 @@ import { toast } from "sonner";
 import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
 import { HexColorPicker } from "react-colorful";
+import { format } from "date-fns";
 import { CommentItem } from "@/components/comments/CommentItem";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCurrentUserId } from "@/hooks/use-current-user-id";
 
 interface BoardHeaderProps {
   boardId: string;
@@ -49,6 +51,17 @@ interface Comment {
     email: string;
     avatarUrl?: string;
   };
+  reactions?: Array<{
+    id: string;
+    emoji: string;
+    userId: string;
+    user?: {
+      id: string;
+      name?: string;
+      email: string;
+      avatarUrl?: string;
+    };
+  }>;
   card: {
     id: string;
     title: string;
@@ -81,6 +94,14 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const dndContext = useDndContextOptional();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const currentUserId = useCurrentUserId();
+  
+  // Comment editing state (for future use)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  
   // Fetch activities
   const { data: activities, isLoading: activitiesLoading } = useQuery({
     queryKey: ["activities", boardId],
@@ -231,6 +252,75 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     setEditingLabelId(null);
     setIsCreatingLabel(false);
     setLabelSearchQuery("");
+  };
+
+  // Comment mutations (updateCommentMutation kept for future use but currently not used)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const updateCommentMutation = useMutation({
+    mutationFn: async ({
+      commentId,
+      content,
+    }: {
+      commentId: string;
+      content: string;
+    }) => {
+      const response = await fetch(`/api/comments/${commentId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update comment");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["comments", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      toast.success("Comment updated successfully!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: async (commentId: string) => {
+      const response = await fetch(`/api/comments/${commentId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete comment");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["comments", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      toast.success("Comment deleted successfully!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleEditComment = (_commentId: string, _currentContent: string) => {
+    // TODO: Implement comment editing UI in activity dropdown
+    // For now, editing is not implemented in the activity dropdown
+    toast.info("Comment editing is not available in the activity dropdown. Please edit from the card modal.");
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setCommentToDelete(commentId);
+    deleteCommentMutation.mutate(commentId);
   };
 
   const LABEL_COLORS = [
@@ -770,7 +860,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                         <div className="flex-1">
                           <p className="text-sm text-slate-900 dark:text-white">{activity.message}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            {new Date(activity.createdAt).toLocaleString()}
+                            {format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
                           </p>
                         </div>
                       </div>
@@ -805,11 +895,15 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                           content: comment.content,
                           createdAt: comment.createdAt,
                           user: comment.user,
+                          reactions: comment.reactions,
                         }}
+                        currentUserId={currentUserId || undefined}
                         boardId={boardId}
                         showCardInfo={true}
                         cardTitle={comment.card.title}
                         listTitle={comment.card.list.title}
+                        onEdit={handleEditComment}
+                        onDelete={handleDeleteComment}
                       />
                     ))
                   ) : (

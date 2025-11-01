@@ -3,8 +3,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { EmojiPickerComponent } from "./EmojiPicker";
-import { Smile } from "lucide-react";
+import { Smile, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface Reaction {
   id: string;
@@ -32,6 +33,7 @@ export function CommentReactions({
   boardId,
 }: CommentReactionsProps) {
   const queryClient = useQueryClient();
+  const [loadingEmoji, setLoadingEmoji] = useState<string | null>(null);
 
   // Group reactions by emoji
   const reactionsByEmoji = reactions.reduce((acc, reaction) => {
@@ -44,6 +46,7 @@ export function CommentReactions({
 
   const toggleReactionMutation = useMutation({
     mutationFn: async (emoji: string) => {
+      setLoadingEmoji(emoji);
       const response = await fetch(`/api/comments/${commentId}/reactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,9 +62,11 @@ export function CommentReactions({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      setLoadingEmoji(null);
     },
     onError: (error: Error) => {
       toast.error(error.message);
+      setLoadingEmoji(null);
     },
   });
 
@@ -70,9 +75,10 @@ export function CommentReactions({
   };
 
   const hasReactions = Object.keys(reactionsByEmoji).length > 0;
+  const isPending = toggleReactionMutation.isPending;
 
   return (
-    <div className="flex items-center gap-1 mt-2">
+    <div className="flex items-center gap-1">
       {hasReactions && (
         <div className="flex items-center gap-1 flex-wrap">
           {Object.entries(reactionsByEmoji).map(([emoji, emojiReactions]) => {
@@ -81,19 +87,27 @@ export function CommentReactions({
             );
             const count = emojiReactions.length;
 
+            const isLoading = isPending && loadingEmoji === emoji;
+
             return (
               <button
                 key={emoji}
                 onClick={() => handleEmojiSelect(emoji)}
+                disabled={isPending}
                 className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-md text-sm transition-colors",
                   "hover:bg-slate-100 dark:hover:bg-slate-700",
                   hasUserReaction &&
-                    "bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700"
+                    "bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700",
+                  isPending && "opacity-50 cursor-wait"
                 )}
                 title={`${count} reaction${count > 1 ? "s" : ""}`}
               >
-                <span className="text-base">{emoji}</span>
+                {isLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin text-slate-500 dark:text-slate-400" />
+                ) : (
+                  <span className="text-base">{emoji}</span>
+                )}
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   {count}
                 </span>
@@ -106,14 +120,20 @@ export function CommentReactions({
         onEmojiSelect={handleEmojiSelect}
         trigger={
           <button
+            disabled={isPending}
             className={cn(
               "flex items-center justify-center w-7 h-7 rounded-md transition-colors",
               "hover:bg-slate-100 dark:hover:bg-slate-700",
-              hasReactions && "opacity-70 hover:opacity-100"
+              hasReactions && "opacity-70 hover:opacity-100",
+              isPending && "opacity-50 cursor-wait"
             )}
             aria-label="Add reaction"
           >
-            <Smile className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            {isPending && !loadingEmoji ? (
+              <Loader2 className="w-4 h-4 animate-spin text-slate-500 dark:text-slate-400" />
+            ) : (
+              <Smile className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            )}
           </button>
         }
       />

@@ -43,6 +43,18 @@ export async function GET(request: NextRequest) {
       },
       include: {
         user: true,
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true
+              }
+            }
+          }
+        },
         card: {
           select: {
             id: true,

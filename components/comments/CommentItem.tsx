@@ -6,6 +6,7 @@ import { CommentContent } from "@/components/cards/CommentContent";
 import { CommentReactions } from "./CommentReactions";
 import { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export interface CommentItemData {
   id: string;
@@ -139,23 +140,27 @@ export function CommentItem({
                   {onEdit && (
                     <>
                       <span className="text-xs text-slate-400">•</span>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => onEdit(comment.id, comment.content)}
-                        className="text-xs text-slate-600 dark:text-slate-400 hover:underline"
+                        className="h-auto p-0 text-xs text-slate-600 dark:text-slate-400 hover:underline hover:bg-transparent dark:hover:bg-transparent"
                       >
                         Edit
-                      </button>
+                      </Button>
                     </>
                   )}
                   {onDelete && (
                     <>
                       <span className="text-xs text-slate-400">•</span>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => onDelete(comment.id)}
-                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        className="h-auto p-0 text-xs text-red-600 dark:text-red-400 hover:underline hover:bg-transparent dark:hover:bg-transparent"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </>
                   )}
                 </>

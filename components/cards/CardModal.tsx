@@ -54,7 +54,7 @@ import {
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { HoverHint } from "@/components/HoverHint";
 import { ShootingStars } from "@/components/ui/ShootingStars";
 import { motion, AnimatePresence } from "framer-motion";
@@ -2808,10 +2808,7 @@ export function CardModal({
                                     {activity.message}
                                   </p>
                                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    {formatDistanceToNow(
-                                      new Date(activity.createdAt),
-                                      { addSuffix: true }
-                                    )}
+                                    {format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                   </p>
                                 </div>
                               </div>
@@ -4095,10 +4092,7 @@ export function CardModal({
                                   {activity.message}
                                 </p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                                  {formatDistanceToNow(
-                                    new Date(activity.createdAt),
-                                    { addSuffix: true }
-                                  )}
+                                  {format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                 </p>
                               </div>
                             </div>
