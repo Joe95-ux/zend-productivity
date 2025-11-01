@@ -272,9 +272,9 @@ export function DueDateDropdown({ card, boardId }: DueDateDropdownProps) {
 
       <DropdownMenuContent
           align="start"
-          className="w-full max-w-96 p-0 sm:dark:bg-[#0D1117] dark:bg-[#151B23]"
+          className="w-full max-w-96 max-h-[calc(85vh-10rem)] p-0 sm:dark:bg-[#0D1117] dark:bg-[#151B23]"
         >
-          <ScrollArea className="h-155 max-h-[75vh] w-full min-h-0">
+          <ScrollArea className="h-155 max-h-[calc(85vh-10rem)] w-full min-h-0">
          {/* Header */}
          <div className="flex z-30 sticky top-0 bg-[#F8FAFC] sm:dark:bg-[#0D1117] dark:bg-[#151B23] items-center justify-between p-4">
             <h3 className="text-[16px] font-semibold text-slate-900 dark:text-white">

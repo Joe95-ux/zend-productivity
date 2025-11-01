@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
 import { HexColorPicker } from "react-colorful";
+import { CommentContent } from "@/components/cards/CommentContent";
 
 interface BoardHeaderProps {
   boardId: string;
@@ -811,7 +812,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                               {comment.card.list.title}
                             </span>
                           </div>
-                          <p className="text-sm text-slate-900 dark:text-white mb-2">{comment.content}</p>
+                          <CommentContent content={comment.content} className="mb-2" />
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             {new Date(comment.createdAt).toLocaleString()}
                           </p>
