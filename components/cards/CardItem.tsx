@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useDndContext } from "@/components/dnd/DndProvider";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,6 +46,9 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
   const [showShootingStars, setShowShootingStars] = useState(false);
   const [watchStatus, setWatchStatus] = useState(false);
   const [isLabelDropdownOpen, setIsLabelDropdownOpen] = useState(false);
+  const [labelDropdownJustClosed, setLabelDropdownJustClosed] = useState(false);
+  const touchStartPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const wasDraggedRef = useRef(false);
   const queryClient = useQueryClient();
 
   // Get the current card data from query cache to stay in sync
@@ -215,7 +218,81 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                 setIsHovered(false);
               }
             }}
-            onClick={() => setIsModalOpen(true)}
+            onTouchStart={(e) => {
+              // Track touch start for mobile drag detection
+              const touch = e.touches[0];
+              touchStartPosRef.current = {
+                x: touch.clientX,
+                y: touch.clientY,
+                time: Date.now()
+              };
+              wasDraggedRef.current = false;
+            }}
+            onTouchMove={(e) => {
+              // If user moves finger significantly, they're dragging
+              if (touchStartPosRef.current) {
+                const touch = e.touches[0];
+                const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
+                const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                // If moved more than 10px, consider it a drag
+                if (distance > 10) {
+                  wasDraggedRef.current = true;
+                }
+              }
+            }}
+            onTouchEnd={(e) => {
+              // If it wasn't a drag and not currently dragging, trigger modal open
+              if (!wasDraggedRef.current && !snapshot.isDragging) {
+                const target = e.target as HTMLElement;
+                if (
+                  !target.closest('[data-dropdown-content]') && 
+                  !target.closest('[data-label-dropdown-content]') &&
+                  !target.closest('[data-action-button]') &&
+                  !isLabelDropdownOpen &&
+                  !labelDropdownJustClosed
+                ) {
+                  // Small delay to ensure drag handlers don't interfere
+                  setTimeout(() => {
+                    if (!snapshot.isDragging && !wasDraggedRef.current) {
+                      setIsModalOpen(true);
+                    }
+                  }, 100);
+                }
+              }
+              
+              // Reset touch tracking after a delay
+              setTimeout(() => {
+                touchStartPosRef.current = null;
+                wasDraggedRef.current = false;
+              }, 300);
+            }}
+            onClick={(e) => {
+              // On mobile, touch events handle modal opening
+              // Only handle mouse clicks here (desktop)
+              if ('ontouchstart' in window) {
+                return;
+              }
+              
+              // On desktop, don't open if this was a drag
+              if (wasDraggedRef.current || snapshot.isDragging) {
+                return;
+              }
+              
+              // Don't open modal if clicking on dropdown elements or label dropdown
+              const target = e.target as HTMLElement;
+              if (
+                target.closest('[data-dropdown-content]') || 
+                target.closest('[data-label-dropdown-content]') ||
+                target.closest('[data-action-button]') ||
+                isLabelDropdownOpen ||
+                labelDropdownJustClosed
+              ) {
+                return;
+              }
+              setIsModalOpen(true);
+            }}
           >
             <CardContent className="p-0 relative">
               {/* Label Bands - Above title, Trello style */}
@@ -327,7 +404,14 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                   card={card}
                   boardId={boardId}
                   controlledOpen={isLabelDropdownOpen}
-                  onOpenChange={setIsLabelDropdownOpen}
+                  onOpenChange={(open) => {
+                    setIsLabelDropdownOpen(open);
+                    if (!open) {
+                      // Set flag to prevent card click from firing immediately
+                      setLabelDropdownJustClosed(true);
+                      setTimeout(() => setLabelDropdownJustClosed(false), 100);
+                    }
+                  }}
                   trigger={
                     <button
                       style={{ 

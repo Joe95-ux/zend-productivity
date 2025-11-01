@@ -17,6 +17,7 @@ import { useDndContextOptional } from "@/components/dnd/DndProvider";
 import { toast } from "sonner";
 import { HoverHint } from "@/components/HoverHint";
 import Link from "next/link";
+import { HexColorPicker } from "react-colorful";
 
 interface BoardHeaderProps {
   boardId: string;
@@ -64,6 +65,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [isCreatingLabel, setIsCreatingLabel] = useState(false);
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState("#ef4444");
+  const [newLabelCustomColor, setNewLabelCustomColor] = useState("");
   const [labelSearchQuery, setLabelSearchQuery] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(boardTitle);
@@ -256,6 +258,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
       setIsCreatingLabel(false);
       setNewLabelName("");
       setNewLabelColor("#ef4444");
+      setNewLabelCustomColor("");
       toast.success("Label created successfully!");
     },
     onError: (error: Error) => {
@@ -329,9 +332,10 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
       toast.error("Please enter a label name");
       return;
     }
+    const colorToUse = newLabelCustomColor.trim() || newLabelColor;
     createLabelMutation.mutate({
       name: newLabelName.trim(),
-      color: newLabelColor,
+      color: colorToUse,
     });
   };
 
@@ -863,10 +867,10 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           </div>
           
           <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
-            <div className="p-[14px] space-y-2">
-              {/* Search Input */}
+            <div className="p-[14px] space-y-4">
+              {/* Search Input - First */}
               {!labelsLoading && (
-                <div className="relative mb-2">
+                <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   <Input
                     value={labelSearchQuery}
@@ -877,95 +881,18 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                 </div>
               )}
 
-              {/* Create New Label Button */}
-              {!labelsLoading && !isCreatingLabel && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCreatingLabel(true)}
-                  className="w-full h-8 text-sm justify-start"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create a new label
-                </Button>
-              )}
-
-              {/* Create Label Form */}
-              {isCreatingLabel && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      Name
-                    </label>
-                    <Input
-                      value={newLabelName}
-                      onChange={(e) => setNewLabelName(e.target.value)}
-                      placeholder="Enter label name..."
-                      className="h-8 text-sm"
-                      autoFocus
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter") {
-                          handleCreateLabel();
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      <Palette className="w-3 h-3" />
-                      Select a color
-                    </label>
-                    <div className="grid grid-cols-10 gap-1.5">
-                      {LABEL_COLORS.map((color) => (
-                        <button
-                          key={color.value}
-                          onClick={() => setNewLabelColor(color.value)}
-                          className={`w-7 h-7 rounded border-2 transition-all ${
-                            newLabelColor === color.value
-                              ? "border-slate-900 dark:border-white scale-110"
-                              : "border-slate-300 dark:border-slate-600 hover:scale-105"
-                          }`}
-                          style={{ backgroundColor: color.value }}
-                          title={color.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleCreateLabel}
-                      disabled={createLabelMutation.isPending || !newLabelName.trim()}
-                      size="sm"
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      {createLabelMutation.isPending ? "Creating..." : "Create"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setIsCreatingLabel(false);
-                        setNewLabelName("");
-                        setNewLabelColor("#ef4444");
-                      }}
-                      className="px-3"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Labels List */}
+              {/* Labels List - Second */}
               {labelsLoading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-3 p-2.5 rounded-md">
-                    <div className="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
-                    <div className="flex-1 h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
-                  </div>
-                ))
+                <div className="space-y-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="h-12 flex items-center gap-3 px-3 rounded-md bg-slate-100 dark:bg-slate-800 animate-pulse">
+                      <div className="w-20 h-8 bg-slate-200 dark:bg-slate-700 rounded-sm" />
+                      <div className="flex-1 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+                    </div>
+                  ))}
+                </div>
               ) : filteredLabels.length > 0 ? (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {filteredLabels.map((label: { id: string; name: string; color: string }) => {
                     const isEditing = editingLabelId === label.id;
                     return (
@@ -1046,13 +973,15 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                           </div>
                         ) : (
                           <div 
-                            className="flex items-center gap-3 p-2.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+                            className="h-12 flex items-center gap-3 px-3 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
                             onClick={() => handleEditLabel(label)}
                           >
                             <div
-                              className="w-10 h-5 rounded-sm flex-shrink-0"
+                              className="h-8 rounded-sm flex-shrink-0 px-3 flex items-center justify-center text-white text-xs font-medium"
                               style={{ backgroundColor: label.color }}
-                            />
+                            >
+                              {label.name}
+                            </div>
                             <span className="flex-1 text-sm font-medium text-slate-900 dark:text-white">
                               {label.name}
                             </span>
@@ -1083,6 +1012,156 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   <p className="text-sm">No labels yet</p>
                   <p className="text-xs mt-1">Create a new label to get started</p>
                 </div>
+              )}
+
+              {/* Create New Label - Last */}
+              {!labelsLoading && (
+                <>
+                  {!isCreatingLabel ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsCreatingLabel(true)}
+                      className="w-full h-10 text-sm justify-start"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create a new label
+                    </Button>
+                  ) : (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                          Name
+                        </label>
+                        <Input
+                          value={newLabelName}
+                          onChange={(e) => setNewLabelName(e.target.value)}
+                          placeholder="Enter label name..."
+                          className="h-8 text-sm"
+                          autoFocus
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              handleCreateLabel();
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                          <Palette className="w-3 h-3" />
+                          Select a color
+                        </label>
+                        <div className="grid grid-cols-10 gap-1.5">
+                          {LABEL_COLORS.map((color) => (
+                            <button
+                              key={color.value}
+                              onClick={() => {
+                                setNewLabelColor(color.value);
+                                setNewLabelCustomColor(""); // Clear custom color when selecting predefined
+                              }}
+                              className={`w-7 h-7 rounded border-2 transition-all ${
+                                newLabelColor === color.value && !newLabelCustomColor
+                                  ? "border-slate-900 dark:border-white scale-110"
+                                  : "border-slate-300 dark:border-slate-600 hover:scale-105"
+                              }`}
+                              style={{ backgroundColor: color.value }}
+                              title={color.name}
+                            />
+                          ))}
+                        </div>
+                        
+                        {/* Custom Color Picker */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs text-slate-600 dark:text-slate-400">
+                              Or choose custom color:
+                            </label>
+                            {!newLabelCustomColor && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setNewLabelCustomColor(newLabelColor)}
+                                className="h-6 px-2 text-xs"
+                              >
+                                <Palette className="w-3 h-3 mr-1" />
+                                Custom
+                              </Button>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 rounded-sm cursor-pointer"
+                                style={{ backgroundColor: newLabelCustomColor || newLabelColor }}
+                                onClick={() => {
+                                  if (!newLabelCustomColor) {
+                                    setNewLabelCustomColor(newLabelColor);
+                                  }
+                                }}
+                              />
+                              <Input
+                                type="text"
+                                value={newLabelCustomColor}
+                                onChange={(e) => {
+                                  setNewLabelCustomColor(e.target.value);
+                                  setNewLabelColor(e.target.value);
+                                }}
+                                placeholder="#000000"
+                                className="flex-1 h-8 text-sm"
+                              />
+                              {newLabelCustomColor && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setNewLabelCustomColor("")}
+                                  className="h-8 px-2"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                            {newLabelCustomColor && (
+                              <div className="p-3 bg-white dark:bg-slate-900 rounded-sm border border-slate-200 dark:border-slate-700">
+                                <HexColorPicker
+                                  color={newLabelCustomColor}
+                                  onChange={(color) => {
+                                    setNewLabelCustomColor(color);
+                                    setNewLabelColor(color);
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleCreateLabel}
+                          disabled={createLabelMutation.isPending || !newLabelName.trim()}
+                          size="sm"
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {createLabelMutation.isPending ? "Creating..." : "Create"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setIsCreatingLabel(false);
+                            setNewLabelName("");
+                            setNewLabelColor("#ef4444");
+                            setNewLabelCustomColor("");
+                          }}
+                          className="px-3"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

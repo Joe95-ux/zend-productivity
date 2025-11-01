@@ -262,7 +262,10 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
     },
   });
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
     setNewLabelName("");
     setNewLabelColor(LABEL_COLORS[0].value);
     setCustomColor("");
@@ -272,8 +275,12 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
     setEditCustomColor("");
     setIsCreatingNew(false);
     setSearchQuery("");
-    setIsOpen(false);
-  }, []);
+    if (controlledOpen !== undefined) {
+      onOpenChange?.(false);
+    } else {
+      setIsOpen(false);
+    }
+  }, [controlledOpen, onOpenChange]);
 
   const handleCreateLabel = () => {
     if (!newLabelName.trim()) {
@@ -355,8 +362,12 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
   const handleOpenChange = (open: boolean) => {
     if (controlledOpen === undefined) {
       setIsOpen(open);
+    } else {
+      // When closing a controlled dropdown, notify parent
+      if (!open) {
+        onOpenChange?.(false);
+      }
     }
-    onOpenChange?.(open);
   };
 
   return (
@@ -378,6 +389,9 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
         side={controlledOpen !== undefined ? "bottom" : "bottom"}
         sideOffset={controlledOpen !== undefined ? 8 : 4}
         className="w-80 p-0 dark:bg-[#0D1117] max-h-96 flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        data-label-dropdown-content
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 flex-shrink-0">
@@ -385,7 +399,10 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
             Labels
           </h3>
           <button
-            onClick={handleClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClose(e);
+            }}
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
           >
             <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
