@@ -526,7 +526,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   side="bottom" 
                   align="end" 
                   sideOffset={isMobile ? -14 : 4} 
-                  alignOffset={-20}
+                  alignOffset={-25}
                   className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
                 >
                   <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
