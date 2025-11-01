@@ -81,6 +81,7 @@ export function AttachmentViewerModal({
   // };
 
   const isImage = currentAttachment.type?.startsWith('image/') || 
+                  currentAttachment.type === 'image' ||
                   currentAttachment.url.startsWith('data:image/') ||
                   (currentAttachment.type === 'url' && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(currentAttachment.url));
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import { CommentItem } from "@/components/comments/CommentItem";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCurrentUserId } from "@/hooks/use-current-user-id";
+import { BoardFilter } from "./BoardFilter";
 
 interface BoardHeaderProps {
   boardId: string;
@@ -599,6 +600,14 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   <Share2 className="h-4 w-4" />
                 </HoverHint>
               </Button>
+
+              {/* Filter button */}
+              {dndContext?.orderedData && (
+                <BoardFilter
+                  labels={boardLabels}
+                  members={[dndContext.orderedData.owner, ...(dndContext.orderedData.members?.map(m => m.user).filter(Boolean) || [])]}
+                />
+              )}
 
               {/* Menu - Clickable */}
               <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>

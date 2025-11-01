@@ -1,0 +1,75 @@
+"use client";
+
+import { createContext, useContext, useState, ReactNode } from "react";
+
+export interface BoardFilters {
+  searchQuery: string;
+  selectedLabels: string[];
+  selectedMembers: string[];
+  dueDateFilter: "all" | "overdue" | "today" | "thisWeek" | "noDueDate";
+  completedFilter: "all" | "completed" | "incomplete";
+  hasAttachments: boolean | null;
+  hasChecklists: boolean | null;
+}
+
+interface BoardFilterContextType {
+  filters: BoardFilters;
+  updateFilters: (updates: Partial<BoardFilters>) => void;
+  clearFilters: () => void;
+  hasActiveFilters: boolean;
+}
+
+const defaultFilters: BoardFilters = {
+  searchQuery: "",
+  selectedLabels: [],
+  selectedMembers: [],
+  dueDateFilter: "all",
+  completedFilter: "all",
+  hasAttachments: null,
+  hasChecklists: null,
+};
+
+const BoardFilterContext = createContext<BoardFilterContextType | undefined>(undefined);
+
+export function BoardFilterProvider({ children }: { children: ReactNode }) {
+  const [filters, setFilters] = useState<BoardFilters>(defaultFilters);
+
+  const updateFilters = (updates: Partial<BoardFilters>) => {
+    setFilters((prev) => ({ ...prev, ...updates }));
+  };
+
+  const clearFilters = () => {
+    setFilters(defaultFilters);
+  };
+
+  const hasActiveFilters =
+    filters.searchQuery !== "" ||
+    filters.selectedLabels.length > 0 ||
+    filters.selectedMembers.length > 0 ||
+    filters.dueDateFilter !== "all" ||
+    filters.completedFilter !== "all" ||
+    filters.hasAttachments !== null ||
+    filters.hasChecklists !== null;
+
+  return (
+    <BoardFilterContext.Provider
+      value={{
+        filters,
+        updateFilters,
+        clearFilters,
+        hasActiveFilters,
+      }}
+    >
+      {children}
+    </BoardFilterContext.Provider>
+  );
+}
+
+export function useBoardFilters() {
+  const context = useContext(BoardFilterContext);
+  if (!context) {
+    throw new Error("useBoardFilters must be used within BoardFilterProvider");
+  }
+  return context;
+}
+

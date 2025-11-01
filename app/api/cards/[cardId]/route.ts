@@ -172,10 +172,19 @@ export async function PUT(
             continue;
           }
 
+          // Extract MIME type from base64 data URL if available
+          let attachmentType = 'image';
+          if (imageUrl.startsWith('data:image/')) {
+            const mimeMatch = imageUrl.match(/^data:image\/([^;]+)/);
+            if (mimeMatch && mimeMatch[1]) {
+              attachmentType = `image/${mimeMatch[1]}`;
+            }
+          }
+
           await db.attachment.create({
             data: {
               url: imageUrl,
-              type: 'image',
+              type: attachmentType,
               cardId
             }
           });

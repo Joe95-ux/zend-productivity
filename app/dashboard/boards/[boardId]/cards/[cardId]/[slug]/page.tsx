@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DndProvider, useDndContext } from "@/components/dnd/DndProvider";
+import { BoardFilterProvider } from "@/contexts/BoardFilterContext";
 import { CardModal } from "@/components/cards/CardModal";
 import { Card as CardType, List as ListType } from "@/lib/types";
 import { Plus, ArrowLeft } from "lucide-react";
@@ -231,14 +232,16 @@ export default function CardPage() {
     <>
       {/* Board Content with Card Modal */}
       <div className="w-full h-full">
-        <DndProvider boardId={boardId}>
-          <BoardContentWithCardModal 
-            boardId={boardId} 
-            cardId={cardId}
-            slug={slug}
-            onAddList={() => setIsCreateListOpen(true)} 
-          />
-        </DndProvider>
+        <BoardFilterProvider>
+          <DndProvider boardId={boardId}>
+            <BoardContentWithCardModal 
+              boardId={boardId} 
+              cardId={cardId}
+              slug={slug}
+              onAddList={() => setIsCreateListOpen(true)} 
+            />
+          </DndProvider>
+        </BoardFilterProvider>
       </div>
 
       {/* Create List Dialog */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
 import { List as ListType, UpdateListParams, List, Card as CardType } from "@/lib/types";
 import { useDndContext } from "@/components/dnd/DndProvider";
+import { useBoardFilters } from "@/contexts/BoardFilterContext";
+import { isToday, isThisWeek, isPast } from "date-fns";
 
 interface BoardData {
   lists: List[];
@@ -56,9 +58,83 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
 
   // Get the current list data from DndProvider context
   const { orderedData } = useDndContext();
+  const { filters } = useBoardFilters();
   const currentList = orderedData?.lists?.find((l: List) => l.id === list.id);
   const displayTitle = currentList?.title || list.title;
-  const displayCards = currentList?.cards || list.cards;
+  const allCards = currentList?.cards || list.cards;
+
+  // Filter cards based on active filters
+  const displayCards = useMemo(() => {
+    if (!allCards) return [];
+    
+    return allCards.filter((card: CardType) => {
+      // Search query filter
+      if (filters.searchQuery) {
+        const query = filters.searchQuery.toLowerCase();
+        const matchesTitle = card.title?.toLowerCase().includes(query);
+        const matchesDescription = card.description?.toLowerCase().includes(query);
+        if (!matchesTitle && !matchesDescription) return false;
+      }
+
+      // Labels filter
+      if (filters.selectedLabels.length > 0) {
+        const cardLabelIds = card.labels?.map(l => l.boardLabelId || l.id) || [];
+        const hasAnySelectedLabel = filters.selectedLabels.some(labelId => 
+          cardLabelIds.includes(labelId)
+        );
+        if (!hasAnySelectedLabel) return false;
+      }
+
+      // Members filter
+      if (filters.selectedMembers.length > 0) {
+        if (!card.assignedTo || !filters.selectedMembers.includes(card.assignedTo)) {
+          return false;
+        }
+      }
+
+      // Due date filter
+      if (filters.dueDateFilter !== "all") {
+        if (!card.dueDate) {
+          if (filters.dueDateFilter !== "noDueDate") return false;
+        } else {
+          const dueDate = new Date(card.dueDate);
+          switch (filters.dueDateFilter) {
+            case "overdue":
+              if (!isPast(dueDate) || isToday(dueDate)) return false;
+              break;
+            case "today":
+              if (!isToday(dueDate)) return false;
+              break;
+            case "thisWeek":
+              if (!isThisWeek(dueDate)) return false;
+              break;
+            case "noDueDate":
+              return false;
+          }
+        }
+      }
+
+      // Completed filter
+      if (filters.completedFilter !== "all") {
+        if (filters.completedFilter === "completed" && !card.isCompleted) return false;
+        if (filters.completedFilter === "incomplete" && card.isCompleted) return false;
+      }
+
+      // Has attachments filter
+      if (filters.hasAttachments === true) {
+        const hasAttachments = card.attachments && card.attachments.length > 0;
+        if (!hasAttachments) return false;
+      }
+
+      // Has checklists filter
+      if (filters.hasChecklists === true) {
+        const hasChecklists = card.checklists && card.checklists.length > 0;
+        if (!hasChecklists) return false;
+      }
+
+      return true;
+    });
+  }, [allCards, filters]);
 
   // Update editTitle when displayTitle changes
   useEffect(() => {

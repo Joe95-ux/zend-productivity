@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CreateListForm } from "@/components/lists/CreateListForm";
 import { ListContainer } from "@/components/lists/ListContainer";
 import { DndProvider, useDndContext } from "@/components/dnd/DndProvider";
+import { BoardFilterProvider } from "@/contexts/BoardFilterContext";
 import { Droppable } from "@hello-pangea/dnd";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
@@ -119,9 +120,11 @@ export default function BoardPage() {
     <>
       {/* Board Content */}
       <div className="w-full h-full">
-        <DndProvider boardId={boardId}>
-          <BoardContent boardId={boardId} onAddList={() => setIsCreateListOpen(true)} />
-        </DndProvider>
+        <BoardFilterProvider>
+          <DndProvider boardId={boardId}>
+            <BoardContent boardId={boardId} onAddList={() => setIsCreateListOpen(true)} />
+          </DndProvider>
+        </BoardFilterProvider>
       </div>
 
       {/* Create List Dialog */}
