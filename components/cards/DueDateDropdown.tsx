@@ -40,9 +40,10 @@ type CardModalCard = Omit<Card, "createdAt" | "updatedAt"> & {
 interface DueDateDropdownProps {
   card: CardModalCard;
   boardId: string;
+  sideOffset?: number;
 }
 
-export function DueDateDropdown({ card, boardId }: DueDateDropdownProps) {
+export function DueDateDropdown({ card, boardId, sideOffset }: DueDateDropdownProps) {
   const initialStartDate: Date | undefined = card.startDate
     ? new Date(card.startDate)
     : undefined;
@@ -273,10 +274,10 @@ export function DueDateDropdown({ card, boardId }: DueDateDropdownProps) {
 
       <DropdownMenuContent
           align="start"
-          sideOffset={isMobile ? -25 : 4}
+          sideOffset={sideOffset !== undefined ? sideOffset : (isMobile ? -25 : 4)}
           avoidCollisions={true}
           collisionPadding={12}
-          className="w-full max-w-96 h-auto p-0 sm:dark:bg-[#0D1117] dark:bg-[#151B23] z-50"
+          className="overflow-hidden w-full max-w-96 h-auto p-0 sm:dark:bg-[#0D1117] dark:bg-[#151B23] z-50"
         >
           <ScrollArea className="h-155 max-h-[calc(85vh-10rem)] w-full min-h-0">
          {/* Header */}

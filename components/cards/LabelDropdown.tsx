@@ -25,6 +25,7 @@ interface LabelDropdownProps {
   trigger?: React.ReactNode;
   controlledOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  sideOffset?: number;
 }
 
 const LABEL_COLORS = [
@@ -40,7 +41,7 @@ const LABEL_COLORS = [
   { name: "Indigo", value: "#6366f1" },
 ];
 
-export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenChange }: LabelDropdownProps) {
+export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenChange, sideOffset }: LabelDropdownProps) {
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState(LABEL_COLORS[0].value);
   const [customColor, setCustomColor] = useState("");
@@ -389,7 +390,7 @@ export function LabelDropdown({ card, boardId, trigger, controlledOpen, onOpenCh
       <DropdownMenuContent 
         align={controlledOpen !== undefined ? "end" : "start"} 
         side={controlledOpen !== undefined ? "bottom" : "bottom"}
-        sideOffset={isMobile ? -25 : 4}
+        sideOffset={sideOffset !== undefined ? sideOffset : (isMobile ? -25 : 4)}
         avoidCollisions={true}
         collisionPadding={12}
         className="w-80 p-0 dark:bg-[#0D1117] max-h-[calc(85vh-10rem)] 2xl:max-h-[calc(65vh-10rem)] flex flex-col z-50"
