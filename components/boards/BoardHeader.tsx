@@ -525,7 +525,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   align="end" 
                   sideOffset={14} 
                   alignOffset={-14}
-                  className="w-72 sm:w-80 h-auto max-h-[80vh] sm:max-h-[90vh] p-0 flex flex-col"
+                  className="w-full sm:w-85 h-auto max-h-[calc(100vh-114px)] p-0 flex flex-col dark:bg-[#0D1117]"
                 >
                   <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
                     <h3 className="text-[17px] font-bold">Menu</h3>
@@ -713,7 +713,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           align="end" 
           sideOffset={14} 
           alignOffset={-14}
-          className="w-72 sm:w-80 h-auto max-h-[80vh] sm:max-h-[90vh] p-0 flex flex-col"
+          className="w-full sm:w-85 h-auto max-h-[calc(100vh-114px)] p-0 flex flex-col dark:bg-[#0D1117]"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -841,7 +841,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           align="end" 
           sideOffset={14} 
           alignOffset={-14}
-          className="w-72 sm:w-80 h-auto max-h-[80vh] sm:max-h-[90vh] p-0 flex flex-col"
+          className="w-full sm:w-85 h-auto max-h-[calc(100vh-114px)] p-0 flex flex-col dark:bg-[#0D1117]"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1093,7 +1093,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       variant="outline"
                       size="sm"
                       onClick={() => setIsCreatingLabel(true)}
-                      className="w-full h-10 text-sm justify-start"
+                      className="w-full h-10 text-sm justify-center"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Create a new label
