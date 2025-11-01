@@ -473,14 +473,14 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 z-50" data-dropdown-content>
-                    <DropdownMenuItem onClick={(e) => {
+                    <DropdownMenuItem className="cursor-pointer" onClick={(e) => {
                       e.stopPropagation();
                       handleEdit(e);
                     }}>
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Card
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={(e) => {
+                    <DropdownMenuItem className="cursor-pointer" onClick={(e) => {
                       e.stopPropagation();
                       setIsDropdownOpen(false); // Close the action menu
                       setTimeout(() => {
@@ -490,21 +490,21 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                       <Tag className="h-4 w-4 mr-2" />
                       Edit Labels
                     </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
+                      <DropdownMenuItem className="cursor-pointer" onClick={(e) => {
                         e.stopPropagation();
                         setIsCopyModalOpen(true);
                       }}>
                         <Copy className="h-4 w-4 mr-2" />
                         Copy Card
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
+                      <DropdownMenuItem className="cursor-pointer" onClick={(e) => {
                         e.stopPropagation();
                         setIsMoveModalOpen(true);
                       }}>
                         <Move className="h-4 w-4 mr-2" />
                         Move Card
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
+                      <DropdownMenuItem className="cursor-pointer" onClick={(e) => {
                         e.stopPropagation();
                         const cardSlug = generateCardSlug(card.title, card.position);
                         const cardUrl = `${window.location.origin}/dashboard/boards/${boardId}/cards/${card.id}/${cardSlug}`;
@@ -519,7 +519,7 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
                             e.stopPropagation();
                             handleDelete(e);
                           }}
-                          className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                          className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete Card

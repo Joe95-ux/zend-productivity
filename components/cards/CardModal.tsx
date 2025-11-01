@@ -1442,7 +1442,7 @@ export function CardModal({
                 >
                   {/* Card Title with Check Radio - Fixed when scrolling */}
                   <div
-                    className={`sticky top-0 z-30 bg-slate-50 dark:bg-slate-900 w-full flex items-start mx-4 gap-3 transition-all duration-200 ease-in ${
+                    className={`sticky -top-1 z-30 bg-slate-50 dark:bg-slate-900 w-full flex items-start px-4 gap-3 transition-all duration-200 ease-in ${
                       isSticky
                         ? "border-b border-slate-200 dark:border-slate-700 py-2 shadow-sm scale-[0.98]"
                         : "py-4"
@@ -2886,7 +2886,7 @@ export function CardModal({
               >
                 {/* Card Title with Check Radio - Fixed when scrolling */}
                 <div
-                  className={`sticky top-0 z-30 transition-all duration-200 ease bg-slate-50 dark:bg-slate-900 w-full flex items-start px-8 py-4 gap-4 ${
+                  className={`sticky -top-1 z-30 transition-all duration-200 ease bg-slate-50 dark:bg-slate-900 w-full flex items-start px-8 py-4 gap-4 ${
                     isSticky ? "border-b border-slate-200 dark:border-slate-700" : ""
                   }`}
                 >

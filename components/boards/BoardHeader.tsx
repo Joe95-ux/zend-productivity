@@ -525,7 +525,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   align="end" 
                   sideOffset={14} 
                   alignOffset={-14}
-                  className="w-full sm:w-85 h-auto max-h-[calc(100vh-114px)] p-0 flex flex-col dark:bg-[#0D1117]"
+                  className="w-full sm:w-85 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
                 >
                   <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
                     <h3 className="text-[17px] font-bold">Menu</h3>
@@ -713,7 +713,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           align="end" 
           sideOffset={14} 
           alignOffset={-14}
-          className="w-full sm:w-85 h-auto max-h-[calc(100vh-114px)] p-0 flex flex-col dark:bg-[#0D1117]"
+          className="w-full sm:w-85 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -841,7 +841,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           align="end" 
           sideOffset={14} 
           alignOffset={-14}
-          className="w-full sm:w-85 h-auto max-h-[calc(100vh-114px)] p-0 flex flex-col dark:bg-[#0D1117]"
+          className="w-full sm:w-85 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">

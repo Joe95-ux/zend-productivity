@@ -231,7 +231,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                       </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
-                      className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                      className="w-56 bg-white dark:bg-[#0D1117] border-slate-200 dark:border-slate-800"
                     >
                       <DropdownMenuItem
                         onClick={() => {

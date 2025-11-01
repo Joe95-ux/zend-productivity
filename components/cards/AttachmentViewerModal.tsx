@@ -196,7 +196,7 @@ export function AttachmentViewerModal({
                   <button
                     key={attachment.id}
                     onClick={() => onIndexChange(index)}
-                    className={`relative w-16 h-16 rounded overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    className={`relative min-w-8 min-h-8 w-16 h-16 flex-shrink-0 rounded overflow-hidden border-2 transition-all flex-shrink-0 ${
                       index === currentIndex 
                         ? 'border-blue-500 ring-2 ring-blue-200' 
                         : 'border-transparent hover:border-slate-300'
