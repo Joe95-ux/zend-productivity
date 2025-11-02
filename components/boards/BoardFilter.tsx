@@ -377,11 +377,23 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                             className="flex items-center cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
+                              e.preventDefault();
                               if (allLabelsSelected) {
                                 deselectAllLabels();
                               } else {
                                 selectAllLabels();
                               }
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                            }}
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                            }}
+                            onMouseEnter={(e) => {
+                              e.stopPropagation();
                             }}
                           >
                             <Checkbox
@@ -395,6 +407,15 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
                               }}
                               className="rounded-sm"
                             />
@@ -416,61 +437,67 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                             }
                           }}>
                             <div className="relative flex-1">
-                              <DropdownMenuTrigger asChild>
-                                <Input
-                                  ref={selectLabelsInputRef}
-                                  placeholder="Select labels"
-                                  value={
-                                    isLabelsDropdownOpen 
-                                      ? labelsSearchQuery 
-                                      : filters.selectedLabels.length > 0
-                                        ? `${filters.selectedLabels.length} label${filters.selectedLabels.length === 1 ? '' : 's'} selected`
-                                        : ""
+                              <Input
+                                ref={selectLabelsInputRef}
+                                placeholder="Select labels"
+                                value={
+                                  isLabelsDropdownOpen 
+                                    ? labelsSearchQuery 
+                                    : filters.selectedLabels.length > 0
+                                      ? `${filters.selectedLabels.length} label${filters.selectedLabels.length === 1 ? '' : 's'} selected`
+                                      : ""
+                                }
+                                onChange={(e) => {
+                                  if (isLabelsDropdownOpen) {
+                                    e.stopPropagation();
+                                    setLabelsSearchQuery(e.target.value);
                                   }
-                                  onChange={(e) => {
-                                    if (isLabelsDropdownOpen) {
-                                      e.stopPropagation();
-                                      setLabelsSearchQuery(e.target.value);
-                                    }
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (isLabelsDropdownOpen) {
-                                      e.stopPropagation();
-                                    }
-                                  }}
-                                  className="flex-1 h-9 pr-8 cursor-pointer"
-                                  readOnly={!isLabelsDropdownOpen}
-                                  onClick={() => {
-                                    // When readOnly, manually open the dropdown
-                                    // DropdownMenuTrigger will also try to open it, but we ensure it happens
-                                    if (!isLabelsDropdownOpen) {
-                                      setIsLabelsDropdownOpen(true);
-                                      setLabelsSearchQuery("");
-                                      // Focus and select the input after opening
-                                      setTimeout(() => {
-                                        if (selectLabelsInputRef.current) {
-                                          selectLabelsInputRef.current.focus();
-                                          selectLabelsInputRef.current.select();
-                                        }
-                                      }, 10);
-                                    }
-                                  }}
-                                  onFocus={() => {
-                                    // When readOnly input receives focus, open dropdown
-                                    if (!isLabelsDropdownOpen) {
-                                      setIsLabelsDropdownOpen(true);
-                                      setLabelsSearchQuery("");
-                                      // Focus the input after opening to make it editable
-                                      setTimeout(() => {
-                                        if (selectLabelsInputRef.current) {
-                                          selectLabelsInputRef.current.focus();
-                                        }
-                                      }, 10);
-                                    }
-                                  }}
+                                }}
+                                onKeyDown={(e) => {
+                                  if (isLabelsDropdownOpen) {
+                                    e.stopPropagation();
+                                  }
+                                }}
+                                className="flex-1 h-9 pr-8 cursor-pointer"
+                                readOnly={!isLabelsDropdownOpen}
+                                onClick={(e) => {
+                                  // Only open on direct click on the Input itself
+                                  e.stopPropagation();
+                                  if (!isLabelsDropdownOpen) {
+                                    setIsLabelsDropdownOpen(true);
+                                    setLabelsSearchQuery("");
+                                    // Focus and select the input after opening
+                                    setTimeout(() => {
+                                      if (selectLabelsInputRef.current) {
+                                        selectLabelsInputRef.current.focus();
+                                        selectLabelsInputRef.current.select();
+                                      }
+                                    }, 10);
+                                  }
+                                }}
+                                onFocus={(e) => {
+                                  // When readOnly input receives focus, open dropdown
+                                  e.stopPropagation();
+                                  if (!isLabelsDropdownOpen) {
+                                    setIsLabelsDropdownOpen(true);
+                                    setLabelsSearchQuery("");
+                                    // Focus the input after opening to make it editable
+                                    setTimeout(() => {
+                                      if (selectLabelsInputRef.current) {
+                                        selectLabelsInputRef.current.focus();
+                                      }
+                                    }, 10);
+                                  }
+                                }}
+                              />
+                              {/* Hidden trigger for DropdownMenu positioning, doesn't interfere with interactions */}
+                              <DropdownMenuTrigger asChild>
+                                <div 
+                                  className="absolute inset-0 pointer-events-none" 
+                                  aria-hidden="true"
                                 />
                               </DropdownMenuTrigger>
-                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none" />
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none z-10" />
                             </div>
                             <DropdownMenuContent
                               align="start"
