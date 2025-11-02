@@ -22,6 +22,7 @@ model User {
   reactions     Reaction[]
   watches       Watch[]
   notifications Notification[]
+  favorites     FavoriteBoard[]
   
   // Email preferences
   emailNotifications Boolean    @default(true)
@@ -46,6 +47,7 @@ model Board {
   boardLabels BoardLabel[]
   activities  Activity[]
   watches     Watch[]
+  favorites   FavoriteBoard[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 }
@@ -250,4 +252,17 @@ enum Plan {
   PRO
   TEAM
   ENTERPRISE
+}
+
+model FavoriteBoard {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  boardId   String   @db.ObjectId
+  board     Board    @relation(fields: [boardId], references: [id])
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, boardId])
+  @@index([userId])
+  @@index([boardId])
 }

@@ -23,6 +23,7 @@ import { CommentItem } from "@/components/comments/CommentItem";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCurrentUserId } from "@/hooks/use-current-user-id";
 import { BoardFilter } from "./BoardFilter";
+import { cn } from "@/lib/utils";
 
 interface BoardHeaderProps {
   boardId: string;
@@ -92,6 +93,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [activeTab, setActiveTab] = useState("activity");
   const [isWatching, setIsWatching] = useState(false);
   const [isWatchLoading, setIsWatchLoading] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
   const dndContext = useDndContextOptional();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -458,6 +461,52 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     label.name.toLowerCase().includes(labelSearchQuery.toLowerCase())
   );
 
+  // Fetch favorite status
+  useEffect(() => {
+    const fetchFavoriteStatus = async () => {
+      try {
+        const response = await fetch(`/api/boards/${boardId}/favorite`);
+        if (response.ok) {
+          const data = await response.json();
+          setIsFavorite(data.isFavorite);
+        }
+      } catch (error) {
+        console.error("Error fetching favorite status:", error);
+      }
+    };
+
+    if (boardId) {
+      fetchFavoriteStatus();
+    }
+  }, [boardId]);
+
+  // Favorite toggle mutation
+  const favoriteToggleMutation = useMutation({
+    mutationFn: async () => {
+      setIsFavoriteLoading(true);
+      const response = await fetch(`/api/boards/${boardId}/favorite`, {
+        method: isFavorite ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to toggle favorite");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsFavorite(!isFavorite);
+      setIsFavoriteLoading(false);
+      toast.success(isFavorite ? "Removed from favorites" : "Added to favorites");
+    },
+    onError: (error: Error) => {
+      setIsFavoriteLoading(false);
+      toast.error(error.message);
+    },
+  });
+
   // Watch toggle mutation (fallback when not in DndProvider)
   const watchToggleMutation = useMutation({
     mutationFn: async () => {
@@ -605,9 +654,22 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </Button>
 
               {/* Favorite button - Clickable - Hidden on mobile */}
-              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
-                <HoverHint label="Add to favorites" side="bottom">
-                  <Star className="h-4 w-4" />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex"
+                onClick={() => favoriteToggleMutation.mutate()}
+                disabled={isFavoriteLoading}
+              >
+                <HoverHint label={isFavorite ? "Remove from favorites" : "Add to favorites"} side="bottom">
+                  <Star 
+                    className={cn(
+                      "h-4 w-4 transition-colors",
+                      isFavorite 
+                        ? "fill-yellow-400 text-yellow-400" 
+                        : "text-slate-500 dark:text-slate-400"
+                    )} 
+                  />
                 </HoverHint>
               </Button>
 
@@ -773,9 +835,21 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                         <Users className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-normal">Members ({membersCount})</span>
                       </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Star className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Add to favorites</span>
+                      <div 
+                        className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                        onClick={() => favoriteToggleMutation.mutate()}
+                      >
+                        <Star 
+                          className={cn(
+                            "h-4 w-4 transition-colors",
+                            isFavorite 
+                              ? "fill-yellow-400 text-yellow-400" 
+                              : "text-slate-400"
+                          )} 
+                        />
+                        <span className="text-sm font-normal">
+                          {isFavorite ? "Remove from favorites" : "Add to favorites"}
+                        </span>
                       </div>
                     </div>
 
