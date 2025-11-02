@@ -10,6 +10,7 @@ export interface BoardFilters {
   completedFilter: "all" | "completed" | "incomplete";
   hasAttachments: boolean | null;
   hasChecklists: boolean | null;
+  activityFilter: "all" | "week" | "twoWeeks" | "fourWeeks" | "inactive";
 }
 
 interface BoardFilterContextType {
@@ -27,6 +28,7 @@ const defaultFilters: BoardFilters = {
   completedFilter: "all",
   hasAttachments: null,
   hasChecklists: null,
+  activityFilter: "all",
 };
 
 const BoardFilterContext = createContext<BoardFilterContextType | undefined>(undefined);
@@ -49,7 +51,8 @@ export function BoardFilterProvider({ children }: { children: ReactNode }) {
     filters.dueDateFilter !== "all" ||
     filters.completedFilter !== "all" ||
     filters.hasAttachments !== null ||
-    filters.hasChecklists !== null;
+    filters.hasChecklists !== null ||
+    filters.activityFilter !== "all";
 
   return (
     <BoardFilterContext.Provider

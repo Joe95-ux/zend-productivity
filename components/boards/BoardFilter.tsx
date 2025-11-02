@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Filter, Search, Tag, User, Calendar, CheckCircle2, XCircle, Paperclip, SquareCheckBig } from "lucide-react";
+import { Filter, X, Calendar, Clock, AlertCircle, Users, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { HoverHint } from "@/components/HoverHint";
+import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { useBoardFilters } from "@/contexts/BoardFilterContext";
 import { cn } from "@/lib/utils";
 import { Label, User as UserType } from "@/lib/types";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BoardFilterProps {
   labels: Label[];
@@ -20,6 +23,7 @@ interface BoardFilterProps {
 export function BoardFilter({ labels, members }: BoardFilterProps) {
   const { filters, updateFilters, clearFilters, hasActiveFilters } = useBoardFilters();
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Deduplicate labels by id
   const uniqueLabels = labels.filter((label, index, self) => 
@@ -56,7 +60,16 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
     (filters.dueDateFilter !== "all" ? 1 : 0) +
     (filters.completedFilter !== "all" ? 1 : 0) +
     (filters.hasAttachments !== null ? 1 : 0) +
-    (filters.hasChecklists !== null ? 1 : 0);
+    (filters.hasChecklists !== null ? 1 : 0) +
+    (filters.activityFilter !== "all" ? 1 : 0);
+
+  const dateOptions = [
+    { value: "all", label: "All dates", icon: null, color: null },
+    { value: "overdue", label: "Overdue", icon: AlertCircle, color: "text-red-500" },
+    { value: "today", label: "Due today", icon: Clock, color: "text-blue-500" },
+    { value: "thisWeek", label: "Due this week", icon: Calendar, color: "text-yellow-500" },
+    { value: "noDueDate", label: "No due date", icon: Calendar, color: "text-slate-400" },
+  ];
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -80,168 +93,239 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        align="end"
-        sideOffset={4}
-        className="w-80 p-0 max-h-[calc(100vh-8rem)] overflow-y-auto"
+        align="end" 
+        sideOffset={isMobile ? -14 : 4} 
+        alignOffset={-25}
+        className="w-80 p-0 overflow-hidden dark:bg-[#0D1117]"
       >
-        <div className="p-4 space-y-4">
-          {/* Header */}
+        {/* Fixed Header */}
+        <div className="sticky top-0 z-10 bg-white dark:bg-[#0D1117] border-b border-slate-200 dark:border-slate-700 px-4 py-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-900 dark:text-white">Filter Cards</h3>
-            {hasActiveFilters && (
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Filter Cards</h3>
+            <div className="flex items-center gap-2">
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAll}
+                  className="h-auto p-0 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Clear all
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleClearAll}
-                className="h-auto p-0 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                onClick={() => setIsOpen(false)}
+                className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                Clear all
+                <X className="h-4 w-4" />
               </Button>
-            )}
+            </div>
           </div>
+        </div>
 
-          <Separator />
+        {/* Scrollable Content */}
+        <ScrollArea className="max-h-[calc(100vh-12rem)]">
+          <div className="p-4 space-y-4">
+            {/* Search */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Search cards
+              </label>
+              <Input
+                placeholder="Search by title or description..."
+                value={filters.searchQuery}
+                onChange={(e) => updateFilters({ searchQuery: e.target.value })}
+                className="h-9"
+              />
+            </div>
 
-          {/* Search */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <Search className="w-4 h-4" />
-              Search cards
-            </label>
-            <Input
-              placeholder="Search by title or description..."
-              value={filters.searchQuery}
-              onChange={(e) => updateFilters({ searchQuery: e.target.value })}
-              className="h-9"
-            />
-          </div>
+            <Separator />
 
-          <Separator />
-
-          {/* Labels */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <Tag className="w-4 h-4" />
-              Labels
-            </label>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {uniqueLabels.length === 0 ? (
-                <p className="text-xs text-slate-500 dark:text-slate-400">No labels available</p>
-              ) : (
-                uniqueLabels.map((label) => {
-                  const isSelected = filters.selectedLabels.includes(label.id);
-                  return (
-                    <div
-                      key={label.id}
-                      className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                      onClick={() => toggleLabel(label.id)}
-                    >
-                      <Checkbox checked={isSelected} onCheckedChange={() => toggleLabel(label.id)} />
+            {/* Members */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Members
+              </label>
+              <div className="space-y-1">
+                {uniqueMembers.length === 0 ? (
+                  <div className="flex items-center gap-3 px-2 py-2">
+                    <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                      <Users className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                    </div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">No members</span>
+                  </div>
+                ) : (
+                  uniqueMembers.map((member) => {
+                    const isSelected = filters.selectedMembers.includes(member.id);
+                    return (
                       <div
-                        className="w-4 h-4 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: label.color }}
-                      />
-                      <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
-                        {label.name}
-                      </span>
-                    </div>
-                  );
-                })
-              )}
+                        key={member.id}
+                        className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                        onClick={() => toggleMember(member.id)}
+                      >
+                        <Checkbox 
+                          checked={isSelected} 
+                          onCheckedChange={() => toggleMember(member.id)}
+                          className="rounded-sm"
+                        />
+                        <ConditionalUserProfile user={member} size="sm" />
+                        <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                          {member.name || member.email}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
 
-          <Separator />
+            <Separator />
 
-          {/* Members */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Members
-            </label>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {uniqueMembers.length === 0 ? (
-                <p className="text-xs text-slate-500 dark:text-slate-400">No members available</p>
-              ) : (
-                uniqueMembers.map((member) => {
-                  const isSelected = filters.selectedMembers.includes(member.id);
+            {/* Due Date */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Due Date
+              </label>
+              <div className="space-y-1">
+                {dateOptions.map((option) => {
+                  const Icon = option.icon;
                   return (
                     <div
-                      key={member.id}
-                      className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                      onClick={() => toggleMember(member.id)}
+                      key={option.value}
+                      className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                      onClick={() =>
+                        updateFilters({
+                          dueDateFilter: option.value as "all" | "overdue" | "today" | "thisWeek" | "noDueDate",
+                        })
+                      }
                     >
-                      <Checkbox checked={isSelected} onCheckedChange={() => toggleMember(member.id)} />
+                      <input
+                        type="radio"
+                        name="dueDate"
+                        checked={filters.dueDateFilter === option.value}
+                        onChange={() =>
+                          updateFilters({
+                            dueDateFilter: option.value as "all" | "overdue" | "today" | "thisWeek" | "noDueDate",
+                          })
+                        }
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                      {Icon && (
+                        <Icon className={cn("w-4 h-4 flex-shrink-0", option.color)} />
+                      )}
                       <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
-                        {member.name || member.email}
+                        {option.label}
                       </span>
                     </div>
                   );
-                })
-              )}
+                })}
+              </div>
             </div>
-          </div>
 
-          <Separator />
+            <Separator />
 
-          {/* Due Date */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Due Date
-            </label>
+            {/* Labels */}
             <div className="space-y-2">
-              {[
-                { value: "all", label: "All dates" },
-                { value: "overdue", label: "Overdue" },
-                { value: "today", label: "Due today" },
-                { value: "thisWeek", label: "Due this week" },
-                { value: "noDueDate", label: "No due date" },
-              ].map((option) => (
-                <div
-                  key={option.value}
-                  className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                  onClick={() =>
-                    updateFilters({
-                      dueDateFilter: option.value as "all" | "overdue" | "today" | "thisWeek" | "noDueDate",
-                    })
-                  }
-                >
-                  <input
-                    type="radio"
-                    checked={filters.dueDateFilter === option.value}
-                    onChange={() =>
-                      updateFilters({
-                        dueDateFilter: option.value as "all" | "overdue" | "today" | "thisWeek" | "noDueDate",
-                      })
-                    }
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm text-slate-900 dark:text-slate-300">{option.label}</span>
-                </div>
-              ))}
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Labels
+              </label>
+              <div className="space-y-1">
+                {uniqueLabels.length === 0 ? (
+                  <div className="flex items-center gap-3 px-2 py-2">
+                    <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      <Tag className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                    </div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">No labels</span>
+                  </div>
+                ) : (
+                  uniqueLabels.map((label) => {
+                    const isSelected = filters.selectedLabels.includes(label.id);
+                    return (
+                      <div
+                        key={label.id}
+                        className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                        onClick={() => toggleLabel(label.id)}
+                      >
+                        <Checkbox 
+                          checked={isSelected} 
+                          onCheckedChange={() => toggleLabel(label.id)}
+                          className="rounded-sm"
+                        />
+                        <div
+                          className="w-4 h-4 rounded-sm flex-shrink-0"
+                          style={{ backgroundColor: label.color }}
+                        />
+                        <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                          {label.name}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
 
-          <Separator />
+            <Separator />
 
-          {/* Completed Status */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              Status
-            </label>
+            {/* Activity */}
             <div className="space-y-2">
-              {[
-                { value: "all", label: "All cards", icon: null },
-                { value: "completed", label: "Completed", icon: CheckCircle2 },
-                { value: "incomplete", label: "Not completed", icon: XCircle },
-              ].map((option) => {
-                const Icon = option.icon;
-                return (
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Activity
+              </label>
+              <div className="space-y-1">
+                {[
+                  { value: "all", label: "All cards" },
+                  { value: "week", label: "Active in the last week" },
+                  { value: "twoWeeks", label: "Active in the last two weeks" },
+                  { value: "fourWeeks", label: "Active in the last four weeks" },
+                  { value: "inactive", label: "Without activity in the last four weeks" },
+                ].map((option) => (
                   <div
                     key={option.value}
-                    className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                    onClick={() =>
+                      updateFilters({
+                        activityFilter: option.value as "all" | "week" | "twoWeeks" | "fourWeeks" | "inactive",
+                      })
+                    }
+                  >
+                    <input
+                      type="radio"
+                      name="activity"
+                      checked={filters.activityFilter === option.value}
+                      onChange={() =>
+                        updateFilters({
+                          activityFilter: option.value as "all" | "week" | "twoWeeks" | "fourWeeks" | "inactive",
+                        })
+                      }
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                      {option.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Status */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Status
+              </label>
+              <div className="space-y-1">
+                {[
+                  { value: "all", label: "All cards" },
+                  { value: "completed", label: "Completed" },
+                  { value: "incomplete", label: "Not completed" },
+                ].map((option) => (
+                  <div
+                    key={option.value}
+                    className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
                     onClick={() =>
                       updateFilters({
                         completedFilter: option.value as "all" | "completed" | "incomplete",
@@ -250,67 +334,72 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                   >
                     <input
                       type="radio"
+                      name="status"
                       checked={filters.completedFilter === option.value}
                       onChange={() =>
                         updateFilters({
                           completedFilter: option.value as "all" | "completed" | "incomplete",
                         })
                       }
-                      className="w-4 h-4"
+                      className="w-4 h-4 cursor-pointer"
                     />
-                    {Icon && <Icon className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
-                    <span className="text-sm text-slate-900 dark:text-slate-300">{option.label}</span>
+                    <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                      {option.label}
+                    </span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
 
-          <Separator />
+            <Separator />
 
-          {/* Additional Filters */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Additional Filters</label>
+            {/* Additional Filters */}
             <div className="space-y-2">
-              <div
-                className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                onClick={() =>
-                  updateFilters({
-                    hasAttachments: filters.hasAttachments === true ? null : true,
-                  })
-                }
-              >
-                <Checkbox
-                  checked={filters.hasAttachments === true}
-                  onCheckedChange={(checked) =>
-                    updateFilters({ hasAttachments: checked ? true : null })
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Show cards with</label>
+              <div className="space-y-1">
+                <div
+                  className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                  onClick={() =>
+                    updateFilters({
+                      hasAttachments: filters.hasAttachments === true ? null : true,
+                    })
                   }
-                />
-                <Paperclip className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                <span className="text-sm text-slate-900 dark:text-slate-300">Has attachments</span>
-              </div>
-              <div
-                className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                onClick={() =>
-                  updateFilters({
-                    hasChecklists: filters.hasChecklists === true ? null : true,
-                  })
-                }
-              >
-                <Checkbox
-                  checked={filters.hasChecklists === true}
-                  onCheckedChange={(checked) =>
-                    updateFilters({ hasChecklists: checked ? true : null })
+                >
+                  <Checkbox
+                    checked={filters.hasAttachments === true}
+                    onCheckedChange={(checked) =>
+                      updateFilters({ hasAttachments: checked ? true : null })
+                    }
+                    className="rounded-sm"
+                  />
+                  <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                    Attachments
+                  </span>
+                </div>
+                <div
+                  className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                  onClick={() =>
+                    updateFilters({
+                      hasChecklists: filters.hasChecklists === true ? null : true,
+                    })
                   }
-                />
-                <SquareCheckBig className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                <span className="text-sm text-slate-900 dark:text-slate-300">Has checklists</span>
+                >
+                  <Checkbox
+                    checked={filters.hasChecklists === true}
+                    onCheckedChange={(checked) =>
+                      updateFilters({ hasChecklists: checked ? true : null })
+                    }
+                    className="rounded-sm"
+                  />
+                  <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                    Checklists
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
-

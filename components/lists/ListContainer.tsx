@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { List as ListType, UpdateListParams, List, Card as CardType } from "@/lib/types";
 import { useDndContext } from "@/components/dnd/DndProvider";
 import { useBoardFilters } from "@/contexts/BoardFilterContext";
-import { isToday, isThisWeek, isPast } from "date-fns";
+import { isToday, isThisWeek, isPast, subDays, isAfter } from "date-fns";
 
 interface BoardData {
   lists: List[];
@@ -130,6 +130,43 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
       if (filters.hasChecklists === true) {
         const hasChecklists = card.checklists && card.checklists.length > 0;
         if (!hasChecklists) return false;
+      }
+
+      // Activity filter
+      if (filters.activityFilter !== "all") {
+        const now = new Date();
+        const cardUpdatedAt = card.updatedAt ? new Date(card.updatedAt) : card.createdAt ? new Date(card.createdAt) : null;
+        
+        if (!cardUpdatedAt) {
+          // If card has no update date, only show for "inactive" filter
+          if (filters.activityFilter !== "inactive") return false;
+          return true;
+        }
+        
+        if (filters.activityFilter === "inactive") {
+          // For inactive, we want cards that haven't been updated in the last 4 weeks
+          const cutoffDate = subDays(now, 28);
+          if (isAfter(cardUpdatedAt, cutoffDate)) return false;
+          return true;
+        }
+        
+        // For active filters, check if card was updated after cutoff
+        let cutoffDate: Date;
+        switch (filters.activityFilter) {
+          case "week":
+            cutoffDate = subDays(now, 7);
+            break;
+          case "twoWeeks":
+            cutoffDate = subDays(now, 14);
+            break;
+          case "fourWeeks":
+            cutoffDate = subDays(now, 28);
+            break;
+          default:
+            return true;
+        }
+        
+        if (!isAfter(cardUpdatedAt, cutoffDate)) return false;
       }
 
       return true;

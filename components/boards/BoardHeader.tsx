@@ -135,7 +135,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     },
   });
 
-  // Fetch board labels
+  // Fetch board labels (always enabled for filter)
   const { data: boardLabels = [], isLoading: labelsLoading } = useQuery({
     queryKey: ["labels", boardId],
     queryFn: async () => {
@@ -143,7 +143,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
       if (!response.ok) throw new Error("Failed to fetch labels");
       return response.json();
     },
-    enabled: isLabelsOpen,
+    enabled: !!boardId, // Always fetch when boardId is available
   });
 
   // Get members array for filter (from boardData or dndContext as fallback)
