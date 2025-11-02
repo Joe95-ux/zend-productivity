@@ -64,8 +64,16 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
 
   const { watchMap } = useDndContext();
 
-  // Sync local state with query cache updates
+  // Track if we're in an optimistic update to prevent snap-backs
+  const isOptimisticUpdateRef = useRef(false);
+
+  // Sync local state with query cache updates (but not during optimistic updates)
   useEffect(() => {
+    // Skip sync if we're in the middle of an optimistic update
+    if (isOptimisticUpdateRef.current) {
+      return;
+    }
+    
     if (boardData) {
       const updatedCard = boardData.lists
         ?.find((l: List) => l.id === list.id)
@@ -93,29 +101,51 @@ export function CardItem({ card, list, boardId, index }: CardItemProps) {
       if (!response.ok) throw new Error("Failed to update card");
       return response.json();
     },
+    onMutate: async (newData) => {
+      // Cancel any outgoing refetches to avoid snap-backs
+      await queryClient.cancelQueries({ queryKey: ["board", boardId] });
+      
+      // Set flag to prevent sync effect from overwriting our optimistic update
+      isOptimisticUpdateRef.current = true;
+      
+      // Snapshot the previous value for rollback
+      const previousCardData = card;
+      
+      // Return context for potential rollback
+      return { previousCardData };
+    },
     onSuccess: () => {
       // Cache already updated optimistically, no need to refetch
+      // Clear the flag after a short delay to allow server sync
+      setTimeout(() => {
+        isOptimisticUpdateRef.current = false;
+      }, 100);
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
+      // Clear the flag
+      isOptimisticUpdateRef.current = false;
+      
       // Revert the local state change on error
       setIsCompleted(card.isCompleted);
       
       // Revert the query cache to the original state
-      queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
-        if (!oldData) return oldData;
-        
-        return {
-          ...oldData,
-          lists: oldData.lists.map((list: List) => ({
-            ...list,
-            cards: list.cards.map((c: CardType) => 
-              c.id === card.id 
-                ? { ...c, isCompleted: card.isCompleted }
-                : c
-            )
-          }))
-        };
-      });
+      if (context?.previousCardData) {
+        queryClient.setQueryData(["board", boardId], (oldData: Board | undefined) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            lists: oldData.lists.map((list: List) => ({
+              ...list,
+              cards: list.cards.map((c: CardType) => 
+                c.id === card.id
+                  ? { ...c, isCompleted: context.previousCardData.isCompleted }
+                  : c
+              )
+            }))
+          };
+        });
+      }
       
       toast.error(error.message);
     },
