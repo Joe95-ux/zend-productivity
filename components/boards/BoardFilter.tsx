@@ -26,7 +26,9 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
   const [isLabelsDropdownOpen, setIsLabelsDropdownOpen] = useState(false);
   const [labelsSearchQuery, setLabelsSearchQuery] = useState("");
   const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined);
+  const [checkboxWidth, setCheckboxWidth] = useState<number | undefined>(undefined);
   const labelBandRef = useRef<HTMLDivElement>(null);
+  const checkboxRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
   // Deduplicate labels by id
@@ -68,11 +70,16 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
       )
     : collapsedLabels;
 
-  // Calculate dropdown width to match label bands
+  // Calculate dropdown width to match label bands (band only, excluding checkbox)
   useEffect(() => {
-    if (labelBandRef.current) {
-      const width = labelBandRef.current.offsetWidth;
-      setDropdownWidth(width);
+    if (labelBandRef.current && checkboxRef.current) {
+      // The ref now points directly to the label band div
+      const bandWidth = labelBandRef.current.offsetWidth;
+      const checkboxWidth = checkboxRef.current.offsetWidth;
+      // Dropdown width = band width (excluding checkbox)
+      // Inside dropdown: checkbox + gap + band, so band will be shorter to fit
+      setDropdownWidth(bandWidth);
+      setCheckboxWidth(checkboxWidth);
     }
   }, [visibleLabels.length]);
 
@@ -294,42 +301,52 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Labels
               </label>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {/* No labels option */}
                 <div
-                  className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
+                  className="flex items-center gap-3"
                   onClick={() =>
                     updateFilters({
                       noLabels: !filters.noLabels,
                     })
                   }
                 >
-                  <Checkbox
-                    checked={filters.noLabels}
-                    onCheckedChange={(checked) =>
+                  <div
+                    className="flex items-center cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       updateFilters({
-                        noLabels: checked === true,
-                      })
-                    }
-                    className="rounded-sm"
-                  />
+                        noLabels: !filters.noLabels,
+                      });
+                    }}
+                  >
+                    <Checkbox
+                      checked={filters.noLabels}
+                      onCheckedChange={(checked) =>
+                        updateFilters({
+                          noLabels: checked === true,
+                        })
+                      }
+                      className="rounded-sm"
+                    />
+                  </div>
                   <Tag className="w-4 h-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
                   <span className="text-sm text-slate-500 dark:text-slate-400">No labels</span>
                 </div>
 
                 {/* Label list */}
                 {uniqueLabels.length > 0 && (
-                  <div className="space-y-1 mt-1">
+                  <div className="space-y-2">
                       {/* Visible labels (first 3) */}
                       {visibleLabels.map((label, index) => {
                         const isSelected = filters.selectedLabels.includes(label.id);
                         return (
                           <div
                             key={label.id}
-                            ref={index === 0 ? labelBandRef : undefined}
                             className="flex items-center gap-3"
                           >
                             <div
+                              ref={index === 0 ? checkboxRef : undefined}
                               className="flex items-center cursor-pointer"
                               onClick={() => toggleLabel(label.id)}
                             >
@@ -340,9 +357,10 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                               />
                             </div>
                             <div
+                              ref={index === 0 ? labelBandRef : undefined}
                               className={cn(
-                                "flex-1 px-3 py-2 rounded-sm cursor-pointer transition-all",
-                                isSelected && "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-1"
+                                "flex-1 px-3 py-1 rounded-sm cursor-pointer transition-all relative",
+                                isSelected && "border-l-4 border-l-blue-500 dark:border-l-blue-400"
                               )}
                               style={{ 
                                 backgroundColor: label.color,
@@ -372,11 +390,16 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                 className="flex items-center cursor-pointer"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  e.preventDefault();
                                   if (allLabelsSelected) {
                                     deselectAllLabels();
                                   } else {
                                     selectAllLabels();
                                   }
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
                                 }}
                               >
                                 <Checkbox
@@ -388,6 +411,10 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                       deselectAllLabels();
                                     }
                                   }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
                                   className="rounded-sm"
                                 />
                               </div>
@@ -395,9 +422,15 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                 <Input
                                   placeholder="Search labels..."
                                   value={labelsSearchQuery}
-                                  onChange={(e) => setLabelsSearchQuery(e.target.value)}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setLabelsSearchQuery(e.target.value);
+                                  }}
                                   onClick={(e) => e.stopPropagation()}
-                                  onKeyDown={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                  onFocus={(e) => e.stopPropagation()}
                                   className="flex-1 h-9"
                                   autoFocus
                                 />
@@ -420,10 +453,17 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                             align="start"
                             sideOffset={4}
                             className="p-0 overflow-hidden dark:bg-[#0D1117]"
-                            style={{ width: dropdownWidth ? `${dropdownWidth}px` : undefined }}
+                            style={{ 
+                              width: dropdownWidth && checkboxWidth 
+                                ? `${dropdownWidth + checkboxWidth + 12}px` 
+                                : dropdownWidth 
+                                  ? `${dropdownWidth}px` 
+                                  : undefined 
+                            }}
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <ScrollArea className="h-64 max-h-64">
-                              <div className="p-2 space-y-1">
+                              <div className="p-2 space-y-2">
                                 {filteredCollapsedLabels.map((label) => {
                                   const isSelected = filters.selectedLabels.includes(label.id);
                                   return (
@@ -432,7 +472,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                       className="flex items-center gap-3"
                                     >
                                       <div
-                                        className="flex items-center cursor-pointer"
+                                        className="flex items-center cursor-pointer flex-shrink-0"
                                         onClick={() => toggleLabel(label.id)}
                                       >
                                         <Checkbox
@@ -443,21 +483,19 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                       </div>
                                       <div
                                         className={cn(
-                                          "flex-1 px-3 py-2 rounded-sm cursor-pointer transition-all relative",
-                                          isSelected && "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-1"
+                                          "px-3 py-1 rounded-sm cursor-pointer transition-all relative",
+                                          isSelected && "border-l-4 border-l-blue-500 dark:border-l-blue-400"
                                         )}
                                         style={{ 
                                           backgroundColor: label.color,
                                           color: 'white',
+                                          width: dropdownWidth ? `${Math.max(0, dropdownWidth - (checkboxWidth || 0) - 12)}px` : 'auto',
                                         }}
                                         onClick={() => toggleLabel(label.id)}
                                       >
                                         <span className="text-sm font-medium text-left">
                                           {label.name}
                                         </span>
-                                        {isSelected && (
-                                          <div className="absolute right-0 top-0 bottom-0 w-1 bg-blue-500 dark:bg-blue-400 rounded-r-sm" />
-                                        )}
                                       </div>
                                     </div>
                                   );
