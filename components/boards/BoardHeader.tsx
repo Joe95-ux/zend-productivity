@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search, UsersRound } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -583,9 +583,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
             </div>
 
             {/* Right side - All clickable actions */}
-            <div className="flex items-center gap-1 min-[320px]:gap-2">
+            <div className="flex items-center gap-0 min-[320px]:gap-2">
               {/* User Profile - Hidden on mobile, shown in menu */}
-              <div className="hidden lg:block">
+              <div className="hidden lg:block mt-2">
                 <UserButton 
                   afterSignOutUrl="/"
                   appearance={{
@@ -599,7 +599,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               {/* Members count - Clickable - Hidden on mobile */}
               <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
                 <HoverHint label={`${membersCount} members`} side="bottom">
-                  <Users className="h-4 w-4 mr-1" />
+                  <UsersRound className="h-4 w-4 mr-1" />
                 </HoverHint>
                 <span className="text-sm">{membersCount}</span>
               </Button>
@@ -642,7 +642,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   align="end" 
                   sideOffset={isMobile ? -14 : 4} 
                   alignOffset={-25}
-                  className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
+                  className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] rounded-lg p-0 flex flex-col dark:bg-[#0D1117]"
                 >
                   <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
                     <h3 className="text-[17px] font-bold">Menu</h3>
@@ -830,7 +830,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           align="end" 
           sideOffset={isMobile ? -14 : 4} 
           alignOffset={-10}
-          className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
+          className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117] rounded-lg"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -953,7 +953,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           align="end" 
           sideOffset={isMobile ? -14 : 4} 
           alignOffset={-10}
-          className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117]"
+          className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117] rounded-lg"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">

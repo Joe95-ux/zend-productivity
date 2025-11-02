@@ -132,8 +132,8 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
       <DropdownMenuContent
         align="end" 
         sideOffset={isMobile ? -14 : 4} 
-        alignOffset={isMobile ? -60 : -75}
-        className="w-full rounded-md sm:w-90 p-0 overflow-hidden dark:bg-[#0D1117]"
+        alignOffset={isMobile ? -63 : -75}
+        className="w-full rounded-lg sm:w-90 p-0 overflow-hidden dark:bg-[#0D1117]"
       >
         {/* Fixed Header */}
         <div className="sticky top-0 z-10 bg-white dark:bg-[#0D1117] px-4 py-4">
@@ -291,7 +291,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
             <Separator />
 
             {/* Labels */}
-            <div className="space-y-3">
+            <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Labels
               </label>
@@ -405,10 +405,18 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                             setIsLabelsDropdownOpen(open);
                             if (!open) {
                               setLabelsSearchQuery("");
+                            } else {
+                              // When dropdown opens, focus and clear the input for searching
+                              setTimeout(() => {
+                                if (selectLabelsInputRef.current) {
+                                  selectLabelsInputRef.current.focus();
+                                  setLabelsSearchQuery("");
+                                }
+                              }, 10);
                             }
                           }}>
-                            <DropdownMenuTrigger asChild>
-                              <div className="relative flex-1">
+                            <div className="relative flex-1">
+                              <DropdownMenuTrigger asChild>
                                 <Input
                                   ref={selectLabelsInputRef}
                                   placeholder="Select labels"
@@ -425,31 +433,45 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                       setLabelsSearchQuery(e.target.value);
                                     }
                                   }}
-                                  onClick={(e) => {
-                                    if (!isLabelsDropdownOpen) {
-                                      e.stopPropagation();
-                                      setIsLabelsDropdownOpen(true);
-                                    }
-                                  }}
-                                  onFocus={(e) => {
-                                    if (!isLabelsDropdownOpen) {
-                                      e.stopPropagation();
-                                      setIsLabelsDropdownOpen(true);
-                                      setLabelsSearchQuery("");
-                                    }
-                                  }}
                                   onKeyDown={(e) => {
                                     if (isLabelsDropdownOpen) {
                                       e.stopPropagation();
                                     }
                                   }}
-                                  className="flex-1 h-9 pr-8"
+                                  className="flex-1 h-9 pr-8 cursor-pointer"
                                   readOnly={!isLabelsDropdownOpen}
-                                  autoFocus={isLabelsDropdownOpen}
+                                  onClick={() => {
+                                    // When readOnly, manually open the dropdown
+                                    // DropdownMenuTrigger will also try to open it, but we ensure it happens
+                                    if (!isLabelsDropdownOpen) {
+                                      setIsLabelsDropdownOpen(true);
+                                      setLabelsSearchQuery("");
+                                      // Focus and select the input after opening
+                                      setTimeout(() => {
+                                        if (selectLabelsInputRef.current) {
+                                          selectLabelsInputRef.current.focus();
+                                          selectLabelsInputRef.current.select();
+                                        }
+                                      }, 10);
+                                    }
+                                  }}
+                                  onFocus={() => {
+                                    // When readOnly input receives focus, open dropdown
+                                    if (!isLabelsDropdownOpen) {
+                                      setIsLabelsDropdownOpen(true);
+                                      setLabelsSearchQuery("");
+                                      // Focus the input after opening to make it editable
+                                      setTimeout(() => {
+                                        if (selectLabelsInputRef.current) {
+                                          selectLabelsInputRef.current.focus();
+                                        }
+                                      }, 10);
+                                    }
+                                  }}
                                 />
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none" />
-                              </div>
-                            </DropdownMenuTrigger>
+                              </DropdownMenuTrigger>
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none" />
+                            </div>
                             <DropdownMenuContent
                               align="start"
                               sideOffset={4}
