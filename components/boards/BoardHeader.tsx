@@ -480,12 +480,11 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     }
   }, [boardId]);
 
-  // Favorite toggle mutation
+  // Favorite toggle mutation with optimistic updates
   const favoriteToggleMutation = useMutation({
-    mutationFn: async () => {
-      setIsFavoriteLoading(true);
+    mutationFn: async (shouldAdd: boolean) => {
       const response = await fetch(`/api/boards/${boardId}/favorite`, {
-        method: isFavorite ? "DELETE" : "POST",
+        method: shouldAdd ? "POST" : "DELETE",
         headers: { "Content-Type": "application/json" },
       });
 
@@ -496,12 +495,34 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
 
       return response.json();
     },
-    onSuccess: () => {
-      setIsFavorite(!isFavorite);
+    onMutate: async (shouldAdd: boolean) => {
+      // Cancel any outgoing refetches to avoid snap-backs
+      await queryClient.cancelQueries({ queryKey: ["boardFavorite", boardId] });
+      
+      // Snapshot the previous value for rollback
+      const previousFavoriteStatus = isFavorite;
+      
+      // Optimistically update UI immediately
+      setIsFavorite(shouldAdd);
       setIsFavoriteLoading(false);
-      toast.success(isFavorite ? "Removed from favorites" : "Added to favorites");
+      
+      // Return context for potential rollback
+      return { previousFavoriteStatus, shouldAdd };
     },
-    onError: (error: Error) => {
+    onSuccess: (_data, _variables, context) => {
+      // Success - keep the optimistic update
+      // Don't invalidate queries to avoid snap-backs
+      setIsFavoriteLoading(false);
+      const message = context?.shouldAdd 
+        ? "Added to favorites" 
+        : "Removed from favorites";
+      toast.success(message);
+    },
+    onError: (error: Error, _variables, context) => {
+      // Rollback optimistic update on error
+      if (context?.previousFavoriteStatus !== undefined) {
+        setIsFavorite(context.previousFavoriteStatus);
+      }
       setIsFavoriteLoading(false);
       toast.error(error.message);
     },
@@ -658,7 +679,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                 variant="ghost" 
                 size="sm" 
                 className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex"
-                onClick={() => favoriteToggleMutation.mutate()}
+                onClick={() => favoriteToggleMutation.mutate(!isFavorite)}
                 disabled={isFavoriteLoading}
               >
                 <HoverHint label={isFavorite ? "Remove from favorites" : "Add to favorites"} side="bottom">
@@ -837,7 +858,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       </div>
                       <div 
                         className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
-                        onClick={() => favoriteToggleMutation.mutate()}
+                        onClick={() => favoriteToggleMutation.mutate(!isFavorite)}
                       >
                         <Star 
                           className={cn(
