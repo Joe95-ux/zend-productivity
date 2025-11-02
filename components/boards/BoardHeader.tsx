@@ -24,6 +24,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useCurrentUserId } from "@/hooks/use-current-user-id";
 import { BoardFilter } from "./BoardFilter";
 import { cn } from "@/lib/utils";
+import { ShareBoardModal } from "./ShareBoardModal";
 
 interface BoardHeaderProps {
   boardId: string;
@@ -95,6 +96,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [isWatchLoading, setIsWatchLoading] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const dndContext = useDndContextOptional();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -695,7 +697,12 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </Button>
 
               {/* Share button - Clickable - Hidden on mobile */}
-              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex"
+                onClick={() => setIsShareModalOpen(true)}
+              >
                 <HoverHint label="Share board" side="bottom">
                   <Share2 className="h-4 w-4" />
                 </HoverHint>
@@ -806,7 +813,13 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                         <Download className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-normal">Export</span>
                       </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                      <div 
+                        className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                        onClick={() => {
+                          setIsShareModalOpen(true);
+                          setIsMenuOpen(false);
+                        }}
+                      >
                         <Share2 className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-normal">Share</span>
                       </div>
@@ -1445,6 +1458,13 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Share Board Modal */}
+      <ShareBoardModal
+        boardId={boardId}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+      />
     </>
   );
 }

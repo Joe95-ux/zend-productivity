@@ -23,6 +23,8 @@ model User {
   watches       Watch[]
   notifications Notification[]
   favorites     FavoriteBoard[]
+  organizationMemberships OrganizationMember[]
+  joinRequests  BoardJoinRequest[]
   
   // Email preferences
   emailNotifications Boolean    @default(true)
@@ -42,12 +44,15 @@ model Board {
   description String?
   ownerId     String     @db.ObjectId
   owner       User       @relation(fields: [ownerId], references: [id])
+  organizationId String?        @db.ObjectId
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
   members     Member[]
   lists       List[]
   boardLabels BoardLabel[]
   activities  Activity[]
   watches     Watch[]
   favorites   FavoriteBoard[]
+  joinRequests BoardJoinRequest[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 }
@@ -254,6 +259,45 @@ enum Plan {
   ENTERPRISE
 }
 
+enum OrganizationRole {
+  ADMIN
+  MEMBER
+  OBSERVER
+}
+
+model Organization {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  clerkOrgId  String   @unique // Clerk Organization ID
+  name        String
+  slug        String   @unique // URL-friendly identifier
+  description String?
+  logoUrl     String?
+  boards      Board[]
+  members     OrganizationMember[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OrganizationMember {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String           @db.ObjectId
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  userId         String           @db.ObjectId
+  user           User              @relation(fields: [userId], references: [id])
+  role           OrganizationRole @default(MEMBER)
+  invitedBy      String?          @db.ObjectId // User ID who sent the invitation
+  invitedAt      DateTime?        // When invitation was sent
+  joinedAt       DateTime?        // When user accepted invitation
+  clerkOrgMemberId String?        @unique // Clerk Organization Membership ID
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([role])
+}
+
 model FavoriteBoard {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   userId    String   @db.ObjectId
@@ -265,4 +309,24 @@ model FavoriteBoard {
   @@unique([userId, boardId])
   @@index([userId])
   @@index([boardId])
+}
+
+model BoardJoinRequest {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  boardId     String   @db.ObjectId
+  board       Board    @relation(fields: [boardId], references: [id])
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  status      String   @default("pending") // "pending", "approved", "rejected"
+  requestedAt DateTime @default(now())
+  processedAt DateTime?
+  processedBy String?  @db.ObjectId // User ID who approved/rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([boardId, userId])
+  @@index([boardId])
+  @@index([userId])
+  @@index([status])
+  @@index([boardId, status])
 }
