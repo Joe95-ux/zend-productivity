@@ -1,10 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ListFilter, X, Calendar, Clock, AlertCircle, Users, Tag, UserRound, ChevronDown } from "lucide-react";
+import {
+  ListFilter,
+  X,
+  Calendar,
+  Clock,
+  AlertCircle,
+  Users,
+  Tag,
+  UserRound,
+  ChevronDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,23 +35,26 @@ interface BoardFilterProps {
 }
 
 export function BoardFilter({ labels, members }: BoardFilterProps) {
-  const { filters, updateFilters, clearFilters, hasActiveFilters } = useBoardFilters();
+  const { filters, updateFilters, clearFilters, hasActiveFilters } =
+    useBoardFilters();
   const [isOpen, setIsOpen] = useState(false);
   const [isLabelsDropdownOpen, setIsLabelsDropdownOpen] = useState(false);
   const [labelsSearchQuery, setLabelsSearchQuery] = useState("");
-  const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined);
+  const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(
+    undefined
+  );
   const labelBandRef = useRef<HTMLDivElement>(null);
   const selectLabelsInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
   // Deduplicate labels by id
-  const uniqueLabels = labels.filter((label, index, self) => 
-    index === self.findIndex((l) => l.id === label.id)
+  const uniqueLabels = labels.filter(
+    (label, index, self) => index === self.findIndex((l) => l.id === label.id)
   );
 
   // Deduplicate members by id
-  const uniqueMembers = members.filter((member, index, self) => 
-    index === self.findIndex((m) => m.id === member.id)
+  const uniqueMembers = members.filter(
+    (member, index, self) => index === self.findIndex((m) => m.id === member.id)
   );
 
   const toggleLabel = (labelId: string) => {
@@ -56,12 +73,14 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
     updateFilters({ selectedLabels: [] });
   };
 
-  const allLabelsSelected = uniqueLabels.length > 0 && filters.selectedLabels.length === uniqueLabels.length;
-  
+  const allLabelsSelected =
+    uniqueLabels.length > 0 &&
+    filters.selectedLabels.length === uniqueLabels.length;
+
   // Split labels into visible (first 3) and collapsed (rest)
   const visibleLabels = uniqueLabels.slice(0, 3);
   const collapsedLabels = uniqueLabels.slice(3);
-  
+
   // Filter collapsed labels by search query
   const filteredCollapsedLabels = labelsSearchQuery
     ? collapsedLabels.filter((label) =>
@@ -75,7 +94,11 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
       const width = selectLabelsInputRef.current.offsetWidth;
       setDropdownWidth(width);
     }
-  }, [isLabelsDropdownOpen, visibleLabels.length, filters.selectedLabels.length]);
+  }, [
+    isLabelsDropdownOpen,
+    visibleLabels.length,
+    filters.selectedLabels.length,
+  ]);
 
   const toggleMember = (memberId: string) => {
     const newMembers = filters.selectedMembers.includes(memberId)
@@ -102,10 +125,25 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
 
   const dateOptions = [
     { value: "all", label: "All dates", icon: null, color: null },
-    { value: "overdue", label: "Overdue", icon: AlertCircle, color: "text-red-500" },
+    {
+      value: "overdue",
+      label: "Overdue",
+      icon: AlertCircle,
+      color: "text-red-500",
+    },
     { value: "today", label: "Due today", icon: Clock, color: "text-blue-500" },
-    { value: "thisWeek", label: "Due this week", icon: Calendar, color: "text-yellow-500" },
-    { value: "noDueDate", label: "No due date", icon: Calendar, color: "text-slate-400" },
+    {
+      value: "thisWeek",
+      label: "Due this week",
+      icon: Calendar,
+      color: "text-yellow-500",
+    },
+    {
+      value: "noDueDate",
+      label: "No due date",
+      icon: Calendar,
+      color: "text-slate-400",
+    },
   ];
 
   return (
@@ -116,7 +154,8 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
           size="sm"
           className={cn(
             "cursor-pointer transition-all duration-300 ease-out hover:scale-105 relative",
-            hasActiveFilters && "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+            hasActiveFilters &&
+              "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
           )}
         >
           <HoverHint label="Filter cards" side="bottom">
@@ -130,15 +169,17 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        align="end" 
-        sideOffset={isMobile ? -14 : 4} 
+        align="end"
+        sideOffset={isMobile ? -14 : 4}
         alignOffset={isMobile ? -63 : -75}
         className="w-full rounded-lg sm:w-90 p-0 overflow-hidden dark:bg-[#0D1117]"
       >
         {/* Fixed Header */}
         <div className="sticky top-0 z-10 bg-white dark:bg-[#0D1117] px-4 py-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Filter Cards</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+              Filter Cards
+            </h3>
             <div className="flex items-center gap-2">
               {hasActiveFilters && (
                 <Button
@@ -212,15 +253,17 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                 {uniqueMembers.length > 0 && (
                   <div className="space-y-1">
                     {uniqueMembers.map((member) => {
-                      const isSelected = filters.selectedMembers.includes(member.id);
+                      const isSelected = filters.selectedMembers.includes(
+                        member.id
+                      );
                       return (
                         <div
                           key={member.id}
                           className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                           onClick={() => toggleMember(member.id)}
                         >
-                          <Checkbox 
-                            checked={isSelected} 
+                          <Checkbox
+                            checked={isSelected}
                             onCheckedChange={() => toggleMember(member.id)}
                             className="rounded-sm"
                           />
@@ -239,7 +282,9 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                     <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
                       <Users className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                     </div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">No members available</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                      No members available
+                    </span>
                   </div>
                 )}
               </div>
@@ -261,7 +306,12 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                       className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                       onClick={() =>
                         updateFilters({
-                          dueDateFilter: option.value as "all" | "overdue" | "today" | "thisWeek" | "noDueDate",
+                          dueDateFilter: option.value as
+                            | "all"
+                            | "overdue"
+                            | "today"
+                            | "thisWeek"
+                            | "noDueDate",
                         })
                       }
                     >
@@ -270,14 +320,21 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                         onCheckedChange={(checked) => {
                           if (checked) {
                             updateFilters({
-                              dueDateFilter: option.value as "all" | "overdue" | "today" | "thisWeek" | "noDueDate",
+                              dueDateFilter: option.value as
+                                | "all"
+                                | "overdue"
+                                | "today"
+                                | "thisWeek"
+                                | "noDueDate",
                             });
                           }
                         }}
                         className="rounded-sm"
                       />
                       {Icon && (
-                        <Icon className={cn("w-4 h-4 flex-shrink-0", option.color)} />
+                        <Icon
+                          className={cn("w-4 h-4 flex-shrink-0", option.color)}
+                        />
                       )}
                       <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
                         {option.label}
@@ -325,64 +382,91 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                     />
                   </div>
                   <Tag className="w-4 h-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
-                  <span className="text-sm text-slate-500 dark:text-slate-400">No labels</span>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    No labels
+                  </span>
                 </div>
 
                 {/* Label list */}
                 {uniqueLabels.length > 0 && (
                   <div className="space-y-2">
-                      {/* Visible labels (first 3) */}
-                      {visibleLabels.map((label, index) => {
-                        const isSelected = filters.selectedLabels.includes(label.id);
-                        return (
-                          <div
-                            key={label.id}
-                            className="flex items-center gap-3"
-                          >
-                            <div
-                              className="flex items-center cursor-pointer"
-                              onClick={() => toggleLabel(label.id)}
-                            >
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() => toggleLabel(label.id)}
-                                className="rounded-sm"
-                              />
-                            </div>
-                            <div
-                              ref={index === 0 ? labelBandRef : undefined}
-                              className={cn(
-                                "flex-1 px-3 py-1 rounded-sm cursor-pointer transition-all relative",
-                                isSelected && "border-l-4 border-l-blue-500 dark:border-l-blue-400"
-                              )}
-                              style={{ 
-                                backgroundColor: label.color,
-                                color: 'white',
-                              }}
-                              onClick={() => toggleLabel(label.id)}
-                            >
-                              <span className="text-sm font-medium text-left">
-                                {label.name}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Select labels dropdown (if more than 3 labels) */}
-                      {collapsedLabels.length > 0 && (
-                        <div className="flex items-center gap-3">
-                          {/* Checkbox for select all - outside of dropdown trigger */}
+                    {/* Visible labels (first 3) */}
+                    {visibleLabels.map((label, index) => {
+                      const isSelected = filters.selectedLabels.includes(
+                        label.id
+                      );
+                      return (
+                        <div key={label.id} className="flex items-center gap-3">
                           <div
                             className="flex items-center cursor-pointer"
+                            onClick={() => toggleLabel(label.id)}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleLabel(label.id)}
+                              className="rounded-sm"
+                            />
+                          </div>
+                          <div
+                            ref={index === 0 ? labelBandRef : undefined}
+                            className={cn(
+                              "flex-1 px-3 py-1 rounded-sm cursor-pointer transition-all relative",
+                              isSelected &&
+                                "border-l-4 border-l-blue-500 dark:border-l-blue-400"
+                            )}
+                            style={{
+                              backgroundColor: label.color,
+                              color: "white",
+                            }}
+                            onClick={() => toggleLabel(label.id)}
+                          >
+                            <span className="text-sm font-medium text-left">
+                              {label.name}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Select labels dropdown (if more than 3 labels) */}
+                    {collapsedLabels.length > 0 && (
+                      <div className="flex items-center gap-3">
+                        {/* Checkbox for select all - outside of dropdown trigger */}
+                        <div
+                          className="flex items-center cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            if (allLabelsSelected) {
+                              deselectAllLabels();
+                            } else {
+                              selectAllLabels();
+                            }
+                          }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
+                          onMouseEnter={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <Checkbox
+                            checked={allLabelsSelected}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                selectAllLabels();
+                              } else {
+                                deselectAllLabels();
+                              }
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
-                              if (allLabelsSelected) {
-                                deselectAllLabels();
-                              } else {
-                                selectAllLabels();
-                              }
                             }}
                             onMouseDown={(e) => {
                               e.stopPropagation();
@@ -392,159 +476,149 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                               e.stopPropagation();
                               e.preventDefault();
                             }}
-                            onMouseEnter={(e) => {
-                              e.stopPropagation();
-                            }}
-                          >
-                            <Checkbox
-                              checked={allLabelsSelected}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  selectAllLabels();
-                                } else {
-                                  deselectAllLabels();
-                                }
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
-                              onMouseDown={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
-                              onPointerDown={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
-                              className="rounded-sm"
-                            />
-                          </div>
-                          
-                          {/* Select labels search field / dropdown trigger */}
-                          <DropdownMenu open={isLabelsDropdownOpen} onOpenChange={(open) => {
+                            className="rounded-sm"
+                          />
+                        </div>
+
+                        {/* Select labels search field / dropdown trigger */}
+                        <DropdownMenu
+                          open={isLabelsDropdownOpen}
+                          onOpenChange={(open) => {
                             setIsLabelsDropdownOpen(open);
                             if (!open) {
                               setLabelsSearchQuery("");
-                            } else {
-                              // When dropdown opens, focus and clear the input for searching
-                              setTimeout(() => {
-                                if (selectLabelsInputRef.current) {
-                                  selectLabelsInputRef.current.focus();
-                                  setLabelsSearchQuery("");
-                                }
-                              }, 10);
                             }
-                          }}>
-                            <div className="relative flex-1">
-                              <Input
-                                ref={selectLabelsInputRef}
-                                placeholder="Select labels"
-                                value={
-                                  isLabelsDropdownOpen 
-                                    ? labelsSearchQuery 
-                                    : filters.selectedLabels.length > 0
-                                      ? `${filters.selectedLabels.length} label${filters.selectedLabels.length === 1 ? '' : 's'} selected`
-                                      : ""
+                          }}
+                        >
+                          <div className="relative flex-1">
+                            <Input
+                              ref={selectLabelsInputRef}
+                              placeholder="Select labels"
+                              value={
+                                isLabelsDropdownOpen
+                                  ? labelsSearchQuery
+                                  : filters.selectedLabels.length > 0
+                                  ? `${filters.selectedLabels.length} label${
+                                      filters.selectedLabels.length === 1
+                                        ? ""
+                                        : "s"
+                                    } selected`
+                                  : ""
+                              }
+                              onChange={(e) => {
+                                if (isLabelsDropdownOpen) {
+                                  setLabelsSearchQuery(e.target.value);
                                 }
-                                onChange={(e) => {
-                                  if (isLabelsDropdownOpen) {
-                                    e.stopPropagation();
-                                    setLabelsSearchQuery(e.target.value);
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (isLabelsDropdownOpen) {
-                                    e.stopPropagation();
-                                  }
-                                }}
-                                className="flex-1 h-9 pr-8 cursor-pointer"
-                                readOnly={!isLabelsDropdownOpen}
-                                onClick={(e) => {
-                                  // Only open on direct click on the Input itself
-                                  e.stopPropagation();
-                                  if (!isLabelsDropdownOpen) {
-                                    setIsLabelsDropdownOpen(true);
-                                    setLabelsSearchQuery("");
-                                    // Focus and select the input after opening
-                                    setTimeout(() => {
-                                      if (selectLabelsInputRef.current) {
-                                        selectLabelsInputRef.current.focus();
-                                        selectLabelsInputRef.current.select();
-                                      }
-                                    }, 10);
-                                  }
-                                }}
-                                onFocus={(e) => {
-                                  // When readOnly input receives focus, open dropdown
-                                  e.stopPropagation();
-                                  if (!isLabelsDropdownOpen) {
-                                    setIsLabelsDropdownOpen(true);
-                                    setLabelsSearchQuery("");
-                                    // Focus the input after opening to make it editable
-                                    setTimeout(() => {
-                                      if (selectLabelsInputRef.current) {
-                                        selectLabelsInputRef.current.focus();
-                                      }
-                                    }, 10);
-                                  }
-                                }}
-                              />
-                              {/* Hidden trigger for DropdownMenu positioning, doesn't interfere with interactions */}
-                              <DropdownMenuTrigger asChild>
-                                <div 
-                                  className="absolute inset-0 pointer-events-none" 
-                                  aria-hidden="true"
-                                />
-                              </DropdownMenuTrigger>
-                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none z-10" />
-                            </div>
-                            <DropdownMenuContent
-                              align="start"
-                              sideOffset={4}
-                              className="p-0 overflow-hidden dark:bg-[#0D1117]"
-                              style={{ 
-                                width: dropdownWidth ? `${dropdownWidth}px` : undefined
                               }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ScrollArea className="h-64 max-h-64">
-                                <div className="p-2 space-y-2">
-                                  {filteredCollapsedLabels.map((label) => {
-                                    const isSelected = filters.selectedLabels.includes(label.id);
-                                    return (
-                                      <div
-                                        key={label.id}
-                                        className="flex items-center gap-3"
+                              className="flex-1 h-9 pr-8 cursor-pointer"
+                              readOnly={!isLabelsDropdownOpen}
+                              onClick={(e) => {
+                                if (!isLabelsDropdownOpen) {
+                                  e.stopPropagation();
+                                  setIsLabelsDropdownOpen(true);
+                                  setLabelsSearchQuery("");
+                                  setTimeout(() => {
+                                    if (selectLabelsInputRef.current) {
+                                      selectLabelsInputRef.current.focus();
+                                      selectLabelsInputRef.current.select();
+                                    }
+                                  }, 10);
+                                }
+                              }}
+                            />
+                            <DropdownMenuTrigger asChild>
+                              <div
+                                className="absolute inset-0 cursor-pointer"
+                                aria-hidden="true"
+                              />
+                            </DropdownMenuTrigger>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none z-10" />
+                          </div>
+
+                          <DropdownMenuContent
+                            align="start"
+                            sideOffset={4}
+                            className="p-0 overflow-hidden dark:bg-[#0D1117]"
+                            style={{
+                              width: dropdownWidth
+                                ? `${dropdownWidth}px`
+                                : undefined,
+                            }}
+                            onCloseAutoFocus={(e) => {
+                              // Prevent focus from moving when selecting checkboxes
+                              if (labelsSearchQuery) {
+                                e.preventDefault();
+                              }
+                            }}
+                          >
+                            <div className="p-2 border-b dark:border-slate-700">
+                              <Input
+                                placeholder="Search labels..."
+                                value={labelsSearchQuery}
+                                onChange={(e) =>
+                                  setLabelsSearchQuery(e.target.value)
+                                }
+                                className="h-8"
+                                autoFocus
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between p-2 border-b dark:border-slate-700">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={selectAllLabels}
+                                disabled={allLabelsSelected}
+                                className="h-7 text-xs"
+                              >
+                                Select all
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={deselectAllLabels}
+                                disabled={filters.selectedLabels.length === 0}
+                                className="h-7 text-xs"
+                              >
+                                Deselect all
+                              </Button>
+                            </div>
+
+                            <ScrollArea className="h-64 max-h-64">
+                              <div className="p-2 space-y-2">
+                                {filteredCollapsedLabels.map((label) => {
+                                  const isSelected =
+                                    filters.selectedLabels.includes(label.id);
+                                  return (
+                                    <div
+                                      key={label.id}
+                                      className="flex items-center gap-3 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    >
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={() =>
+                                          toggleLabel(label.id)
+                                        }
+                                        className="rounded-sm flex-shrink-0"
+                                        id={`label-${label.id}`}
+                                      />
+                                      <label
+                                        htmlFor={`label-${label.id}`}
+                                        className={cn(
+                                          "flex-1 px-3 py-1 rounded-sm cursor-pointer transition-all text-sm font-medium",
+                                          isSelected &&
+                                            "border-l-4 border-l-blue-500 dark:border-l-blue-400"
+                                        )}
+                                        style={{
+                                          backgroundColor: label.color,
+                                          color: "white",
+                                        }}
                                       >
-                                        <div
-                                          className="flex items-center cursor-pointer flex-shrink-0"
-                                          onClick={() => toggleLabel(label.id)}
-                                        >
-                                          <Checkbox
-                                            checked={isSelected}
-                                            onCheckedChange={() => toggleLabel(label.id)}
-                                            className="rounded-sm"
-                                          />
-                                        </div>
-                                        <div
-                                          className={cn(
-                                            "flex-1 px-3 py-1 rounded-sm cursor-pointer transition-all relative",
-                                            isSelected && "border-l-4 border-l-blue-500 dark:border-l-blue-400"
-                                          )}
-                                          style={{ 
-                                            backgroundColor: label.color,
-                                            color: 'white',
-                                          }}
-                                          onClick={() => toggleLabel(label.id)}
-                                        >
-                                          <span className="text-sm font-medium text-left">
-                                            {label.name}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                                        {label.name}
+                                      </label>
+                                    </div>
+                                  );
+                                })}
                                 {filteredCollapsedLabels.length === 0 && (
                                   <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400 text-center">
                                     No labels found
@@ -554,9 +628,9 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                             </ScrollArea>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -572,15 +646,25 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                 {[
                   { value: "week", label: "Active in the last week" },
                   { value: "twoWeeks", label: "Active in the last two weeks" },
-                  { value: "fourWeeks", label: "Active in the last four weeks" },
-                  { value: "inactive", label: "Without activity in the last four weeks" },
+                  {
+                    value: "fourWeeks",
+                    label: "Active in the last four weeks",
+                  },
+                  {
+                    value: "inactive",
+                    label: "Without activity in the last four weeks",
+                  },
                 ].map((option) => (
                   <div
                     key={option.value}
                     className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                     onClick={() =>
                       updateFilters({
-                        activityFilter: option.value as "week" | "twoWeeks" | "fourWeeks" | "inactive",
+                        activityFilter: option.value as
+                          | "week"
+                          | "twoWeeks"
+                          | "fourWeeks"
+                          | "inactive",
                       })
                     }
                   >
@@ -589,7 +673,11 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                       onCheckedChange={(checked) => {
                         if (checked) {
                           updateFilters({
-                            activityFilter: option.value as "week" | "twoWeeks" | "fourWeeks" | "inactive",
+                            activityFilter: option.value as
+                              | "week"
+                              | "twoWeeks"
+                              | "fourWeeks"
+                              | "inactive",
                           });
                         }
                       }}
@@ -620,7 +708,10 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                     className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                     onClick={() =>
                       updateFilters({
-                        completedFilter: option.value as "all" | "completed" | "incomplete",
+                        completedFilter: option.value as
+                          | "all"
+                          | "completed"
+                          | "incomplete",
                       })
                     }
                   >
@@ -629,7 +720,10 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                       onCheckedChange={(checked) => {
                         if (checked) {
                           updateFilters({
-                            completedFilter: option.value as "all" | "completed" | "incomplete",
+                            completedFilter: option.value as
+                              | "all"
+                              | "completed"
+                              | "incomplete",
                           });
                         } else {
                           updateFilters({
@@ -651,13 +745,16 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
 
             {/* Additional Filters */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Show cards with</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Show cards with
+              </label>
               <div className="space-y-1">
                 <div
                   className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                   onClick={() =>
                     updateFilters({
-                      hasAttachments: filters.hasAttachments === true ? null : true,
+                      hasAttachments:
+                        filters.hasAttachments === true ? null : true,
                     })
                   }
                 >
@@ -676,7 +773,8 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                   className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                   onClick={() =>
                     updateFilters({
-                      hasChecklists: filters.hasChecklists === true ? null : true,
+                      hasChecklists:
+                        filters.hasChecklists === true ? null : true,
                     })
                   }
                 >
