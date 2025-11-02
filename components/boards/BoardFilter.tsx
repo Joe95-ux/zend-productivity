@@ -27,7 +27,6 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
   const [labelsSearchQuery, setLabelsSearchQuery] = useState("");
   const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined);
   const labelBandRef = useRef<HTMLDivElement>(null);
-  const selectLabelsTriggerRef = useRef<HTMLDivElement>(null);
   const selectLabelsInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
@@ -72,14 +71,11 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
 
   // Calculate dropdown width to match "Select labels" trigger width
   useEffect(() => {
-    const element = isLabelsDropdownOpen 
-      ? selectLabelsInputRef.current 
-      : selectLabelsTriggerRef.current;
-    if (element) {
-      const width = element.offsetWidth;
+    if (selectLabelsInputRef.current) {
+      const width = selectLabelsInputRef.current.offsetWidth;
       setDropdownWidth(width);
     }
-  }, [isLabelsDropdownOpen, visibleLabels.length]);
+  }, [isLabelsDropdownOpen, visibleLabels.length, filters.selectedLabels.length]);
 
   const toggleMember = (memberId: string) => {
     const newMembers = filters.selectedMembers.includes(memberId)
@@ -136,7 +132,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
       <DropdownMenuContent
         align="end" 
         sideOffset={isMobile ? -14 : 4} 
-        alignOffset={isMobile ? -60 : -70}
+        alignOffset={isMobile ? -60 : -75}
         className="w-full rounded-md sm:w-90 p-0 overflow-hidden dark:bg-[#0D1117]"
       >
         {/* Fixed Header */}
@@ -295,7 +291,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
             <Separator />
 
             {/* Labels */}
-            <div className="space-y-2 shrink-0">
+            <div className="space-y-3">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Labels
               </label>
@@ -412,36 +408,47 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                             }
                           }}>
                             <DropdownMenuTrigger asChild>
-                              {isLabelsDropdownOpen ? (
+                              <div className="relative flex-1">
                                 <Input
                                   ref={selectLabelsInputRef}
-                                  placeholder="Search labels..."
-                                  value={labelsSearchQuery}
+                                  placeholder="Select labels"
+                                  value={
+                                    isLabelsDropdownOpen 
+                                      ? labelsSearchQuery 
+                                      : filters.selectedLabels.length > 0
+                                        ? `${filters.selectedLabels.length} label${filters.selectedLabels.length === 1 ? '' : 's'} selected`
+                                        : ""
+                                  }
                                   onChange={(e) => {
-                                    e.stopPropagation();
-                                    setLabelsSearchQuery(e.target.value);
+                                    if (isLabelsDropdownOpen) {
+                                      e.stopPropagation();
+                                      setLabelsSearchQuery(e.target.value);
+                                    }
                                   }}
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    if (!isLabelsDropdownOpen) {
+                                      e.stopPropagation();
+                                      setIsLabelsDropdownOpen(true);
+                                    }
+                                  }}
+                                  onFocus={(e) => {
+                                    if (!isLabelsDropdownOpen) {
+                                      e.stopPropagation();
+                                      setIsLabelsDropdownOpen(true);
+                                      setLabelsSearchQuery("");
+                                    }
+                                  }}
                                   onKeyDown={(e) => {
-                                    e.stopPropagation();
+                                    if (isLabelsDropdownOpen) {
+                                      e.stopPropagation();
+                                    }
                                   }}
-                                  className="flex-1 h-9"
-                                  autoFocus
+                                  className="flex-1 h-9 pr-8"
+                                  readOnly={!isLabelsDropdownOpen}
+                                  autoFocus={isLabelsDropdownOpen}
                                 />
-                              ) : (
-                                <div 
-                                  ref={selectLabelsTriggerRef}
-                                  className={cn(
-                                    "flex-1 flex items-center justify-between px-3 py-2 rounded-sm cursor-pointer transition-all border border-transparent hover:border-slate-300 dark:hover:border-slate-600 h-9"
-                                  )}
-                                  onClick={() => setIsLabelsDropdownOpen(true)}
-                                >
-                                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    Select labels
-                                  </span>
-                                  <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                                </div>
-                              )}
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none" />
+                              </div>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                               align="start"
