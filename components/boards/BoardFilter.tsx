@@ -432,53 +432,17 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                     {collapsedLabels.length > 0 && (
                       <div className="flex items-center gap-3">
                         {/* Checkbox for select all - outside of dropdown trigger */}
-                        <div
-                          className="flex items-center cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            if (allLabelsSelected) {
-                              deselectAllLabels();
-                            } else {
+                        <Checkbox
+                          checked={allLabelsSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
                               selectAllLabels();
+                            } else {
+                              deselectAllLabels();
                             }
                           }}
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }}
-                          onPointerDown={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }}
-                          onMouseEnter={(e) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Checkbox
-                            checked={allLabelsSelected}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                selectAllLabels();
-                              } else {
-                                deselectAllLabels();
-                              }
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                            }}
-                            onMouseDown={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                            }}
-                            onPointerDown={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                            }}
-                            className="rounded-sm"
-                          />
-                        </div>
+                          className="rounded-sm flex-shrink-0"
+                        />
 
                         {/* Select labels search field / dropdown trigger */}
                         <DropdownMenu
