@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ListFilter, X, Calendar, Clock, AlertCircle, Users, Tag, UserRound } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ListFilter, X, Calendar, Clock, AlertCircle, Users, Tag, UserRound, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -25,6 +25,8 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLabelsDropdownOpen, setIsLabelsDropdownOpen] = useState(false);
   const [labelsSearchQuery, setLabelsSearchQuery] = useState("");
+  const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined);
+  const labelBandRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
   // Deduplicate labels by id
@@ -65,6 +67,14 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
         label.name.toLowerCase().includes(labelsSearchQuery.toLowerCase())
       )
     : collapsedLabels;
+
+  // Calculate dropdown width to match label bands
+  useEffect(() => {
+    if (labelBandRef.current) {
+      const width = labelBandRef.current.offsetWidth;
+      setDropdownWidth(width);
+    }
+  }, [visibleLabels.length]);
 
   const toggleMember = (memberId: string) => {
     const newMembers = filters.selectedMembers.includes(memberId)
@@ -121,8 +131,8 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
       <DropdownMenuContent
         align="end" 
         sideOffset={isMobile ? -14 : 4} 
-        alignOffset={isMobile ? -60 : -80}
-        className="w-full sm:w-90 p-0 overflow-hidden dark:bg-[#0D1117]"
+        alignOffset={isMobile ? -60 : -70}
+        className="w-full rounded-md sm:w-90 p-0 overflow-hidden dark:bg-[#0D1117]"
       >
         {/* Fixed Header */}
         <div className="sticky top-0 z-10 bg-white dark:bg-[#0D1117] px-4 py-4">
@@ -309,15 +319,14 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
 
                 {/* Label list */}
                 {uniqueLabels.length > 0 && (
-                  <>
-                    <Separator className="my-2" />
-                    <div className="space-y-1">
+                  <div className="space-y-1 mt-1">
                       {/* Visible labels (first 3) */}
-                      {visibleLabels.map((label) => {
+                      {visibleLabels.map((label, index) => {
                         const isSelected = filters.selectedLabels.includes(label.id);
                         return (
                           <div
                             key={label.id}
+                            ref={index === 0 ? labelBandRef : undefined}
                             className="flex items-center gap-3"
                           >
                             <div
@@ -394,12 +403,15 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                 />
                               ) : (
                                 <div 
-                                  className="flex-1 px-3 py-2 rounded-sm bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+                                  className={cn(
+                                    "flex-1 flex items-center justify-between px-3 py-2 rounded-sm cursor-pointer transition-all border border-transparent hover:border-slate-300 dark:hover:border-slate-600"
+                                  )}
                                   onClick={() => setIsLabelsDropdownOpen(true)}
                                 >
                                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                     Select labels
                                   </span>
+                                  <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                                 </div>
                               )}
                             </div>
@@ -407,7 +419,8 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                           <DropdownMenuContent
                             align="start"
                             sideOffset={4}
-                            className="w-64 p-0 overflow-hidden dark:bg-[#0D1117]"
+                            className="p-0 overflow-hidden dark:bg-[#0D1117]"
+                            style={{ width: dropdownWidth ? `${dropdownWidth}px` : undefined }}
                           >
                             <ScrollArea className="h-64 max-h-64">
                               <div className="p-2 space-y-1">
@@ -430,7 +443,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                       </div>
                                       <div
                                         className={cn(
-                                          "flex-1 px-3 py-2 rounded-sm cursor-pointer transition-all",
+                                          "flex-1 px-3 py-2 rounded-sm cursor-pointer transition-all relative",
                                           isSelected && "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-1"
                                         )}
                                         style={{ 
@@ -442,6 +455,9 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                         <span className="text-sm font-medium text-left">
                                           {label.name}
                                         </span>
+                                        {isSelected && (
+                                          <div className="absolute right-0 top-0 bottom-0 w-1 bg-blue-500 dark:bg-blue-400 rounded-r-sm" />
+                                        )}
                                       </div>
                                     </div>
                                   );
@@ -457,7 +473,6 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                         </DropdownMenu>
                       )}
                     </div>
-                  </>
                 )}
               </div>
             </div>
