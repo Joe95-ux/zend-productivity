@@ -5,6 +5,7 @@ import { createContext, useContext, useState, ReactNode } from "react";
 export interface BoardFilters {
   searchQuery: string;
   selectedLabels: string[];
+  noLabels: boolean;
   selectedMembers: string[];
   membersFilter: "all" | "unassigned";
   dueDateFilter: "all" | "overdue" | "today" | "thisWeek" | "noDueDate";
@@ -24,6 +25,7 @@ interface BoardFilterContextType {
 const defaultFilters: BoardFilters = {
   searchQuery: "",
   selectedLabels: [],
+  noLabels: false,
   selectedMembers: [],
   membersFilter: "all",
   dueDateFilter: "all",
@@ -49,6 +51,7 @@ export function BoardFilterProvider({ children }: { children: ReactNode }) {
   const hasActiveFilters =
     filters.searchQuery !== "" ||
     filters.selectedLabels.length > 0 ||
+    filters.noLabels ||
     filters.selectedMembers.length > 0 ||
     filters.membersFilter !== "all" ||
     filters.dueDateFilter !== "all" ||

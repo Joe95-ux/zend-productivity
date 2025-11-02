@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Filter, X, Calendar, Clock, AlertCircle, Users, Tag, UserRound } from "lucide-react";
+import { ListFilter, X, Calendar, Clock, AlertCircle, Users, Tag, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -23,6 +23,8 @@ interface BoardFilterProps {
 export function BoardFilter({ labels, members }: BoardFilterProps) {
   const { filters, updateFilters, clearFilters, hasActiveFilters } = useBoardFilters();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLabelsDropdownOpen, setIsLabelsDropdownOpen] = useState(false);
+  const [labelsSearchQuery, setLabelsSearchQuery] = useState("");
   const isMobile = useIsMobile();
 
   // Deduplicate labels by id
@@ -42,6 +44,28 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
     updateFilters({ selectedLabels: newLabels });
   };
 
+  const selectAllLabels = () => {
+    const allLabelIds = uniqueLabels.map((label) => label.id);
+    updateFilters({ selectedLabels: allLabelIds });
+  };
+
+  const deselectAllLabels = () => {
+    updateFilters({ selectedLabels: [] });
+  };
+
+  const allLabelsSelected = uniqueLabels.length > 0 && filters.selectedLabels.length === uniqueLabels.length;
+  
+  // Split labels into visible (first 3) and collapsed (rest)
+  const visibleLabels = uniqueLabels.slice(0, 3);
+  const collapsedLabels = uniqueLabels.slice(3);
+  
+  // Filter collapsed labels by search query
+  const filteredCollapsedLabels = labelsSearchQuery
+    ? collapsedLabels.filter((label) =>
+        label.name.toLowerCase().includes(labelsSearchQuery.toLowerCase())
+      )
+    : collapsedLabels;
+
   const toggleMember = (memberId: string) => {
     const newMembers = filters.selectedMembers.includes(memberId)
       ? filters.selectedMembers.filter((id) => id !== memberId)
@@ -56,6 +80,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
   const activeFilterCount =
     (filters.searchQuery ? 1 : 0) +
     filters.selectedLabels.length +
+    (filters.noLabels ? 1 : 0) +
     filters.selectedMembers.length +
     (filters.membersFilter !== "all" ? 1 : 0) +
     (filters.dueDateFilter !== "all" ? 1 : 0) +
@@ -84,7 +109,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
           )}
         >
           <HoverHint label="Filter cards" side="bottom">
-            <Filter className="h-4 w-4" />
+            <ListFilter className="h-4 w-4" />
           </HoverHint>
           {activeFilterCount > 0 && (
             <span className="absolute -top-1 -right-1 h-4 w-4 bg-blue-600 text-white text-[10px] rounded-full flex items-center justify-center font-medium">
@@ -96,7 +121,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
       <DropdownMenuContent
         align="end" 
         sideOffset={isMobile ? -14 : 4} 
-        alignOffset={-60}
+        alignOffset={isMobile ? -60 : -80}
         className="w-full sm:w-90 p-0 overflow-hidden dark:bg-[#0D1117]"
       >
         {/* Fixed Header */}
@@ -174,31 +199,28 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
 
                 {/* Member list */}
                 {uniqueMembers.length > 0 && (
-                  <>
-                    <Separator className="my-2" />
-                    <div className="space-y-1">
-                      {uniqueMembers.map((member) => {
-                        const isSelected = filters.selectedMembers.includes(member.id);
-                        return (
-                          <div
-                            key={member.id}
-                            className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
-                            onClick={() => toggleMember(member.id)}
-                          >
-                            <Checkbox 
-                              checked={isSelected} 
-                              onCheckedChange={() => toggleMember(member.id)}
-                              className="rounded-sm"
-                            />
-                            <ConditionalUserProfile user={member} size="sm" />
-                            <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
-                              {member.name || member.email}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
+                  <div className="space-y-1">
+                    {uniqueMembers.map((member) => {
+                      const isSelected = filters.selectedMembers.includes(member.id);
+                      return (
+                        <div
+                          key={member.id}
+                          className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
+                          onClick={() => toggleMember(member.id)}
+                        >
+                          <Checkbox 
+                            checked={isSelected} 
+                            onCheckedChange={() => toggleMember(member.id)}
+                            className="rounded-sm"
+                          />
+                          <ConditionalUserProfile user={member} size="sm" />
+                          <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                            {member.name || member.email}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
 
                 {uniqueMembers.length === 0 && (
@@ -268,15 +290,15 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                   className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                   onClick={() =>
                     updateFilters({
-                      selectedLabels: [],
+                      noLabels: !filters.noLabels,
                     })
                   }
                 >
                   <Checkbox
-                    checked={filters.selectedLabels.length === 0}
-                    onCheckedChange={() =>
+                    checked={filters.noLabels}
+                    onCheckedChange={(checked) =>
                       updateFilters({
-                        selectedLabels: [],
+                        noLabels: checked === true,
                       })
                     }
                     className="rounded-sm"
@@ -290,7 +312,8 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                   <>
                     <Separator className="my-2" />
                     <div className="space-y-1">
-                      {uniqueLabels.map((label) => {
+                      {/* Visible labels (first 3) */}
+                      {visibleLabels.map((label) => {
                         const isSelected = filters.selectedLabels.includes(label.id);
                         return (
                           <div
@@ -325,6 +348,114 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                           </div>
                         );
                       })}
+
+                      {/* Select labels dropdown (if more than 3 labels) */}
+                      {collapsedLabels.length > 0 && (
+                        <DropdownMenu open={isLabelsDropdownOpen} onOpenChange={(open) => {
+                          setIsLabelsDropdownOpen(open);
+                          if (!open) {
+                            setLabelsSearchQuery("");
+                          }
+                        }}>
+                          <DropdownMenuTrigger asChild>
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="flex items-center cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (allLabelsSelected) {
+                                    deselectAllLabels();
+                                  } else {
+                                    selectAllLabels();
+                                  }
+                                }}
+                              >
+                                <Checkbox
+                                  checked={allLabelsSelected}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      selectAllLabels();
+                                    } else {
+                                      deselectAllLabels();
+                                    }
+                                  }}
+                                  className="rounded-sm"
+                                />
+                              </div>
+                              {isLabelsDropdownOpen ? (
+                                <Input
+                                  placeholder="Search labels..."
+                                  value={labelsSearchQuery}
+                                  onChange={(e) => setLabelsSearchQuery(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => e.stopPropagation()}
+                                  className="flex-1 h-9"
+                                  autoFocus
+                                />
+                              ) : (
+                                <div 
+                                  className="flex-1 px-3 py-2 rounded-sm bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+                                  onClick={() => setIsLabelsDropdownOpen(true)}
+                                >
+                                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                    Select labels
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="start"
+                            sideOffset={4}
+                            className="w-64 p-0 overflow-hidden dark:bg-[#0D1117]"
+                          >
+                            <ScrollArea className="h-64 max-h-64">
+                              <div className="p-2 space-y-1">
+                                {filteredCollapsedLabels.map((label) => {
+                                  const isSelected = filters.selectedLabels.includes(label.id);
+                                  return (
+                                    <div
+                                      key={label.id}
+                                      className="flex items-center gap-3"
+                                    >
+                                      <div
+                                        className="flex items-center cursor-pointer"
+                                        onClick={() => toggleLabel(label.id)}
+                                      >
+                                        <Checkbox
+                                          checked={isSelected}
+                                          onCheckedChange={() => toggleLabel(label.id)}
+                                          className="rounded-sm"
+                                        />
+                                      </div>
+                                      <div
+                                        className={cn(
+                                          "flex-1 px-3 py-2 rounded-sm cursor-pointer transition-all",
+                                          isSelected && "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-1"
+                                        )}
+                                        style={{ 
+                                          backgroundColor: label.color,
+                                          color: 'white',
+                                        }}
+                                        onClick={() => toggleLabel(label.id)}
+                                      >
+                                        <span className="text-sm font-medium text-left">
+                                          {label.name}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                {filteredCollapsedLabels.length === 0 && (
+                                  <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400 text-center">
+                                    No labels found
+                                  </div>
+                                )}
+                              </div>
+                            </ScrollArea>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   </>
                 )}
@@ -340,7 +471,6 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
               </label>
               <div className="space-y-1">
                 {[
-                  { value: "all", label: "All cards" },
                   { value: "week", label: "Active in the last week" },
                   { value: "twoWeeks", label: "Active in the last two weeks" },
                   { value: "fourWeeks", label: "Active in the last four weeks" },
@@ -351,7 +481,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                     className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                     onClick={() =>
                       updateFilters({
-                        activityFilter: option.value as "all" | "week" | "twoWeeks" | "fourWeeks" | "inactive",
+                        activityFilter: option.value as "week" | "twoWeeks" | "fourWeeks" | "inactive",
                       })
                     }
                   >
@@ -360,7 +490,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                       onCheckedChange={(checked) => {
                         if (checked) {
                           updateFilters({
-                            activityFilter: option.value as "all" | "week" | "twoWeeks" | "fourWeeks" | "inactive",
+                            activityFilter: option.value as "week" | "twoWeeks" | "fourWeeks" | "inactive",
                           });
                         }
                       }}
@@ -376,16 +506,15 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
 
             <Separator />
 
-            {/* Status */}
+            {/* Card Status */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Status
+                Card status
               </label>
               <div className="space-y-1">
                 {[
-                  { value: "all", label: "All cards" },
-                  { value: "completed", label: "Completed" },
-                  { value: "incomplete", label: "Not completed" },
+                  { value: "completed", label: "Marked as complete" },
+                  { value: "incomplete", label: "Not marked as complete" },
                 ].map((option) => (
                   <div
                     key={option.value}
@@ -402,6 +531,10 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                         if (checked) {
                           updateFilters({
                             completedFilter: option.value as "all" | "completed" | "incomplete",
+                          });
+                        } else {
+                          updateFilters({
+                            completedFilter: "all",
                           });
                         }
                       }}

@@ -77,6 +77,12 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
       }
 
       // Labels filter
+      if (filters.noLabels) {
+        // Show only cards with no labels
+        const cardLabels = card.labels || [];
+        if (cardLabels.length > 0) return false;
+      }
+      
       if (filters.selectedLabels.length > 0) {
         const cardLabelIds = card.labels?.map(l => l.boardLabelId || l.id) || [];
         const hasAnySelectedLabel = filters.selectedLabels.some(labelId => 
