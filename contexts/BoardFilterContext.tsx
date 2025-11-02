@@ -6,6 +6,7 @@ export interface BoardFilters {
   searchQuery: string;
   selectedLabels: string[];
   selectedMembers: string[];
+  membersFilter: "all" | "assigned" | "unassigned";
   dueDateFilter: "all" | "overdue" | "today" | "thisWeek" | "noDueDate";
   completedFilter: "all" | "completed" | "incomplete";
   hasAttachments: boolean | null;
@@ -24,6 +25,7 @@ const defaultFilters: BoardFilters = {
   searchQuery: "",
   selectedLabels: [],
   selectedMembers: [],
+  membersFilter: "all",
   dueDateFilter: "all",
   completedFilter: "all",
   hasAttachments: null,
@@ -48,6 +50,7 @@ export function BoardFilterProvider({ children }: { children: ReactNode }) {
     filters.searchQuery !== "" ||
     filters.selectedLabels.length > 0 ||
     filters.selectedMembers.length > 0 ||
+    filters.membersFilter !== "all" ||
     filters.dueDateFilter !== "all" ||
     filters.completedFilter !== "all" ||
     filters.hasAttachments !== null ||

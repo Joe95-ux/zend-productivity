@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Filter, X, Calendar, Clock, AlertCircle, Users, Tag } from "lucide-react";
+import { Filter, X, Calendar, Clock, AlertCircle, Users, Tag, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -57,6 +57,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
     (filters.searchQuery ? 1 : 0) +
     filters.selectedLabels.length +
     filters.selectedMembers.length +
+    (filters.membersFilter !== "all" ? 1 : 0) +
     (filters.dueDateFilter !== "all" ? 1 : 0) +
     (filters.completedFilter !== "all" ? 1 : 0) +
     (filters.hasAttachments !== null ? 1 : 0) +
@@ -95,11 +96,11 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
       <DropdownMenuContent
         align="end" 
         sideOffset={isMobile ? -14 : 4} 
-        alignOffset={-25}
-        className="w-80 p-0 overflow-hidden dark:bg-[#0D1117]"
+        alignOffset={-40}
+        className="w-full sm:w-95 p-0 overflow-hidden dark:bg-[#0D1117]"
       >
         {/* Fixed Header */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-[#0D1117] border-b border-slate-200 dark:border-slate-700 px-4 py-3">
+        <div className="sticky top-0 z-10 bg-white dark:bg-[#0D1117] px-4 py-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Filter Cards</h3>
             <div className="flex items-center gap-2">
@@ -126,7 +127,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
         </div>
 
         {/* Scrollable Content */}
-        <ScrollArea className="max-h-[calc(100vh-12rem)]">
+        <ScrollArea className="h-155 max-h-[calc(100vh-12rem)]">
           <div className="p-4 space-y-4">
             {/* Search */}
             <div className="space-y-2">
@@ -141,42 +142,92 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
               />
             </div>
 
-            <Separator />
-
             {/* Members */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Members
               </label>
               <div className="space-y-1">
-                {uniqueMembers.length === 0 ? (
+                {/* Filter options */}
+                <div className="space-y-1 mb-2">
+                  {[
+                    { value: "all", label: "All cards" },
+                    { value: "assigned", label: "Assigned" },
+                    { value: "unassigned", label: "No members", icon: UserRound },
+                  ].map((option) => (
+                    <div
+                      key={option.value}
+                      className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
+                      onClick={() =>
+                        updateFilters({
+                          membersFilter: option.value as "all" | "assigned" | "unassigned",
+                        })
+                      }
+                    >
+                      <input
+                        type="radio"
+                        name="members"
+                        checked={filters.membersFilter === option.value}
+                        onChange={() =>
+                          updateFilters({
+                            membersFilter: option.value as "all" | "assigned" | "unassigned",
+                          })
+                        }
+                        className="w-4 h-4 cursor-pointer"
+                        style={{ 
+                          appearance: 'none', 
+                          WebkitAppearance: 'none', 
+                          borderRadius: '2px',
+                          border: '2px solid rgb(148 163 184)',
+                          backgroundColor: filters.membersFilter === option.value ? 'rgb(59 130 246)' : 'transparent',
+                        }}
+                      />
+                      {option.icon && (
+                        <option.icon className="w-4 h-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
+                      )}
+                      <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                        {option.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Member list (only show if filtering by specific members) */}
+                {filters.membersFilter === "all" && uniqueMembers.length > 0 && (
+                  <>
+                    <Separator className="my-2" />
+                    <div className="space-y-1">
+                      {uniqueMembers.map((member) => {
+                        const isSelected = filters.selectedMembers.includes(member.id);
+                        return (
+                          <div
+                            key={member.id}
+                            className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
+                            onClick={() => toggleMember(member.id)}
+                          >
+                            <Checkbox 
+                              checked={isSelected} 
+                              onCheckedChange={() => toggleMember(member.id)}
+                              className="rounded-sm"
+                            />
+                            <ConditionalUserProfile user={member} size="sm" />
+                            <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                              {member.name || member.email}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {uniqueMembers.length === 0 && filters.membersFilter === "all" && (
                   <div className="flex items-center gap-3 px-2 py-2">
                     <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
                       <Users className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                     </div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">No members</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">No members available</span>
                   </div>
-                ) : (
-                  uniqueMembers.map((member) => {
-                    const isSelected = filters.selectedMembers.includes(member.id);
-                    return (
-                      <div
-                        key={member.id}
-                        className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                        onClick={() => toggleMember(member.id)}
-                      >
-                        <Checkbox 
-                          checked={isSelected} 
-                          onCheckedChange={() => toggleMember(member.id)}
-                          className="rounded-sm"
-                        />
-                        <ConditionalUserProfile user={member} size="sm" />
-                        <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
-                          {member.name || member.email}
-                        </span>
-                      </div>
-                    );
-                  })
                 )}
               </div>
             </div>
@@ -194,7 +245,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                   return (
                     <div
                       key={option.value}
-                      className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                      className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                       onClick={() =>
                         updateFilters({
                           dueDateFilter: option.value as "all" | "overdue" | "today" | "thisWeek" | "noDueDate",
@@ -211,6 +262,13 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                           })
                         }
                         className="w-4 h-4 cursor-pointer"
+                        style={{ 
+                          appearance: 'none', 
+                          WebkitAppearance: 'none', 
+                          borderRadius: '2px',
+                          border: '2px solid rgb(148 163 184)',
+                          backgroundColor: filters.dueDateFilter === option.value ? 'rgb(59 130 246)' : 'transparent',
+                        }}
                       />
                       {Icon && (
                         <Icon className={cn("w-4 h-4 flex-shrink-0", option.color)} />
@@ -245,21 +303,26 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                     return (
                       <div
                         key={label.id}
-                        className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                        className={cn(
+                          "w-full px-3 py-2 rounded-sm cursor-pointer transition-all",
+                          isSelected && "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-1"
+                        )}
+                        style={{ 
+                          backgroundColor: label.color,
+                          color: 'white',
+                        }}
                         onClick={() => toggleLabel(label.id)}
                       >
-                        <Checkbox 
-                          checked={isSelected} 
-                          onCheckedChange={() => toggleLabel(label.id)}
-                          className="rounded-sm"
-                        />
-                        <div
-                          className="w-4 h-4 rounded-sm flex-shrink-0"
-                          style={{ backgroundColor: label.color }}
-                        />
-                        <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
-                          {label.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <Checkbox 
+                            checked={isSelected} 
+                            onCheckedChange={() => toggleLabel(label.id)}
+                            className="rounded-sm border-white data-[state=checked]:bg-white data-[state=checked]:text-slate-900"
+                          />
+                          <span className="text-sm font-medium flex-1 text-left">
+                            {label.name}
+                          </span>
+                        </div>
                       </div>
                     );
                   })
@@ -284,7 +347,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                 ].map((option) => (
                   <div
                     key={option.value}
-                    className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                    className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                     onClick={() =>
                       updateFilters({
                         activityFilter: option.value as "all" | "week" | "twoWeeks" | "fourWeeks" | "inactive",
@@ -301,6 +364,13 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                         })
                       }
                       className="w-4 h-4 cursor-pointer"
+                      style={{ 
+                        appearance: 'none', 
+                        WebkitAppearance: 'none', 
+                        borderRadius: '2px',
+                        border: '2px solid rgb(148 163 184)',
+                        backgroundColor: filters.activityFilter === option.value ? 'rgb(59 130 246)' : 'transparent',
+                      }}
                     />
                     <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
                       {option.label}
@@ -325,7 +395,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                 ].map((option) => (
                   <div
                     key={option.value}
-                    className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                    className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                     onClick={() =>
                       updateFilters({
                         completedFilter: option.value as "all" | "completed" | "incomplete",
@@ -342,6 +412,13 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                         })
                       }
                       className="w-4 h-4 cursor-pointer"
+                      style={{ 
+                        appearance: 'none', 
+                        WebkitAppearance: 'none', 
+                        borderRadius: '2px',
+                        border: '2px solid rgb(148 163 184)',
+                        backgroundColor: filters.completedFilter === option.value ? 'rgb(59 130 246)' : 'transparent',
+                      }}
                     />
                     <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
                       {option.label}
@@ -358,7 +435,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Show cards with</label>
               <div className="space-y-1">
                 <div
-                  className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                   onClick={() =>
                     updateFilters({
                       hasAttachments: filters.hasAttachments === true ? null : true,
@@ -377,7 +454,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                   </span>
                 </div>
                 <div
-                  className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                   onClick={() =>
                     updateFilters({
                       hasChecklists: filters.hasChecklists === true ? null : true,
