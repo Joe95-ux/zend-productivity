@@ -26,9 +26,9 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
   const [isLabelsDropdownOpen, setIsLabelsDropdownOpen] = useState(false);
   const [labelsSearchQuery, setLabelsSearchQuery] = useState("");
   const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined);
-  const [checkboxWidth, setCheckboxWidth] = useState<number | undefined>(undefined);
   const labelBandRef = useRef<HTMLDivElement>(null);
-  const checkboxRef = useRef<HTMLDivElement>(null);
+  const selectLabelsTriggerRef = useRef<HTMLDivElement>(null);
+  const selectLabelsInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
   // Deduplicate labels by id
@@ -70,18 +70,16 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
       )
     : collapsedLabels;
 
-  // Calculate dropdown width to match label bands (band only, excluding checkbox)
+  // Calculate dropdown width to match "Select labels" trigger width
   useEffect(() => {
-    if (labelBandRef.current && checkboxRef.current) {
-      // The ref now points directly to the label band div
-      const bandWidth = labelBandRef.current.offsetWidth;
-      const checkboxWidth = checkboxRef.current.offsetWidth;
-      // Dropdown width = band width (excluding checkbox)
-      // Inside dropdown: checkbox + gap + band, so band will be shorter to fit
-      setDropdownWidth(bandWidth);
-      setCheckboxWidth(checkboxWidth);
+    const element = isLabelsDropdownOpen 
+      ? selectLabelsInputRef.current 
+      : selectLabelsTriggerRef.current;
+    if (element) {
+      const width = element.offsetWidth;
+      setDropdownWidth(width);
     }
-  }, [visibleLabels.length]);
+  }, [isLabelsDropdownOpen, visibleLabels.length]);
 
   const toggleMember = (memberId: string) => {
     const newMembers = filters.selectedMembers.includes(memberId)
@@ -297,7 +295,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
             <Separator />
 
             {/* Labels */}
-            <div className="space-y-2">
+            <div className="space-y-2 shrink-0">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Labels
               </label>
@@ -346,7 +344,6 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                             className="flex items-center gap-3"
                           >
                             <div
-                              ref={index === 0 ? checkboxRef : undefined}
                               className="flex items-center cursor-pointer"
                               onClick={() => toggleLabel(label.id)}
                             >
@@ -378,48 +375,46 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
 
                       {/* Select labels dropdown (if more than 3 labels) */}
                       {collapsedLabels.length > 0 && (
-                        <DropdownMenu open={isLabelsDropdownOpen} onOpenChange={(open) => {
-                          setIsLabelsDropdownOpen(open);
-                          if (!open) {
-                            setLabelsSearchQuery("");
-                          }
-                        }}>
-                          <DropdownMenuTrigger asChild>
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="flex items-center cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  if (allLabelsSelected) {
-                                    deselectAllLabels();
-                                  } else {
-                                    selectAllLabels();
-                                  }
-                                }}
-                                onMouseDown={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                }}
-                              >
-                                <Checkbox
-                                  checked={allLabelsSelected}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      selectAllLabels();
-                                    } else {
-                                      deselectAllLabels();
-                                    }
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                  }}
-                                  className="rounded-sm"
-                                />
-                              </div>
+                        <div className="flex items-center gap-3">
+                          {/* Checkbox for select all - outside of dropdown trigger */}
+                          <div
+                            className="flex items-center cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (allLabelsSelected) {
+                                deselectAllLabels();
+                              } else {
+                                selectAllLabels();
+                              }
+                            }}
+                          >
+                            <Checkbox
+                              checked={allLabelsSelected}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  selectAllLabels();
+                                } else {
+                                  deselectAllLabels();
+                                }
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                              className="rounded-sm"
+                            />
+                          </div>
+                          
+                          {/* Select labels search field / dropdown trigger */}
+                          <DropdownMenu open={isLabelsDropdownOpen} onOpenChange={(open) => {
+                            setIsLabelsDropdownOpen(open);
+                            if (!open) {
+                              setLabelsSearchQuery("");
+                            }
+                          }}>
+                            <DropdownMenuTrigger asChild>
                               {isLabelsDropdownOpen ? (
                                 <Input
+                                  ref={selectLabelsInputRef}
                                   placeholder="Search labels..."
                                   value={labelsSearchQuery}
                                   onChange={(e) => {
@@ -430,14 +425,14 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                   onKeyDown={(e) => {
                                     e.stopPropagation();
                                   }}
-                                  onFocus={(e) => e.stopPropagation()}
                                   className="flex-1 h-9"
                                   autoFocus
                                 />
                               ) : (
                                 <div 
+                                  ref={selectLabelsTriggerRef}
                                   className={cn(
-                                    "flex-1 flex items-center justify-between px-3 py-2 rounded-sm cursor-pointer transition-all border border-transparent hover:border-slate-300 dark:hover:border-slate-600"
+                                    "flex-1 flex items-center justify-between px-3 py-2 rounded-sm cursor-pointer transition-all border border-transparent hover:border-slate-300 dark:hover:border-slate-600 h-9"
                                   )}
                                   onClick={() => setIsLabelsDropdownOpen(true)}
                                 >
@@ -447,59 +442,53 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                                   <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                                 </div>
                               )}
-                            </div>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="start"
-                            sideOffset={4}
-                            className="p-0 overflow-hidden dark:bg-[#0D1117]"
-                            style={{ 
-                              width: dropdownWidth && checkboxWidth 
-                                ? `${dropdownWidth + checkboxWidth + 12}px` 
-                                : dropdownWidth 
-                                  ? `${dropdownWidth}px` 
-                                  : undefined 
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <ScrollArea className="h-64 max-h-64">
-                              <div className="p-2 space-y-2">
-                                {filteredCollapsedLabels.map((label) => {
-                                  const isSelected = filters.selectedLabels.includes(label.id);
-                                  return (
-                                    <div
-                                      key={label.id}
-                                      className="flex items-center gap-3"
-                                    >
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="start"
+                              sideOffset={4}
+                              className="p-0 overflow-hidden dark:bg-[#0D1117]"
+                              style={{ 
+                                width: dropdownWidth ? `${dropdownWidth}px` : undefined
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ScrollArea className="h-64 max-h-64">
+                                <div className="p-2 space-y-2">
+                                  {filteredCollapsedLabels.map((label) => {
+                                    const isSelected = filters.selectedLabels.includes(label.id);
+                                    return (
                                       <div
-                                        className="flex items-center cursor-pointer flex-shrink-0"
-                                        onClick={() => toggleLabel(label.id)}
+                                        key={label.id}
+                                        className="flex items-center gap-3"
                                       >
-                                        <Checkbox
-                                          checked={isSelected}
-                                          onCheckedChange={() => toggleLabel(label.id)}
-                                          className="rounded-sm"
-                                        />
+                                        <div
+                                          className="flex items-center cursor-pointer flex-shrink-0"
+                                          onClick={() => toggleLabel(label.id)}
+                                        >
+                                          <Checkbox
+                                            checked={isSelected}
+                                            onCheckedChange={() => toggleLabel(label.id)}
+                                            className="rounded-sm"
+                                          />
+                                        </div>
+                                        <div
+                                          className={cn(
+                                            "flex-1 px-3 py-1 rounded-sm cursor-pointer transition-all relative",
+                                            isSelected && "border-l-4 border-l-blue-500 dark:border-l-blue-400"
+                                          )}
+                                          style={{ 
+                                            backgroundColor: label.color,
+                                            color: 'white',
+                                          }}
+                                          onClick={() => toggleLabel(label.id)}
+                                        >
+                                          <span className="text-sm font-medium text-left">
+                                            {label.name}
+                                          </span>
+                                        </div>
                                       </div>
-                                      <div
-                                        className={cn(
-                                          "px-3 py-1 rounded-sm cursor-pointer transition-all relative",
-                                          isSelected && "border-l-4 border-l-blue-500 dark:border-l-blue-400"
-                                        )}
-                                        style={{ 
-                                          backgroundColor: label.color,
-                                          color: 'white',
-                                          width: dropdownWidth ? `${Math.max(0, dropdownWidth - (checkboxWidth || 0) - 12)}px` : 'auto',
-                                        }}
-                                        onClick={() => toggleLabel(label.id)}
-                                      >
-                                        <span className="text-sm font-medium text-left">
-                                          {label.name}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                                    );
+                                  })}
                                 {filteredCollapsedLabels.length === 0 && (
                                   <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400 text-center">
                                     No labels found
@@ -509,6 +498,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                             </ScrollArea>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                        </div>
                       )}
                     </div>
                 )}
