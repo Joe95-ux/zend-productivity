@@ -86,20 +86,11 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
       }
 
       // Members filter
-      if (filters.membersFilter !== "all") {
-        if (filters.membersFilter === "assigned") {
-          // Show only cards that are assigned to someone
-          if (!card.assignedTo) return false;
-          // If specific members are selected, check if card is assigned to one of them
-          if (filters.selectedMembers.length > 0 && !filters.selectedMembers.includes(card.assignedTo)) {
-            return false;
-          }
-        } else if (filters.membersFilter === "unassigned") {
-          // Show only cards that are not assigned to anyone
-          if (card.assignedTo) return false;
-        }
+      if (filters.membersFilter === "unassigned") {
+        // Show only cards that are not assigned to anyone
+        if (card.assignedTo) return false;
       } else if (filters.selectedMembers.length > 0) {
-        // If "all" is selected but specific members are chosen, filter by those members
+        // If specific members are selected, show cards assigned to those members
         if (!card.assignedTo || !filters.selectedMembers.includes(card.assignedTo)) {
           return false;
         }

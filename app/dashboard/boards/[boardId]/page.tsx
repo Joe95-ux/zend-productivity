@@ -120,11 +120,9 @@ export default function BoardPage() {
     <>
       {/* Board Content */}
       <div className="w-full h-full">
-        <BoardFilterProvider>
-          <DndProvider boardId={boardId}>
-            <BoardContent boardId={boardId} onAddList={() => setIsCreateListOpen(true)} />
-          </DndProvider>
-        </BoardFilterProvider>
+        <DndProvider boardId={boardId}>
+          <BoardContent boardId={boardId} onAddList={() => setIsCreateListOpen(true)} />
+        </DndProvider>
       </div>
 
       {/* Create List Dialog */}

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NavbarWrapper } from "@/components/navbar/NavbarWrapper";
 import { BoardHeaderWrapper } from "@/components/layout/BoardHeaderWrapper";
+import { BoardFilterWrapper } from "@/components/layout/BoardFilterWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,8 +70,10 @@ export default function RootLayout({
           <Toaster richColors position="bottom-right" />
           <RootProviders>
             <NavbarWrapper />
-            <BoardHeaderWrapper />
-            {children}
+            <BoardFilterWrapper>
+              <BoardHeaderWrapper />
+              {children}
+            </BoardFilterWrapper>
           </RootProviders>
         </body>
       </html>

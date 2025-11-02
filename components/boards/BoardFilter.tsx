@@ -96,11 +96,11 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
       <DropdownMenuContent
         align="end" 
         sideOffset={isMobile ? -14 : 4} 
-        alignOffset={-40}
-        className="w-full sm:w-95 p-0 overflow-hidden dark:bg-[#0D1117]"
+        alignOffset={-60}
+        className="w-full sm:w-90 p-0 overflow-hidden dark:bg-[#0D1117]"
       >
         {/* Fixed Header */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-[#0D1117] px-4 py-3">
+        <div className="sticky top-0 z-10 bg-white dark:bg-[#0D1117] px-4 py-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Filter Cards</h3>
             <div className="flex items-center gap-2">
@@ -127,10 +127,10 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
         </div>
 
         {/* Scrollable Content */}
-        <ScrollArea className="h-155 max-h-[calc(100vh-12rem)]">
+        <ScrollArea className="h-[calc(100vh-12rem)] max-h-[calc(100vh-10rem)]">
           <div className="p-4 space-y-4">
             {/* Search */}
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Search cards
               </label>
@@ -148,52 +148,32 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                 Members
               </label>
               <div className="space-y-1">
-                {/* Filter options */}
-                <div className="space-y-1 mb-2">
-                  {[
-                    { value: "all", label: "All cards" },
-                    { value: "assigned", label: "Assigned" },
-                    { value: "unassigned", label: "No members", icon: UserRound },
-                  ].map((option) => (
-                    <div
-                      key={option.value}
-                      className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
-                      onClick={() =>
-                        updateFilters({
-                          membersFilter: option.value as "all" | "assigned" | "unassigned",
-                        })
-                      }
-                    >
-                      <input
-                        type="radio"
-                        name="members"
-                        checked={filters.membersFilter === option.value}
-                        onChange={() =>
-                          updateFilters({
-                            membersFilter: option.value as "all" | "assigned" | "unassigned",
-                          })
-                        }
-                        className="w-4 h-4 cursor-pointer"
-                        style={{ 
-                          appearance: 'none', 
-                          WebkitAppearance: 'none', 
-                          borderRadius: '2px',
-                          border: '2px solid rgb(148 163 184)',
-                          backgroundColor: filters.membersFilter === option.value ? 'rgb(59 130 246)' : 'transparent',
-                        }}
-                      />
-                      {option.icon && (
-                        <option.icon className="w-4 h-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
-                      )}
-                      <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
-                        {option.label}
-                      </span>
-                    </div>
-                  ))}
+                {/* No members option */}
+                <div
+                  className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
+                  onClick={() =>
+                    updateFilters({
+                      membersFilter: "unassigned",
+                    })
+                  }
+                >
+                  <Checkbox
+                    checked={filters.membersFilter === "unassigned"}
+                    onCheckedChange={(checked) => {
+                      updateFilters({
+                        membersFilter: checked ? "unassigned" : "all",
+                      });
+                    }}
+                    className="rounded-sm"
+                  />
+                  <UserRound className="w-4 h-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
+                  <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
+                    No members
+                  </span>
                 </div>
 
-                {/* Member list (only show if filtering by specific members) */}
-                {filters.membersFilter === "all" && uniqueMembers.length > 0 && (
+                {/* Member list */}
+                {uniqueMembers.length > 0 && (
                   <>
                     <Separator className="my-2" />
                     <div className="space-y-1">
@@ -221,7 +201,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                   </>
                 )}
 
-                {uniqueMembers.length === 0 && filters.membersFilter === "all" && (
+                {uniqueMembers.length === 0 && (
                   <div className="flex items-center gap-3 px-2 py-2">
                     <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
                       <Users className="w-4 h-4 text-slate-400 dark:text-slate-500" />
@@ -252,23 +232,16 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                         })
                       }
                     >
-                      <input
-                        type="radio"
-                        name="dueDate"
+                      <Checkbox
                         checked={filters.dueDateFilter === option.value}
-                        onChange={() =>
-                          updateFilters({
-                            dueDateFilter: option.value as "all" | "overdue" | "today" | "thisWeek" | "noDueDate",
-                          })
-                        }
-                        className="w-4 h-4 cursor-pointer"
-                        style={{ 
-                          appearance: 'none', 
-                          WebkitAppearance: 'none', 
-                          borderRadius: '2px',
-                          border: '2px solid rgb(148 163 184)',
-                          backgroundColor: filters.dueDateFilter === option.value ? 'rgb(59 130 246)' : 'transparent',
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            updateFilters({
+                              dueDateFilter: option.value as "all" | "overdue" | "today" | "thisWeek" | "noDueDate",
+                            });
+                          }
                         }}
+                        className="rounded-sm"
                       />
                       {Icon && (
                         <Icon className={cn("w-4 h-4 flex-shrink-0", option.color)} />
@@ -290,42 +263,70 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                 Labels
               </label>
               <div className="space-y-1">
-                {uniqueLabels.length === 0 ? (
-                  <div className="flex items-center gap-3 px-2 py-2">
-                    <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
-                      <Tag className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                {/* No labels option */}
+                <div
+                  className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
+                  onClick={() =>
+                    updateFilters({
+                      selectedLabels: [],
+                    })
+                  }
+                >
+                  <Checkbox
+                    checked={filters.selectedLabels.length === 0}
+                    onCheckedChange={() =>
+                      updateFilters({
+                        selectedLabels: [],
+                      })
+                    }
+                    className="rounded-sm"
+                  />
+                  <Tag className="w-4 h-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
+                  <span className="text-sm text-slate-500 dark:text-slate-400">No labels</span>
+                </div>
+
+                {/* Label list */}
+                {uniqueLabels.length > 0 && (
+                  <>
+                    <Separator className="my-2" />
+                    <div className="space-y-1">
+                      {uniqueLabels.map((label) => {
+                        const isSelected = filters.selectedLabels.includes(label.id);
+                        return (
+                          <div
+                            key={label.id}
+                            className="flex items-center gap-3"
+                          >
+                            <div
+                              className="flex items-center cursor-pointer"
+                              onClick={() => toggleLabel(label.id)}
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleLabel(label.id)}
+                                className="rounded-sm"
+                              />
+                            </div>
+                            <div
+                              className={cn(
+                                "flex-1 px-3 py-2 rounded-sm cursor-pointer transition-all",
+                                isSelected && "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-1"
+                              )}
+                              style={{ 
+                                backgroundColor: label.color,
+                                color: 'white',
+                              }}
+                              onClick={() => toggleLabel(label.id)}
+                            >
+                              <span className="text-sm font-medium text-left">
+                                {label.name}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">No labels</span>
-                  </div>
-                ) : (
-                  uniqueLabels.map((label) => {
-                    const isSelected = filters.selectedLabels.includes(label.id);
-                    return (
-                      <div
-                        key={label.id}
-                        className={cn(
-                          "w-full px-3 py-2 rounded-sm cursor-pointer transition-all",
-                          isSelected && "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-1"
-                        )}
-                        style={{ 
-                          backgroundColor: label.color,
-                          color: 'white',
-                        }}
-                        onClick={() => toggleLabel(label.id)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Checkbox 
-                            checked={isSelected} 
-                            onCheckedChange={() => toggleLabel(label.id)}
-                            className="rounded-sm border-white data-[state=checked]:bg-white data-[state=checked]:text-slate-900"
-                          />
-                          <span className="text-sm font-medium flex-1 text-left">
-                            {label.name}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
+                  </>
                 )}
               </div>
             </div>
@@ -354,23 +355,16 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                       })
                     }
                   >
-                    <input
-                      type="radio"
-                      name="activity"
+                    <Checkbox
                       checked={filters.activityFilter === option.value}
-                      onChange={() =>
-                        updateFilters({
-                          activityFilter: option.value as "all" | "week" | "twoWeeks" | "fourWeeks" | "inactive",
-                        })
-                      }
-                      className="w-4 h-4 cursor-pointer"
-                      style={{ 
-                        appearance: 'none', 
-                        WebkitAppearance: 'none', 
-                        borderRadius: '2px',
-                        border: '2px solid rgb(148 163 184)',
-                        backgroundColor: filters.activityFilter === option.value ? 'rgb(59 130 246)' : 'transparent',
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          updateFilters({
+                            activityFilter: option.value as "all" | "week" | "twoWeeks" | "fourWeeks" | "inactive",
+                          });
+                        }
                       }}
+                      className="rounded-sm"
                     />
                     <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
                       {option.label}
@@ -402,23 +396,16 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
                       })
                     }
                   >
-                    <input
-                      type="radio"
-                      name="status"
+                    <Checkbox
                       checked={filters.completedFilter === option.value}
-                      onChange={() =>
-                        updateFilters({
-                          completedFilter: option.value as "all" | "completed" | "incomplete",
-                        })
-                      }
-                      className="w-4 h-4 cursor-pointer"
-                      style={{ 
-                        appearance: 'none', 
-                        WebkitAppearance: 'none', 
-                        borderRadius: '2px',
-                        border: '2px solid rgb(148 163 184)',
-                        backgroundColor: filters.completedFilter === option.value ? 'rgb(59 130 246)' : 'transparent',
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          updateFilters({
+                            completedFilter: option.value as "all" | "completed" | "incomplete",
+                          });
+                        }
                       }}
+                      className="rounded-sm"
                     />
                     <span className="text-sm text-slate-900 dark:text-slate-300 flex-1">
                       {option.label}

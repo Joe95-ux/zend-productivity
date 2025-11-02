@@ -32,5 +32,7 @@ export default function BoardLayout({
     );
   }
 
-  return <div className="h-full w-full">{children}</div>;
+  return (
+    <div className="h-full w-full">{children}</div>
+  );
 }

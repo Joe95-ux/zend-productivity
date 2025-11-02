@@ -6,7 +6,7 @@ export interface BoardFilters {
   searchQuery: string;
   selectedLabels: string[];
   selectedMembers: string[];
-  membersFilter: "all" | "assigned" | "unassigned";
+  membersFilter: "all" | "unassigned";
   dueDateFilter: "all" | "overdue" | "today" | "thisWeek" | "noDueDate";
   completedFilter: "all" | "completed" | "incomplete";
   hasAttachments: boolean | null;

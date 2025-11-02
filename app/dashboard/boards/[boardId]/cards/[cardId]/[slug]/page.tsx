@@ -232,16 +232,14 @@ export default function CardPage() {
     <>
       {/* Board Content with Card Modal */}
       <div className="w-full h-full">
-        <BoardFilterProvider>
-          <DndProvider boardId={boardId}>
-            <BoardContentWithCardModal 
-              boardId={boardId} 
-              cardId={cardId}
-              slug={slug}
-              onAddList={() => setIsCreateListOpen(true)} 
-            />
-          </DndProvider>
-        </BoardFilterProvider>
+        <DndProvider boardId={boardId}>
+          <BoardContentWithCardModal 
+            boardId={boardId} 
+            cardId={cardId}
+            slug={slug}
+            onAddList={() => setIsCreateListOpen(true)} 
+          />
+        </DndProvider>
       </div>
 
       {/* Create List Dialog */}
