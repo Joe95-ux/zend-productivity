@@ -58,7 +58,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, description } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const { name, description } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json(
@@ -68,12 +78,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create organization in Clerk
-    const clerk = await clerkClient();
-    const clerkOrg = await clerk.organizations.createOrganization({
-      name: name.trim(),
-      slug: slugify(name.trim()),
-      createdBy: user.clerkId,
-    });
+    let clerkOrg;
+    try {
+      const clerk = await clerkClient();
+      clerkOrg = await clerk.organizations.createOrganization({
+        name: name.trim(),
+        slug: slugify(name.trim()),
+        createdBy: user.clerkId,
+      });
+    } catch (clerkError: any) {
+      console.error("Clerk organization creation error:", clerkError);
+      return NextResponse.json(
+        { error: clerkError?.message || "Failed to create organization in Clerk" },
+        { status: 500 }
+      );
+    }
 
     // Generate unique slug
     const baseSlug = slugify(name.trim());

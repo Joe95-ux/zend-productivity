@@ -63,11 +63,22 @@ export default function OnboardingPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create organization");
+        let errorMessage = "Failed to create organization";
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      return response.json();
+      try {
+        return await response.json();
+      } catch {
+        throw new Error("Invalid response from server");
+      }
     },
     onSuccess: (organization) => {
       if (invitations.length > 0) {
@@ -364,12 +375,12 @@ export default function OnboardingPage() {
                       setNewInviteRole(value)
                     }
                   >
-                    <SelectTrigger className="w-full sm:w-[140px] h-[44px]">
+                    <SelectTrigger className="w-full sm:w-[140px] h-12">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem className="h-[44px]" value="MEMBER">Member</SelectItem>
-                      <SelectItem className="h-[44px]" value="OBSERVER">Observer</SelectItem>
+                      <SelectItem className="font-medium" value="MEMBER">Member</SelectItem>
+                      <SelectItem className="font-medium" value="OBSERVER">Observer</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
