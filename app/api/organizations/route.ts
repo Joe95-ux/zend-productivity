@@ -77,27 +77,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate and generate slug
+    const orgSlug = slugify(name.trim());
+    if (!orgSlug || orgSlug.length === 0) {
+      return NextResponse.json(
+        { error: "Organization name must contain at least one letter or number" },
+        { status: 400 }
+      );
+    }
+
     // Create organization in Clerk
     const clerk = await clerkClient();
     let clerkOrg;
     try {
       clerkOrg = await clerk.organizations.createOrganization({
         name: name.trim(),
-        slug: slugify(name.trim()),
+        slug: orgSlug,
         createdBy: user.clerkId,
       });
     } catch (clerkError: unknown) {
       console.error("Clerk organization creation error:", clerkError);
-      const errorMessage =
-        clerkError instanceof Error
-          ? clerkError.message
-          : "Failed to create organization in Clerk";
+      let errorMessage = "Failed to create organization in Clerk";
+      
+      if (clerkError instanceof Error) {
+        errorMessage = clerkError.message;
+        // Provide more helpful error messages
+        if (clerkError.message.includes("already exists") || clerkError.message.includes("slug")) {
+          errorMessage = "An organization with this name or a similar name already exists. Please choose a different name.";
+        } else if (clerkError.message.includes("permission") || clerkError.message.includes("unauthorized")) {
+          errorMessage = "You don't have permission to create organizations. Please check your account settings.";
+        }
+      }
+      
       return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 
-    // Generate unique slug
-    const baseSlug = slugify(name.trim());
-    let slug = baseSlug;
+    // Generate unique slug for our database
+    let slug = orgSlug;
     let counter = 1;
 
     while (
@@ -105,45 +121,79 @@ export async function POST(request: NextRequest) {
         where: { slug },
       })
     ) {
-      slug = `${baseSlug}-${counter}`;
+      slug = `${orgSlug}-${counter}`;
       counter++;
+      // Prevent infinite loop
+      if (counter > 100) {
+        return NextResponse.json(
+          { error: "Unable to generate a unique slug. Please try a different organization name." },
+          { status: 500 }
+        );
+      }
     }
 
     // Create organization in database
-    const organization = await db.organization.create({
-      data: {
-        clerkOrgId: clerkOrg.id,
-        name: name.trim(),
-        slug,
-        description: description?.trim() || null,
-      },
-    });
+    let organization;
+    try {
+      organization = await db.organization.create({
+        data: {
+          clerkOrgId: clerkOrg.id,
+          name: name.trim(),
+          slug,
+          description: description?.trim() || null,
+        },
+      });
+    } catch (dbError: unknown) {
+      console.error("Database organization creation error:", dbError);
+      // If DB creation fails, try to clean up Clerk org
+      try {
+        await clerk.organizations.deleteOrganization({ organizationId: clerkOrg.id });
+      } catch (cleanupError) {
+        console.error("Failed to cleanup Clerk organization:", cleanupError);
+      }
+      
+      const errorMessage =
+        dbError instanceof Error ? dbError.message : "Failed to create organization in database";
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
+    }
 
     // Add creator as admin
-    await db.organizationMember.create({
-      data: {
-        organizationId: organization.id,
-        userId: user.id,
-        role: "ADMIN",
-        joinedAt: new Date(),
-      },
-    });
+    try {
+      await db.organizationMember.create({
+        data: {
+          organizationId: organization.id,
+          userId: user.id,
+          role: "ADMIN",
+          joinedAt: new Date(),
+        },
+      });
+    } catch (memberError: unknown) {
+      console.error("Failed to create organization membership:", memberError);
+      // Don't fail the whole operation if membership creation fails
+      // The webhook might handle it
+    }
 
     // Update Clerk organization member role to admin
-    const clerkMember = await clerk.organizations.getOrganizationMembershipList({
-      organizationId: clerkOrg.id,
-    });
-
-    const member = clerkMember.data?.find(
-      (m) => m.publicUserData?.userId === user.clerkId
-    );
-
-    if (member) {
-      await clerk.organizations.updateOrganizationMembership({
+    try {
+      const clerkMember = await clerk.organizations.getOrganizationMembershipList({
         organizationId: clerkOrg.id,
-        userId: user.clerkId,
-        role: "org:admin",
       });
+
+      const member = clerkMember.data?.find(
+        (m) => m.publicUserData?.userId === user.clerkId
+      );
+
+      if (member) {
+        await clerk.organizations.updateOrganizationMembership({
+          organizationId: clerkOrg.id,
+          userId: user.clerkId,
+          role: "org:admin",
+        });
+      }
+    } catch (clerkRoleError: unknown) {
+      console.error("Failed to update Clerk organization member role:", clerkRoleError);
+      // Don't fail the whole operation if role update fails
+      // The webhook might handle it
     }
 
     return NextResponse.json(organization, { status: 201 });
