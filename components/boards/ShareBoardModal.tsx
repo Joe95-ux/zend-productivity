@@ -9,6 +9,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectGroup,
   SelectLabel,
   SelectTrigger,
   SelectValue,
@@ -53,10 +54,20 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "member">("member");
   const [shareLink, setShareLink] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const currentUserId = useCurrentUserId();
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Fetch board members
-  const { data: boardMembers, refetch: refetchMembers, error: membersError } = useQuery<BoardMember[]>({
+  const { 
+    data: boardMembers, 
+    refetch: refetchMembers, 
+    error: membersError 
+  } = useQuery<BoardMember[]>({
     queryKey: ["board-members", boardId],
     queryFn: async (): Promise<BoardMember[]> => {
       const response = await fetch(`/api/boards/${boardId}/members`);
@@ -65,12 +76,16 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
       }
       return response.json();
     },
-    enabled: isOpen && !!boardId,
+    enabled: isOpen && !!boardId && isMounted,
     retry: 1,
   });
 
   // Fetch join requests
-  const { data: joinRequests, refetch: refetchRequests, error: requestsError } = useQuery<JoinRequest[]>({
+  const { 
+    data: joinRequests, 
+    refetch: refetchRequests, 
+    error: requestsError 
+  } = useQuery<JoinRequest[]>({
     queryKey: ["board-join-requests", boardId],
     queryFn: async (): Promise<JoinRequest[]> => {
       const response = await fetch(`/api/boards/${boardId}/join-requests`);
@@ -79,7 +94,7 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
       }
       return response.json();
     },
-    enabled: isOpen && !!boardId,
+    enabled: isOpen && !!boardId && isMounted,
     retry: 1,
   });
 
@@ -95,10 +110,10 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
 
   // Fetch share link
   useEffect(() => {
-    if (isOpen && boardId && typeof window !== "undefined") {
+    if (isOpen && boardId && isMounted) {
       setShareLink(`${window.location.origin}/dashboard/boards/${boardId}`);
     }
-  }, [isOpen, boardId]);
+  }, [isOpen, boardId, isMounted]);
 
   // Invite member mutation
   const inviteMemberMutation = useMutation({
@@ -201,7 +216,6 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
   });
 
   // Copy link to clipboard
-  const [copied, setCopied] = useState(false);
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareLink);
@@ -223,11 +237,13 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
     inviteMemberMutation.mutate({ email: email.trim(), role });
   };
 
-  if (!isOpen) return null;
-
-  // Combine owner and members for display
+  // Safe data handling
   const allMembers: BoardMember[] = Array.isArray(boardMembers) ? boardMembers : [];
+  const safeJoinRequests: JoinRequest[] = Array.isArray(joinRequests) ? joinRequests : [];
   const membersCount = allMembers.length;
+  const requestsCount = safeJoinRequests.length;
+
+  if (!isOpen || !isMounted) return null;
 
   const modalContent = (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24">
@@ -274,18 +290,18 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="member" className="font-medium">
-                  Member
-                </SelectItem>
-                <SelectLabel className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
-                  Can view and edit this board
-                </SelectLabel>
-                <SelectItem value="admin" className="font-medium">
-                  Admin
-                </SelectItem>
-                <SelectLabel className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
-                  Can view, edit, and manage board settings
-                </SelectLabel>
+                <SelectGroup>
+                  <SelectItem value="member">Member</SelectItem>
+                  <SelectLabel className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
+                    Can view and edit this board
+                  </SelectLabel>
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectLabel className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
+                    Can view, edit, and manage board settings
+                  </SelectLabel>
+                </SelectGroup>
               </SelectContent>
             </Select>
             <Button
@@ -293,7 +309,7 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
               disabled={inviteMemberMutation.isPending}
               className="px-4"
             >
-              Share
+              {inviteMemberMutation.isPending ? "Sharing..." : "Share"}
             </Button>
           </div>
 
@@ -323,14 +339,16 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
                 Board members ({membersCount})
               </TabsTrigger>
               <TabsTrigger value="requests" className="flex-1">
-                Join requests ({Array.isArray(joinRequests) ? joinRequests.length : 0})
+                Join requests ({requestsCount})
               </TabsTrigger>
             </TabsList>
+            
+            {/* Members Tab */}
             <TabsContent value="members" className="mt-4 space-y-2">
               {allMembers.map((member) => {
                 const isCurrentUser = member.user.id === currentUserId;
-                // Check if this is the owner (id starts with "owner-")
                 const isOwner = member.id.startsWith("owner-");
+                const emailHandle = member.user.email.split("@")[0];
                 
                 return (
                   <div
@@ -351,7 +369,7 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                          <span>@{member.user.email.split("@")[0]}</span>
+                          <span>@{emailHandle}</span>
                           <span>•</span>
                           <span>
                             {isOwner ? "Owner" : member.role === "admin" ? "Admin" : "Member"}
@@ -389,52 +407,58 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
               )}
             </TabsContent>
 
+            {/* Requests Tab */}
             <TabsContent value="requests" className="mt-4 space-y-2">
-              {Array.isArray(joinRequests) && joinRequests.length > 0 ? (
-                joinRequests.map((request: JoinRequest) => (
-                  <div
-                    key={request.id}
-                    className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <ConditionalUserProfile user={request.user} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                            {request.user.name || request.user.email}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                          <span>@{request.user.email.split("@")[0]}</span>
-                          <span>•</span>
-                          <span>
-                            Requested {new Date(request.requestedAt).toLocaleDateString()}
-                          </span>
+              {safeJoinRequests.length > 0 ? (
+                safeJoinRequests.map((request) => {
+                  const emailHandle = request.user.email.split("@")[0];
+                  const requestedDate = request.requestedAt ? 
+                    new Date(request.requestedAt).toLocaleDateString() : 
+                    "Unknown date";
+                  
+                  return (
+                    <div
+                      key={request.id}
+                      className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <ConditionalUserProfile user={request.user} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                              {request.user.name || request.user.email}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                            <span>@{emailHandle}</span>
+                            <span>•</span>
+                            <span>Requested {requestedDate}</span>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => rejectRequestMutation.mutate(request.id)}
+                          disabled={rejectRequestMutation.isPending}
+                          className="h-8 px-3 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => approveRequestMutation.mutate({ requestId: request.id })}
+                          disabled={approveRequestMutation.isPending}
+                          className="h-8 px-3 text-slate-600 hover:text-green-600 dark:text-slate-400 dark:hover:text-green-400"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => rejectRequestMutation.mutate(request.id)}
-                        disabled={rejectRequestMutation.isPending}
-                        className="h-8 px-3 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => approveRequestMutation.mutate({ requestId: request.id })}
-                        disabled={approveRequestMutation.isPending}
-                        className="h-8 px-3 text-slate-600 hover:text-green-600 dark:text-slate-400 dark:hover:text-green-400"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-8 text-slate-500 dark:text-slate-400">
                   No pending join requests
@@ -447,9 +471,5 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
     </div>
   );
 
-  // Render modal in portal to avoid z-index and stacking context issues
-  if (typeof document === "undefined") return null;
-  
   return createPortal(modalContent, document.body);
 }
-
