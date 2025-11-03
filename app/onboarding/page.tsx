@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Building2, Users, Mail, ArrowRight, X, Check, ArrowLeft } from "lucide-react";
-import { Label } from "@/components/ui/label";
 
 interface Invitation {
   email: string;
@@ -154,30 +154,10 @@ export default function OnboardingPage() {
     setInvitations(invitations.filter((inv) => inv.email !== email));
   };
 
-  // Step indicator configuration
-  const steps = [
-    { id: "name", label: "Organization Details", number: 1 },
-    { id: "invite", label: "Invite Members", number: 2 },
-  ];
-
-  const getCurrentStepIndex = () => {
-    if (step === "choice") return -1; // Before steps start
-    return steps.findIndex((s) => s.id === step);
-  };
-
-  const isStepCompleted = (stepIndex: number) => {
-    const currentIndex = getCurrentStepIndex();
-    return currentIndex > stepIndex;
-  };
-
-  const isStepActive = (stepId: string) => {
-    return step === stepId;
-  };
-
   // Show loading while checking
   if (!hasChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+      <div className="h-full flex items-center justify-center bg-slate-50 dark:bg-slate-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 dark:border-slate-100 mx-auto"></div>
           <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">Loading...</p>
@@ -187,9 +167,9 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-6">
+    <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-6">
       <Card className="w-full max-w-2xl shadow-xl border-slate-200 dark:border-slate-700">
-        <CardHeader className="pb-4">
+        <CardHeader className="space-y-1.5 p-6">
           <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
             {step === "choice" ? "Welcome!" : "Create Your Organization"}
           </CardTitle>
@@ -198,75 +178,8 @@ export default function OnboardingPage() {
               ? "Get started with your personal workspace or create an organization to collaborate with your team"
               : "Set up your workspace to collaborate with your team"}
           </CardDescription>
-          {/* Step Indicator - only show when not on choice step */}
-          {step !== "choice" && (
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                {steps.map((stepItem, index) => {
-                  const completed = isStepCompleted(index);
-                  const active = isStepActive(stepItem.id);
-                  const stepNumber = index + 1;
-
-                  return (
-                    <div key={stepItem.id} className="flex items-center flex-1">
-                      <div className="flex flex-col items-center flex-1">
-                        {/* Step Circle */}
-                        <div className="relative z-10">
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 relative z-10 ${
-                              completed
-                                ? "bg-green-600 dark:bg-green-500 text-white shadow-lg shadow-green-500/30"
-                                : active
-                                  ? "bg-blue-600 dark:bg-blue-500 text-white shadow-lg shadow-blue-500/30 ring-4 ring-blue-500/20 dark:ring-blue-400/20"
-                                  : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
-                            }`}
-                          >
-                            {completed ? (
-                              <Check className="h-5 w-5" />
-                            ) : (
-                              <span className="text-sm font-semibold">{stepNumber}</span>
-                            )}
-                          </div>
-                          {/* Active pulse animation */}
-                          {active && (
-                            <div className="absolute inset-0 rounded-full bg-blue-500 dark:bg-blue-400 animate-ping opacity-30 -z-10" />
-                          )}
-                        </div>
-                        {/* Step Label */}
-                        <div className="mt-2 text-center">
-                          <p
-                            className={`text-xs font-medium transition-colors ${
-                              completed
-                                ? "text-green-600 dark:text-green-400"
-                                : active
-                                  ? "text-blue-600 dark:text-blue-400"
-                                  : "text-slate-500 dark:text-slate-400"
-                            }`}
-                          >
-                            {stepItem.label}
-                          </p>
-                        </div>
-                      </div>
-                      {/* Connecting Line */}
-                      {index < steps.length - 1 && (
-                        <div className="flex-1 mx-2 h-0.5 -mt-5">
-                          <div
-                            className={`h-full transition-all duration-500 ${
-                              completed
-                                ? "bg-green-600 dark:bg-green-500"
-                                : "bg-slate-200 dark:bg-slate-700"
-                            }`}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="py-6 pt-0 space-y-6">
           {step === "choice" && (
             <>
               <div className="grid gap-4 md:grid-cols-2">
@@ -275,7 +188,7 @@ export default function OnboardingPage() {
                   className="cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg transition-all duration-200 group border-2"
                   onClick={handleSkip}
                 >
-                  <CardHeader>
+                  <CardHeader className="space-y-1.5 p-6">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-900 transition-colors">
                         <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -285,7 +198,7 @@ export default function OnboardingPage() {
                       </CardTitle>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0 py-6">
                     <CardDescription className="text-slate-600 dark:text-slate-400 mb-4">
                       Start with a personal workspace. You can create organizations later.
                     </CardDescription>
@@ -311,7 +224,7 @@ export default function OnboardingPage() {
                   className="cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 hover:shadow-lg transition-all duration-200 group border-2"
                   onClick={handleCreateOrg}
                 >
-                  <CardHeader>
+                  <CardHeader className="space-y-1.5 p-6">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-900 transition-colors">
                         <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -321,7 +234,7 @@ export default function OnboardingPage() {
                       </CardTitle>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0 pb-6">
                     <CardDescription className="text-slate-600 dark:text-slate-400 mb-4">
                       Create an organization to collaborate with your team right away.
                     </CardDescription>
@@ -351,10 +264,10 @@ export default function OnboardingPage() {
           {step === "name" && (
             <>
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
                     Organization Name <span className="text-red-500">*</span>
-                  </Label>
+                  </label>
                   <Input
                     placeholder="Acme Inc."
                     value={orgName}
@@ -366,10 +279,10 @@ export default function OnboardingPage() {
                     This name will be visible to all members
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
                     Description <span className="text-slate-400 dark:text-slate-500">(Optional)</span>
-                  </Label>
+                  </label>
                   <Textarea
                     placeholder="What does your organization do?"
                     value={orgDescription}
@@ -443,7 +356,7 @@ export default function OnboardingPage() {
                         addInvitation();
                       }
                     }}
-                    className="flex-1 h-11"
+                    className="flex-1 h-12"
                   />
                   <Select
                     value={newInviteRole}
@@ -451,17 +364,17 @@ export default function OnboardingPage() {
                       setNewInviteRole(value)
                     }
                   >
-                    <SelectTrigger className="w-full sm:w-[140px] h-11">
+                    <SelectTrigger className="w-full sm:w-[140px] h-12">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MEMBER" className="h-11">Member</SelectItem>
-                      <SelectItem value="OBSERVER" className="h-11">Observer</SelectItem>
+                      <SelectItem value="MEMBER">Member</SelectItem>
+                      <SelectItem value="OBSERVER">Observer</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
                     onClick={addInvitation}
-                    className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     Add
                   </Button>
