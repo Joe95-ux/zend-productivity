@@ -167,8 +167,8 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-6">
-      <Card className="w-full max-w-2xl shadow-xl border-slate-200 dark:border-slate-700">
+    <div className="h-calc(100vh - 64px) flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-6">
+      <Card className="w-full max-w-4xl shadow-xl border-slate-200 dark:border-slate-700 md:p-6">
         <CardHeader className="space-y-1.5 p-6">
           <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
             {step === "choice" ? "Welcome!" : "Create Your Organization"}
@@ -198,7 +198,7 @@ export default function OnboardingPage() {
                       </CardTitle>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0 py-6">
+                  <CardContent className="pt-0 pb-6">
                     <CardDescription className="text-slate-600 dark:text-slate-400 mb-4">
                       Start with a personal workspace. You can create organizations later.
                     </CardDescription>
@@ -356,7 +356,7 @@ export default function OnboardingPage() {
                         addInvitation();
                       }
                     }}
-                    className="flex-1 h-12"
+                    className="flex-1 h-11"
                   />
                   <Select
                     value={newInviteRole}
@@ -364,17 +364,17 @@ export default function OnboardingPage() {
                       setNewInviteRole(value)
                     }
                   >
-                    <SelectTrigger className="w-full sm:w-[140px] h-12">
+                    <SelectTrigger className="w-full sm:w-[140px] h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MEMBER">Member</SelectItem>
-                      <SelectItem value="OBSERVER">Observer</SelectItem>
+                      <SelectItem className="h-11" value="MEMBER">Member</SelectItem>
+                      <SelectItem className="h-11" value="OBSERVER">Observer</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
                     onClick={addInvitation}
-                    className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     Add
                   </Button>
