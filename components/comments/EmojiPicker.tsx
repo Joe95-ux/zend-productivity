@@ -150,9 +150,16 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
         <div
           ref={pickerRef}
           className="fixed z-[99999]"
+          onMouseDown={(e) => {
+            // Stop all mouse events from propagating to modal elements
+            e.stopPropagation();
+          }}
           onClick={(e) => {
-            // Stop propagation to prevent the click from bubbling to document level
-            // This ensures emoji clicks are processed before outside click detection
+            // Stop all click events from propagating to modal elements
+            e.stopPropagation();
+          }}
+          onPointerDown={(e) => {
+            // Stop pointer events as well
             e.stopPropagation();
           }}
           style={{
@@ -162,19 +169,26 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
             right: position.rightPx ? `${position.rightPx}px` : undefined,
             maxHeight: position.maxHeight,
             transform: position.transform,
+            pointerEvents: 'auto', // Ensure the picker captures pointer events
           }}
         >
-          <EmojiPicker
-            onEmojiClick={handleEmojiClick}
-            theme={Theme.AUTO}
-            width={352}
-            height={position.maxHeight ? undefined : 435}
-            style={position.maxHeight ? { maxHeight: position.maxHeight } : undefined}
-            skinTonesDisabled
-            previewConfig={{
-              showPreview: false,
-            }}
-          />
+          <div
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            style={{ pointerEvents: 'auto' }}
+          >
+            <EmojiPicker
+              onEmojiClick={handleEmojiClick}
+              theme={Theme.AUTO}
+              width={352}
+              height={position.maxHeight ? undefined : 435}
+              style={position.maxHeight ? { maxHeight: position.maxHeight } : undefined}
+              skinTonesDisabled
+              previewConfig={{
+                showPreview: false,
+              }}
+            />
+          </div>
         </div>,
         document.body
       )}
