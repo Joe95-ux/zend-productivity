@@ -21,6 +21,10 @@ type PickerPosition = {
   marginBottom?: string;
   maxHeight?: string;
   transform?: string;
+  topPx?: number;
+  bottomPx?: number;
+  leftPx?: number;
+  rightPx?: number;
 };
 
 export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: EmojiPickerProps) {
@@ -46,7 +50,7 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
     const spaceRight = viewportWidth - containerRect.left;
     const spaceLeft = containerRect.left;
     
-    const newPosition: PickerPosition & { topPx?: number; bottomPx?: number; leftPx?: number; rightPx?: number } = {};
+    const newPosition: PickerPosition = {};
 
     // Adjust vertical position - prefer opening downward, but open upward if not enough space
     if (spaceBelow >= pickerHeight + spacing) {
@@ -132,10 +136,10 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
           ref={pickerRef}
           className="fixed z-[9999]"
           style={{
-            top: (position as any).topPx ? `${(position as any).topPx}px` : undefined,
-            bottom: (position as any).bottomPx ? `${(position as any).bottomPx}px` : undefined,
-            left: (position as any).leftPx ? `${(position as any).leftPx}px` : undefined,
-            right: (position as any).rightPx ? `${(position as any).rightPx}px` : undefined,
+            top: position.topPx ? `${position.topPx}px` : undefined,
+            bottom: position.bottomPx ? `${position.bottomPx}px` : undefined,
+            left: position.leftPx ? `${position.leftPx}px` : undefined,
+            right: position.rightPx ? `${position.rightPx}px` : undefined,
             maxHeight: position.maxHeight,
             transform: position.transform,
           }}
