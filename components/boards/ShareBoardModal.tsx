@@ -56,9 +56,9 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
   const currentUserId = useCurrentUserId();
 
   // Fetch board members
-  const { data: boardMembers, refetch: refetchMembers } = useQuery<BoardMember[]>({
+  const { data: boardMembers, refetch: refetchMembers, error: membersError } = useQuery<BoardMember[]>({
     queryKey: ["board-members", boardId],
-    queryFn: async () => {
+    queryFn: async (): Promise<BoardMember[]> => {
       const response = await fetch(`/api/boards/${boardId}/members`);
       if (!response.ok) {
         throw new Error("Failed to fetch board members");
@@ -67,15 +67,12 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
     },
     enabled: isOpen && !!boardId,
     retry: 1,
-    onError: (error) => {
-      console.error("Error fetching board members:", error);
-    },
   });
 
   // Fetch join requests
-  const { data: joinRequests, refetch: refetchRequests } = useQuery<JoinRequest[]>({
+  const { data: joinRequests, refetch: refetchRequests, error: requestsError } = useQuery<JoinRequest[]>({
     queryKey: ["board-join-requests", boardId],
-    queryFn: async () => {
+    queryFn: async (): Promise<JoinRequest[]> => {
       const response = await fetch(`/api/boards/${boardId}/join-requests`);
       if (!response.ok) {
         throw new Error("Failed to fetch join requests");
@@ -84,10 +81,17 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
     },
     enabled: isOpen && !!boardId,
     retry: 1,
-    onError: (error) => {
-      console.error("Error fetching join requests:", error);
-    },
   });
+
+  // Log errors if they occur
+  useEffect(() => {
+    if (membersError) {
+      console.error("Error fetching board members:", membersError);
+    }
+    if (requestsError) {
+      console.error("Error fetching join requests:", requestsError);
+    }
+  }, [membersError, requestsError]);
 
   // Fetch share link
   useEffect(() => {
@@ -222,7 +226,7 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
   if (!isOpen) return null;
 
   // Combine owner and members for display
-  const allMembers: BoardMember[] = boardMembers || [];
+  const allMembers: BoardMember[] = Array.isArray(boardMembers) ? boardMembers : [];
   const membersCount = allMembers.length;
 
   const modalContent = (
@@ -319,7 +323,7 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
                 Board members ({membersCount})
               </TabsTrigger>
               <TabsTrigger value="requests" className="flex-1">
-                Join requests ({joinRequests?.length || 0})
+                Join requests ({Array.isArray(joinRequests) ? joinRequests.length : 0})
               </TabsTrigger>
             </TabsList>
             <TabsContent value="members" className="mt-4 space-y-2">
@@ -386,8 +390,8 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
             </TabsContent>
 
             <TabsContent value="requests" className="mt-4 space-y-2">
-              {joinRequests && joinRequests.length > 0 ? (
-                joinRequests.map((request) => (
+              {Array.isArray(joinRequests) && joinRequests.length > 0 ? (
+                joinRequests.map((request: JoinRequest) => (
                   <div
                     key={request.id}
                     className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
