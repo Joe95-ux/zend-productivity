@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       console.error("Database organization creation error:", dbError);
       // If DB creation fails, try to clean up Clerk org
       try {
-        await clerk.organizations.deleteOrganization({ organizationId: clerkOrg.id });
+        await clerk.organizations.deleteOrganization(clerkOrg.id);
       } catch (cleanupError) {
         console.error("Failed to cleanup Clerk organization:", cleanupError);
       }

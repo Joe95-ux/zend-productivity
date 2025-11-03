@@ -60,13 +60,82 @@ export function CommentReactions({
 
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async (emoji: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["comments", boardId] });
+      await queryClient.cancelQueries({ queryKey: ["board", boardId] });
+
+      // Snapshot the previous value
+      const previousComments = queryClient.getQueryData(["comments", boardId]);
+      
+      // Get current user data from comments query if available
+      const comments = previousComments as any;
+      const currentUser = comments?.find?.((c: any) => c.user?.id === currentUserId)?.user || null;
+
+      // Optimistically update comments
+      queryClient.setQueryData(["comments", boardId], (old: any) => {
+        if (!old || !Array.isArray(old)) return old;
+        
+        return old.map((comment: any) => {
+          if (comment.id !== commentId) return comment;
+          
+          const existingReactionIndex = comment.reactions?.findIndex(
+            (r: Reaction) => r.emoji === emoji && r.userId === currentUserId
+          ) ?? -1;
+
+          const hasReaction = existingReactionIndex >= 0;
+          
+          if (hasReaction) {
+            // Remove reaction optimistically
+            const updatedReactions = comment.reactions.filter(
+              (_: Reaction, idx: number) => idx !== existingReactionIndex
+            );
+            return {
+              ...comment,
+              reactions: updatedReactions,
+            };
+          } else {
+            // Add reaction optimistically with proper user data
+            const newReaction: Reaction = {
+              id: `temp-${Date.now()}`,
+              emoji,
+              userId: currentUserId || "",
+              user: currentUser || (currentUserId ? {
+                id: currentUserId,
+                email: "",
+                name: null,
+                avatarUrl: null,
+              } : undefined),
+            };
+            return {
+              ...comment,
+              reactions: [...(comment.reactions || []), newReaction],
+            };
+          }
+        });
+      });
+
+      // Return context with snapshot for rollback
+      return { previousComments };
+    },
+    onError: (error: Error, emoji: string, context) => {
+      // Rollback to previous state on error
+      if (context?.previousComments) {
+        queryClient.setQueryData(["comments", boardId], context.previousComments);
+      }
+      toast.error(error.message);
+      setLoadingEmoji(null);
+    },
+    onSuccess: (data) => {
+      // Invalidate both queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["comments", boardId] });
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
       setLoadingEmoji(null);
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
-      setLoadingEmoji(null);
+    onSettled: () => {
+      // Always refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ["comments", boardId] });
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
     },
   });
 
