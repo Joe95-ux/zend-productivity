@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     let body;
     try {
       body = await request.json();
-    } catch (e) {
+    } catch {
       return NextResponse.json(
         { error: "Invalid request body" },
         { status: 400 }
@@ -78,20 +78,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create organization in Clerk
+    const clerk = await clerkClient();
     let clerkOrg;
     try {
-      const clerk = await clerkClient();
       clerkOrg = await clerk.organizations.createOrganization({
         name: name.trim(),
         slug: slugify(name.trim()),
         createdBy: user.clerkId,
       });
-    } catch (clerkError: any) {
+    } catch (clerkError: unknown) {
       console.error("Clerk organization creation error:", clerkError);
-      return NextResponse.json(
-        { error: clerkError?.message || "Failed to create organization in Clerk" },
-        { status: 500 }
-      );
+      const errorMessage =
+        clerkError instanceof Error
+          ? clerkError.message
+          : "Failed to create organization in Clerk";
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 
     // Generate unique slug
