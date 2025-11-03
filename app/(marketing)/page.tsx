@@ -73,7 +73,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-lg py-6">
+            <Card className="border-0 shadow-lg">
               <CardHeader>
                 <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center mb-4">
                   <Zap className="w-6 h-6 text-emerald-600" />
@@ -85,7 +85,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg py-6">
+            <Card className="border-0 shadow-lg">
               <CardHeader>
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mb-4">
                   <Users className="w-6 h-6 text-blue-600" />
@@ -97,7 +97,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg py-6">
+            <Card className="border-0 shadow-lg">
               <CardHeader>
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center mb-4">
                   <Shield className="w-6 h-6 text-purple-600" />
