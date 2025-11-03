@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Smile } from "lucide-react";
 import { cn } from "@/lib/utils";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
@@ -45,40 +46,36 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
     const spaceRight = viewportWidth - containerRect.left;
     const spaceLeft = containerRect.left;
     
-    const newPosition: PickerPosition = {};
+    const newPosition: PickerPosition & { topPx?: number; bottomPx?: number; leftPx?: number; rightPx?: number } = {};
 
     // Adjust vertical position - prefer opening downward, but open upward if not enough space
     if (spaceBelow >= pickerHeight + spacing) {
       // Enough space below - open downward
-      newPosition.top = "100%";
-      newPosition.marginTop = `${spacing}px`;
+      newPosition.topPx = containerRect.bottom + spacing;
     } else if (spaceAbove >= pickerHeight + spacing) {
       // Enough space above - open upward
-      newPosition.bottom = "100%";
-      newPosition.marginBottom = `${spacing}px`;
+      newPosition.bottomPx = viewportHeight - containerRect.top + spacing;
     } else {
       // Not enough space either way - use available space and allow scrolling
       if (spaceBelow > spaceAbove) {
-        newPosition.top = "100%";
-        newPosition.marginTop = `${spacing}px`;
+        newPosition.topPx = containerRect.bottom + spacing;
         newPosition.maxHeight = `${spaceBelow - spacing}px`;
       } else {
-        newPosition.bottom = "100%";
-        newPosition.marginBottom = `${spacing}px`;
+        newPosition.bottomPx = viewportHeight - containerRect.top + spacing;
         newPosition.maxHeight = `${spaceAbove - spacing}px`;
       }
     }
 
     // Adjust horizontal position
     if (spaceRight >= pickerWidth) {
-      // Enough space on right - align to left
-      newPosition.left = "0";
+      // Enough space on right - align to left edge of container
+      newPosition.leftPx = containerRect.left;
     } else if (spaceLeft >= pickerWidth) {
-      // Enough space on left - align to right
-      newPosition.right = "0";
+      // Enough space on left - align to right edge of container
+      newPosition.rightPx = viewportWidth - containerRect.right;
     } else {
       // Center it if neither side has enough space
-      newPosition.left = "50%";
+      newPosition.leftPx = containerRect.left + (containerRect.width / 2);
       newPosition.transform = "translateX(-50%)";
     }
 
@@ -87,7 +84,12 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+      if (
+        pickerRef.current && 
+        !pickerRef.current.contains(event.target as Node) &&
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -95,7 +97,14 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       adjustPosition();
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      // Also adjust position on scroll/resize
+      window.addEventListener("scroll", adjustPosition, true);
+      window.addEventListener("resize", adjustPosition);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        window.removeEventListener("scroll", adjustPosition, true);
+        window.removeEventListener("resize", adjustPosition);
+      };
     }
   }, [isOpen]);
 
@@ -118,12 +127,17 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
         </button>
       )}
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={pickerRef}
-          className="absolute z-50"
+          className="fixed z-[9999]"
           style={{
-            ...position,
+            top: (position as any).topPx ? `${(position as any).topPx}px` : undefined,
+            bottom: (position as any).bottomPx ? `${(position as any).bottomPx}px` : undefined,
+            left: (position as any).leftPx ? `${(position as any).leftPx}px` : undefined,
+            right: (position as any).rightPx ? `${(position as any).rightPx}px` : undefined,
+            maxHeight: position.maxHeight,
+            transform: position.transform,
           }}
         >
           <EmojiPicker
@@ -137,7 +151,8 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
               showPreview: false,
             }}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
