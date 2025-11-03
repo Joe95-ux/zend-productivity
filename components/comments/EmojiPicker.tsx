@@ -88,23 +88,32 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      
+      // Check if click is outside both the picker and the trigger container
       if (
         pickerRef.current && 
-        !pickerRef.current.contains(event.target as Node) &&
         containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        !pickerRef.current.contains(target) &&
+        !containerRef.current.contains(target)
       ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+      // Use a small delay to ensure emoji click handlers register first
+      const timeoutId = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      }, 10);
+      
       adjustPosition();
       // Also adjust position on scroll/resize
       window.addEventListener("scroll", adjustPosition, true);
       window.addEventListener("resize", adjustPosition);
+      
       return () => {
+        clearTimeout(timeoutId);
         document.removeEventListener("mousedown", handleClickOutside);
         window.removeEventListener("scroll", adjustPosition, true);
         window.removeEventListener("resize", adjustPosition);
@@ -117,14 +126,19 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
     setIsOpen(false);
   };
 
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className={cn("relative", className)} ref={containerRef}>
       {trigger ? (
-        <div onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
+        <div onClick={handleTriggerClick} className="inline-block">{trigger}</div>
       ) : (
         <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+          onClick={handleTriggerClick}
+          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
           aria-label="Add reaction"
         >
           <Smile className="w-4 h-4 text-slate-500 dark:text-slate-400" />
@@ -134,7 +148,15 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
       {isOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={pickerRef}
-          className="fixed z-[9999]"
+          className="fixed z-[99999]"
+          onClick={(e) => {
+            // Stop propagation to prevent modal click handlers from interfering
+            e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
+            // Prevent mousedown from closing the picker
+            e.stopPropagation();
+          }}
           style={{
             top: position.topPx ? `${position.topPx}px` : undefined,
             bottom: position.bottomPx ? `${position.bottomPx}px` : undefined,

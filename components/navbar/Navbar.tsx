@@ -442,7 +442,7 @@ export function Navbar() {
                             )}
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-80 h-96 p-0">
+                        <DropdownMenuContent align="end" className="w-80 h-96 p-0 overflow-hidden">
                           <div className="p-4 border-b">
                             <div className="flex items-center justify-between">
                               <h3 className="font-semibold">Notifications</h3>
@@ -592,7 +592,7 @@ export function Navbar() {
                                       }
                                     }}
                                   >
-                                    <div className="flex items-start gap-3">
+                                    <div className="flex items-start gap-3 relative">
                                       <div className="flex-shrink-0">
                                         <Bell className="h-4 w-4 text-slate-400 mt-0.5" />
                                       </div>
@@ -608,7 +608,7 @@ export function Navbar() {
                                         </p>
                                       </div>
                                       {!notification.isRead && (
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2 absolute right-0 top-0" />
                                       )}
                                     </div>
                                   </div>

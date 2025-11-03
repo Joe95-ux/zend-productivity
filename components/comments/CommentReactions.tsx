@@ -223,10 +223,13 @@ export function CommentReactions({
             return (
               <button
                 key={emoji}
-                onClick={() => handleEmojiSelect(emoji)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEmojiSelect(emoji);
+                }}
                 disabled={isPending}
                 className={cn(
-                  "flex items-center gap-1 px-2 py-1 rounded-md text-sm transition-colors",
+                  "flex items-center gap-1 px-2 py-1 rounded-md text-sm transition-colors cursor-pointer",
                   "hover:bg-slate-100 dark:hover:bg-slate-700",
                   hasUserReaction &&
                     "bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700",
@@ -253,7 +256,7 @@ export function CommentReactions({
           <button
             disabled={isPending}
             className={cn(
-              "flex items-center justify-center w-7 h-7 rounded-md transition-colors",
+              "flex items-center justify-center w-7 h-7 rounded-md transition-colors cursor-pointer",
               "hover:bg-slate-100 dark:hover:bg-slate-700",
               hasReactions && "opacity-70 hover:opacity-100",
               isPending && "opacity-50 cursor-wait"
