@@ -167,7 +167,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="h-calc(100vh - 64px) flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-6">
+    <div className="h-[calc(100vh-64px)] flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-6">
       <Card className="w-full max-w-4xl shadow-xl border-slate-200 dark:border-slate-700 md:p-6">
         <CardHeader className="space-y-1.5 p-6">
           <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
@@ -304,7 +304,7 @@ export default function OnboardingPage() {
                 <Button
                   onClick={() => setStep("invite")}
                   disabled={!orgName.trim()}
-                  className="flex-1 order-1 sm:order-2 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex-1 order-1 sm:order-2 bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   Next: Invite Members
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -364,17 +364,17 @@ export default function OnboardingPage() {
                       setNewInviteRole(value)
                     }
                   >
-                    <SelectTrigger className="w-full sm:w-[140px] h-11">
+                    <SelectTrigger className="w-full sm:w-[140px] h-[44px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem className="h-11" value="MEMBER">Member</SelectItem>
-                      <SelectItem className="h-11" value="OBSERVER">Observer</SelectItem>
+                      <SelectItem className="h-[44px]" value="MEMBER">Member</SelectItem>
+                      <SelectItem className="h-[44px]" value="OBSERVER">Observer</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
                     onClick={addInvitation}
-                    className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-11 px-6 bg-teal-600 hover:bg-teal-700 text-white"
                   >
                     Add
                   </Button>
@@ -427,7 +427,7 @@ export default function OnboardingPage() {
                 <Button
                   onClick={handleCreate}
                   disabled={createOrgMutation.isPending}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   {createOrgMutation.isPending ? "Creating..." : "Create Organization"}
                   <ArrowRight className="ml-2 h-4 w-4" />
