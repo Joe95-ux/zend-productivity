@@ -6,6 +6,7 @@ import { EmojiPickerComponent } from "./EmojiPicker";
 import { Smile, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { CommentItemData } from "./CommentItem";
 
 interface Reaction {
   id: string;
@@ -66,29 +67,30 @@ export function CommentReactions({
       await queryClient.cancelQueries({ queryKey: ["board", boardId] });
 
       // Snapshot the previous value
-      const previousComments = queryClient.getQueryData(["comments", boardId]);
+      const previousComments = queryClient.getQueryData<CommentItemData[]>(["comments", boardId]);
       
       // Get current user data from comments query if available
-      const comments = previousComments as any;
-      const currentUser = comments?.find?.((c: any) => c.user?.id === currentUserId)?.user || null;
+      const comments = previousComments;
+      const currentUser = comments?.find((c: CommentItemData) => c.user?.id === currentUserId)?.user || null;
 
       // Optimistically update comments
-      queryClient.setQueryData(["comments", boardId], (old: any) => {
+      queryClient.setQueryData<CommentItemData[]>(["comments", boardId], (old) => {
         if (!old || !Array.isArray(old)) return old;
         
-        return old.map((comment: any) => {
+        return old.map((comment: CommentItemData) => {
           if (comment.id !== commentId) return comment;
           
-          const existingReactionIndex = comment.reactions?.findIndex(
-            (r: Reaction) => r.emoji === emoji && r.userId === currentUserId
-          ) ?? -1;
+          const reactions = comment.reactions || [];
+          const existingReactionIndex = reactions.findIndex(
+            (r) => r.emoji === emoji && r.userId === currentUserId
+          );
 
           const hasReaction = existingReactionIndex >= 0;
           
           if (hasReaction) {
             // Remove reaction optimistically
-            const updatedReactions = comment.reactions.filter(
-              (_: Reaction, idx: number) => idx !== existingReactionIndex
+            const updatedReactions = reactions.filter(
+              (_: unknown, idx: number) => idx !== existingReactionIndex
             );
             return {
               ...comment,
@@ -96,20 +98,20 @@ export function CommentReactions({
             };
           } else {
             // Add reaction optimistically with proper user data
-            const newReaction: Reaction = {
+            const newReaction = {
               id: `temp-${Date.now()}`,
               emoji,
               userId: currentUserId || "",
               user: currentUser || (currentUserId ? {
                 id: currentUserId,
                 email: "",
-                name: null,
-                avatarUrl: null,
+                name: undefined,
+                avatarUrl: undefined,
               } : undefined),
             };
             return {
               ...comment,
-              reactions: [...(comment.reactions || []), newReaction],
+              reactions: [...reactions, newReaction],
             };
           }
         });
@@ -126,7 +128,7 @@ export function CommentReactions({
       toast.error(error.message);
       setLoadingEmoji(null);
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalidate both queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["comments", boardId] });
       queryClient.invalidateQueries({ queryKey: ["board", boardId] });
