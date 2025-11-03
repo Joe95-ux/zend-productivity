@@ -102,19 +102,20 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
     };
 
     if (isOpen) {
-      // Use a small delay to ensure emoji click handlers register first
-      const timeoutId = setTimeout(() => {
-        document.addEventListener("mousedown", handleClickOutside);
-      }, 10);
-      
       adjustPosition();
       // Also adjust position on scroll/resize
       window.addEventListener("scroll", adjustPosition, true);
       window.addEventListener("resize", adjustPosition);
       
+      // Use 'click' event instead of 'mousedown' so emoji clicks can process first
+      // Add a small delay to ensure emoji click handlers have registered
+      const timeoutId = setTimeout(() => {
+        document.addEventListener("click", handleClickOutside, true);
+      }, 50);
+      
       return () => {
         clearTimeout(timeoutId);
-        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener("click", handleClickOutside, true);
         window.removeEventListener("scroll", adjustPosition, true);
         window.removeEventListener("resize", adjustPosition);
       };
@@ -150,11 +151,8 @@ export function EmojiPickerComponent({ onEmojiSelect, trigger, className }: Emoj
           ref={pickerRef}
           className="fixed z-[99999]"
           onClick={(e) => {
-            // Stop propagation to prevent modal click handlers from interfering
-            e.stopPropagation();
-          }}
-          onMouseDown={(e) => {
-            // Prevent mousedown from closing the picker
+            // Stop propagation to prevent the click from bubbling to document level
+            // This ensures emoji clicks are processed before outside click detection
             e.stopPropagation();
           }}
           style={{
