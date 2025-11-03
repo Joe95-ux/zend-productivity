@@ -24,11 +24,10 @@ export async function createNotificationForWatchers(
     const totalWatchers = await db.watch.count();
     console.log("Total watchers in database:", totalWatchers);
 
-    // Find all users watching the board
+    // Find all users watching the board (include all watchers, we'll filter by preference later)
     const boardWatchers = await db.watch.findMany({
       where: {
-        boardId: notificationData.boardId,
-        userId: excludeUserId ? { not: excludeUserId } : undefined
+        boardId: notificationData.boardId
       },
       select: { userId: true }
     });
@@ -39,8 +38,7 @@ export async function createNotificationForWatchers(
     // Find all users watching the card (if applicable)
     const cardWatchers = notificationData.cardId ? await db.watch.findMany({
       where: {
-        cardId: notificationData.cardId,
-        userId: excludeUserId ? { not: excludeUserId } : undefined
+        cardId: notificationData.cardId
       },
       select: { userId: true }
     }) : [];
@@ -60,8 +58,7 @@ export async function createNotificationForWatchers(
       if (card?.listId) {
         listWatchers = await db.watch.findMany({
           where: {
-            listId: card.listId,
-            userId: excludeUserId ? { not: excludeUserId } : undefined
+            listId: card.listId
           },
           select: { userId: true }
         });
