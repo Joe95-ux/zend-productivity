@@ -6,9 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Building2, Users, Mail, ArrowRight, X, Check } from "lucide-react";
+import { Building2, Users, Mail, ArrowRight, X, Check, ArrowLeft } from "lucide-react";
 
 interface Invitation {
   email: string;
@@ -160,51 +167,53 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle className="text-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-6">
+      <Card className="w-full max-w-2xl shadow-xl border-slate-200 dark:border-slate-700">
+        <CardHeader className="px-6 pt-6 pb-4">
+          <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
             {step === "choice" ? "Welcome!" : "Create Your Organization"}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base mt-2 text-slate-600 dark:text-slate-400">
             {step === "choice"
               ? "Get started with your personal workspace or create an organization to collaborate with your team"
               : "Set up your workspace to collaborate with your team"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="px-6 pb-6 space-y-6">
           {step === "choice" && (
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Personal Account Option */}
                 <Card
-                  className="cursor-pointer hover:border-blue-500 transition-colors"
+                  className="cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg transition-all duration-200 group border-2"
                   onClick={handleSkip}
                 >
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-900 transition-colors">
+                        <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                       </div>
-                      <CardTitle className="text-lg">Personal Account</CardTitle>
+                      <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        Personal Account
+                      </CardTitle>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <CardDescription>
+                  <CardContent className="pt-0 pb-6">
+                    <CardDescription className="text-slate-600 dark:text-slate-400 mb-4">
                       Start with a personal workspace. You can create organizations later.
                     </CardDescription>
-                    <ul className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        Create personal boards
+                    <ul className="space-y-2.5 text-sm">
+                      <li className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>Create personal boards</span>
                       </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        Invite collaborators later
+                      <li className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>Invite collaborators later</span>
                       </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        Upgrade anytime
+                      <li className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>Upgrade anytime</span>
                       </li>
                     </ul>
                   </CardContent>
@@ -212,39 +221,41 @@ export default function OnboardingPage() {
 
                 {/* Organization Option */}
                 <Card
-                  className="cursor-pointer hover:border-blue-500 transition-colors"
+                  className="cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 hover:shadow-lg transition-all duration-200 group border-2"
                   onClick={handleCreateOrg}
                 >
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                        <Building2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-900 transition-colors">
+                        <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                       </div>
-                      <CardTitle className="text-lg">Organization</CardTitle>
+                      <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        Organization
+                      </CardTitle>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <CardDescription>
+                  <CardContent className="pt-0 pb-6">
+                    <CardDescription className="text-slate-600 dark:text-slate-400 mb-4">
                       Create an organization to collaborate with your team right away.
                     </CardDescription>
-                    <ul className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        Team boards & collaboration
+                    <ul className="space-y-2.5 text-sm">
+                      <li className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>Team boards & collaboration</span>
                       </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        Member management
+                      <li className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>Member management</span>
                       </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        Role-based access
+                      <li className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>Role-based access</span>
                       </li>
                     </ul>
                   </CardContent>
                 </Card>
               </div>
-              <div className="text-center text-sm text-slate-500 dark:text-slate-400">
+              <div className="text-center text-sm text-slate-500 dark:text-slate-400 pt-2">
                 You can always create an organization later from your dashboard
               </div>
             </>
@@ -252,37 +263,48 @@ export default function OnboardingPage() {
 
           {step === "name" && (
             <>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Organization Name *</label>
-                <Input
-                  placeholder="Acme Inc."
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  className="w-full"
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Organization Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    placeholder="Acme Inc."
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    className="w-full h-11"
+                    autoFocus
+                  />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    This name will be visible to all members
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Description <span className="text-slate-400 dark:text-slate-500">(Optional)</span>
+                  </label>
+                  <Textarea
+                    placeholder="What does your organization do?"
+                    value={orgDescription}
+                    onChange={(e) => setOrgDescription(e.target.value)}
+                    rows={4}
+                    className="w-full resize-none"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description (Optional)</label>
-                <Textarea
-                  placeholder="What does your organization do?"
-                  value={orgDescription}
-                  onChange={(e) => setOrgDescription(e.target.value)}
-                  rows={3}
-                  className="w-full"
-                />
-              </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Button
                   onClick={() => setStep("choice")}
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 order-2 sm:order-1"
                 >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
                 <Button
                   onClick={() => setStep("invite")}
                   disabled={!orgName.trim()}
-                  className="flex-1"
+                  className="flex-1 order-1 sm:order-2 bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   Next: Invite Members
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -290,16 +312,16 @@ export default function OnboardingPage() {
                 <Button
                   onClick={handleCreate}
                   disabled={!orgName.trim() || createOrgMutation.isPending}
-                  variant="default"
-                  className="flex-1"
+                  variant="secondary"
+                  className="flex-1 order-3"
                 >
-                  {createOrgMutation.isPending ? "Creating..." : "Create & Skip Invites"}
+                  {createOrgMutation.isPending ? "Creating..." : "Create & Skip"}
                 </Button>
               </div>
               <Button
                 onClick={handleSkip}
                 variant="ghost"
-                className="w-full"
+                className="w-full text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               >
                 Skip for Now
               </Button>
@@ -308,13 +330,22 @@ export default function OnboardingPage() {
 
           {step === "invite" && (
             <>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  <h3 className="text-lg font-semibold">Invite Team Members (Optional)</h3>
+              <div className="space-y-5">
+                <div className="flex items-center gap-3 pb-2">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      Invite Team Members
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Optional - You can add members later
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input
                     type="email"
                     placeholder="colleague@example.com"
@@ -325,64 +356,81 @@ export default function OnboardingPage() {
                         addInvitation();
                       }
                     }}
-                    className="flex-1"
+                    className="flex-1 h-11"
                   />
-                  <select
+                  <Select
                     value={newInviteRole}
-                    onChange={(e) =>
-                      setNewInviteRole(e.target.value as "MEMBER" | "OBSERVER")
+                    onValueChange={(value: "MEMBER" | "OBSERVER") =>
+                      setNewInviteRole(value)
                     }
-                    className="px-3 py-2 border rounded-md"
                   >
-                    <option value="MEMBER">Member</option>
-                    <option value="OBSERVER">Observer</option>
-                  </select>
-                  <Button onClick={addInvitation} size="sm">
+                    <SelectTrigger className="w-full sm:w-[140px] h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MEMBER">Member</SelectItem>
+                      <SelectItem value="OBSERVER">Observer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={addInvitation}
+                    className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white"
+                  >
                     Add
                   </Button>
                 </div>
 
                 {invitations.length > 0 && (
-                  <div className="space-y-2">
-                    {invitations.map((inv) => (
-                      <div
-                        key={inv.email}
-                        className="flex items-center justify-between p-2 bg-slate-100 dark:bg-slate-800 rounded-md"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          <span>{inv.email}</span>
-                          <span className="text-xs text-slate-500">
-                            ({inv.role})
-                          </span>
-                        </div>
-                        <Button
-                          onClick={() => removeInvitation(inv.email)}
-                          variant="ghost"
-                          size="sm"
+                  <div className="space-y-2 pt-2">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {invitations.length} {invitations.length === 1 ? "invitation" : "invitations"} added
+                    </p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {invitations.map((inv) => (
+                        <div
+                          key={inv.email}
+                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <Mail className="h-4 w-4 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                            <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                              {inv.email}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex-shrink-0">
+                              {inv.role === "MEMBER" ? "Member" : "Observer"}
+                            </span>
+                          </div>
+                          <Button
+                            onClick={() => removeInvitation(inv.email)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 flex-shrink-0 ml-2"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Button
                   onClick={() => setStep("name")}
                   variant="outline"
                   className="flex-1"
                 >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
                 <Button
                   onClick={handleCreate}
                   disabled={createOrgMutation.isPending}
-                  className="flex-1"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {createOrgMutation.isPending ? "Creating..." : "Create Organization"}
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </>
