@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -69,7 +69,7 @@ export function Navbar() {
   };
 
   // Fetch notifications
-  const { data: notifications, isLoading: notificationsLoading, error: notificationsError } = useQuery({
+  const { data: notifications, isLoading: notificationsLoading, error: notificationsError, refetch: refetchNotifications } = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
       const response = await fetch("/api/notifications");
@@ -79,11 +79,19 @@ export function Navbar() {
       }
       return response.json();
     },
-    enabled: isSignedIn && isNotificationsOpen,
+    enabled: isSignedIn && isLoaded, // Fetch when signed in, not just when dropdown is open
     refetchInterval: 60000, // Refetch every 60 seconds (WSL2 optimization)
     retry: 2, // Retry failed requests up to 2 times
     retryDelay: 1000, // Wait 1 second between retries
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
+
+  // Refetch notifications when dropdown opens to ensure fresh data
+  useEffect(() => {
+    if (isNotificationsOpen && isSignedIn && isLoaded) {
+      refetchNotifications();
+    }
+  }, [isNotificationsOpen, isSignedIn, isLoaded, refetchNotifications]);
 
   // Mark notifications as read
   const markAsReadMutation = useMutation({
