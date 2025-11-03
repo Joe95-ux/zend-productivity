@@ -61,8 +61,8 @@ export default clerkMiddleware(async (auth, request) => {
     await auth.protect();
   }
 
-  // Check onboarding for authenticated users accessing dashboard
-  if (clerkId && request.nextUrl.pathname.startsWith("/dashboard")) {
+  // Check onboarding for authenticated users accessing protected routes (except onboarding itself)
+  if (clerkId && !request.nextUrl.pathname.startsWith("/onboarding") && !isPublicRoute(request)) {
     const needsOnboardingCheck = await needsOnboarding(clerkId);
     
     if (needsOnboardingCheck) {

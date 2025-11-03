@@ -697,16 +697,16 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </Button>
 
               {/* Share button - Clickable - Hidden on mobile */}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex"
-                onClick={() => setIsShareModalOpen(true)}
-              >
-                <HoverHint label="Share board" side="bottom">
+              <HoverHint label="Share board" side="bottom">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex"
+                  onClick={() => setIsShareModalOpen(true)}
+                >
                   <Share2 className="h-4 w-4" />
-                </HoverHint>
-              </Button>
+                </Button>
+              </HoverHint>
 
               {/* Filter button */}
               <BoardFilter
