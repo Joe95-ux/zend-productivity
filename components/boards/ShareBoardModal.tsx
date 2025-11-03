@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Link as LinkIcon, Check, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,10 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
       return response.json();
     },
     enabled: isOpen && !!boardId,
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching board members:", error);
+    },
   });
 
   // Fetch join requests
@@ -78,11 +83,15 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
       return response.json();
     },
     enabled: isOpen && !!boardId,
+    retry: 1,
+    onError: (error) => {
+      console.error("Error fetching join requests:", error);
+    },
   });
 
   // Fetch share link
   useEffect(() => {
-    if (isOpen && boardId) {
+    if (isOpen && boardId && typeof window !== "undefined") {
       setShareLink(`${window.location.origin}/dashboard/boards/${boardId}`);
     }
   }, [isOpen, boardId]);
@@ -216,7 +225,7 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
   const allMembers: BoardMember[] = boardMembers || [];
   const membersCount = allMembers.length;
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24">
       {/* Backdrop */}
       <div
@@ -433,5 +442,10 @@ export function ShareBoardModal({ boardId, isOpen, onClose }: ShareBoardModalPro
       </div>
     </div>
   );
+
+  // Render modal in portal to avoid z-index and stacking context issues
+  if (typeof document === "undefined") return null;
+  
+  return createPortal(modalContent, document.body);
 }
 
