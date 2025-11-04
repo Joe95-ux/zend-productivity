@@ -224,7 +224,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Members
               </label>
-              <div className="space-y-1">
+              <div>
                 {/* No members option */}
                 <div
                   className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
@@ -297,7 +297,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Due Date
               </label>
-              <div className="space-y-1">
+              <div>
                 {dateOptions.map((option) => {
                   const Icon = option.icon;
                   return (
@@ -606,7 +606,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Activity
               </label>
-              <div className="space-y-1">
+              <div>
                 {[
                   { value: "week", label: "Active in the last week" },
                   { value: "twoWeeks", label: "Active in the last two weeks" },
@@ -662,7 +662,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Card status
               </label>
-              <div className="space-y-1">
+              <div>
                 {[
                   { value: "completed", label: "Marked as complete" },
                   { value: "incomplete", label: "Not marked as complete" },
@@ -712,7 +712,7 @@ export function BoardFilter({ labels, members }: BoardFilterProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Show cards with
               </label>
-              <div className="space-y-1">
+              <div>
                 <div
                   className="flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer"
                   onClick={() =>

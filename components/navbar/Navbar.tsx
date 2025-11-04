@@ -442,7 +442,7 @@ export function Navbar() {
                             )}
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-80 h-96 p-0 overflow-hidden">
+                        <DropdownMenuContent align="end" className="w-80 h-auto p-0 overflow-hidden">
                           <div className="p-4 border-b">
                             <div className="flex items-center justify-between">
                               <h3 className="font-semibold">Notifications</h3>
@@ -563,7 +563,7 @@ export function Navbar() {
                             </div>
                           </div>
                           {/* Notifications Content with Custom Scrollbar */}
-                          <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
+                          <div className="max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
                             {notificationsLoading ? (
                               <div className="p-4 text-center text-sm text-slate-500">
                                 Loading notifications...
@@ -573,7 +573,7 @@ export function Navbar() {
                                 Failed to load notifications. Please try again.
                               </div>
                             ) : notifications?.notifications?.length > 0 ? (
-                              <div className="p-2">
+                              <div className="p-2 h-full">
                                 {notifications.notifications.map((notification: {
                                   id: string;
                                   title: string;

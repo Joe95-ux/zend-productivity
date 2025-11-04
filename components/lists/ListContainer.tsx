@@ -39,6 +39,7 @@ import {
 import { useDndContext } from "@/components/dnd/DndProvider";
 import { useBoardFilters } from "@/contexts/BoardFilterContext";
 import { isToday, isThisWeek, isPast, subDays, isAfter } from "date-fns";
+import { useAutoScroll } from "@/hooks/use-auto-scroll";
 
 interface BoardData {
   lists: List[];
@@ -71,6 +72,14 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [isWatching, setIsWatching] = useState(false);
   const [isWatchLoading, setIsWatchLoading] = useState(false);
   const queryClient = useQueryClient();
+
+  //handle scroll to bottom
+  const { containerRef, scrollToBottom } = useAutoScroll();
+  useEffect(() => {
+    if (isCreateCardOpen && cardFormPosition === "bottom") {
+      scrollToBottom();
+    }
+  }, [isCreateCardOpen, cardFormPosition, scrollToBottom]);
 
   // Get the current list data from DndProvider context
   const { orderedData } = useDndContext();
@@ -467,7 +476,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                   </div>
                 </div>
               </CardHeader>
-              <div className="max-h-[calc(100vh-15.5rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
+              <div ref={containerRef} className="max-h-[calc(100vh-15.5rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
                 <CardContent
                   className={cn(
                     "flex flex-col gap-2 px-3 pt-2 pb-1",
@@ -481,6 +490,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                       onSuccess={() => {
                         setIsCreateCardOpen(false);
                         setCardFormPosition("bottom");
+                        scrollToBottom();
                       }}
                     />
                   )}
@@ -519,6 +529,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                         onSuccess={() => {
                           setIsCreateCardOpen(false);
                           setCardFormPosition("bottom");
+                          scrollToBottom();
                         }}
                       />
                     ) : (
@@ -529,6 +540,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                           onClick={() => {
                             setCardFormPosition("bottom");
                             setIsCreateCardOpen(true);
+                            scrollToBottom();
                           }}
                         >
                           <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300 ease-out" />
