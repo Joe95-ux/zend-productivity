@@ -12,11 +12,15 @@ import { Droppable } from "@hello-pangea/dnd";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import Link from "next/link";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 
 function BoardContent({ boardId, onAddList }: { boardId: string; onAddList: () => void }) {
   const { orderedData, isLoading, error } = useDndContext();
+  const { isOnline } = useOnlineStatus();
   
-  if (error) {
+  // Only show error if we have no cached data AND we're online (or if it's a real error, not just offline)
+  // If we're offline and have cached data, show the cached data instead
+  if (error && !orderedData && (isOnline || typeof navigator === "undefined" || navigator.onLine)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">

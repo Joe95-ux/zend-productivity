@@ -5,10 +5,12 @@ import { useEffect } from "react";
 import { DndProvider, useDndContext } from "@/components/dnd/DndProvider";
 import { Card as CardType, List as ListType } from "@/lib/types";
 import { generateCardSlug } from "@/lib/utils";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 
 // Redirect component that finds the card and redirects to the slug-based URL
 function CardRedirect({ boardId, cardId }: { boardId: string; cardId: string }) {
   const { orderedData, isLoading, error } = useDndContext();
+  const { isOnline } = useOnlineStatus();
   const router = useRouter();
 
   useEffect(() => {
@@ -37,7 +39,9 @@ function CardRedirect({ boardId, cardId }: { boardId: string; cardId: string }) 
     }
   }, [orderedData, cardId, boardId, router]);
 
-  if (error) {
+  // Only show error if we have no cached data AND we're online
+  // If we're offline and have cached data, show the cached data instead
+  if (error && !orderedData && (isOnline || typeof navigator === "undefined" || navigator.onLine)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">

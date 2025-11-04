@@ -15,6 +15,7 @@ import { Droppable } from "@hello-pangea/dnd";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Link from "next/link";
 import { generateCardSlug, parseCardSlug } from "@/lib/utils";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 
 interface BoardContentWithCardModalProps {
   boardId: string;
@@ -31,6 +32,7 @@ function BoardContentWithCardModal({
   onAddList 
 }: BoardContentWithCardModalProps) {
   const { orderedData, isLoading, error } = useDndContext();
+  const { isOnline } = useOnlineStatus();
   const router = useRouter();
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
@@ -92,7 +94,9 @@ function BoardContentWithCardModal({
     }
   }, [orderedData, cardId, slug, boardId, router]);
 
-  if (error) {
+  // Only show error if we have no cached data AND we're online
+  // If we're offline and have cached data, show the cached data instead
+  if (error && !orderedData && (isOnline || typeof navigator === "undefined" || navigator.onLine)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
