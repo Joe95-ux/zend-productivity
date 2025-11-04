@@ -22,9 +22,11 @@ import { format } from "date-fns";
 import { CommentItem } from "@/components/comments/CommentItem";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCurrentUserId } from "@/hooks/use-current-user-id";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { BoardFilter } from "./BoardFilter";
 import { cn } from "@/lib/utils";
 import { ShareBoardModal } from "./ShareBoardModal";
+import { WifiOff } from "lucide-react";
 
 interface BoardHeaderProps {
   boardId: string;
@@ -101,6 +103,17 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const currentUserId = useCurrentUserId();
+  const { isOnline } = useOnlineStatus();
+  
+  // Show toast when going offline
+  useEffect(() => {
+    if (!isOnline) {
+      toast.info("You are offline. Your work won't be saved until you reconnect.", {
+        duration: 5000,
+        id: "offline-notification", // Use a unique ID to prevent duplicate toasts
+      });
+    }
+  }, [isOnline]);
   
   // Comment editing state (for future use)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -656,6 +669,15 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
 
             {/* Right side - All clickable actions */}
             <div className="flex items-center gap-0 min-[320px]:gap-2">
+              {/* Offline indicator */}
+              {!isOnline && (
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 mr-1">
+                  <WifiOff className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-400 hidden sm:inline">
+                    Offline
+                  </span>
+                </div>
+              )}
               {/* User Profile - Hidden on mobile, shown in menu */}
               <div className="hidden lg:block mt-2">
                 <UserButton 
