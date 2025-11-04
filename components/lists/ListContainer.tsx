@@ -39,6 +39,7 @@ import {
 import { useDndContext } from "@/components/dnd/DndProvider";
 import { useBoardFilters } from "@/contexts/BoardFilterContext";
 import { isToday, isThisWeek, isPast, subDays, isAfter } from "date-fns";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface BoardData {
   lists: List[];
@@ -467,7 +468,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                   </div>
                 </div>
               </CardHeader>
-              <div className="max-h-[calc(100vh-10rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
+              <ScrollArea className="max-h-[calc(100vh-14.5rem)]">
                 <CardContent
                   className={cn(
                     "flex flex-col gap-2 px-3 pt-2 pb-1",
@@ -538,7 +539,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                     )}
                   </div>
                 )}
-              </div>
+              </ScrollArea>
             </Card>
 
             {/* Move All Cards Menu - INSIDE the list container */}
