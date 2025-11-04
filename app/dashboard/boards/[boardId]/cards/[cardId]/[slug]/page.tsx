@@ -170,8 +170,8 @@ function BoardContentWithCardModal({
   }
 
   return (
-    <>
-      <div className="pb-4 h-full lg:px-4">
+    <div className="w-full h-full">
+      <div className="h-full lg:px-4">
         <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4">
           <Droppable droppableId="lists" type="list" direction="horizontal">
             {(provided) => (
@@ -217,7 +217,7 @@ function BoardContentWithCardModal({
           }}
         />
       )}
-    </>
+    </div>
   );
 }
 

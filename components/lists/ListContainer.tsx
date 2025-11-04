@@ -5,7 +5,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, MoreHorizontal, Edit, Trash2, Copy, Move, Eye, EyeOff } from "lucide-react";
+import {
+  Plus,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Copy,
+  Move,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +30,12 @@ import { DeleteConfirmationModal } from "@/components/ui/DeleteConfirmationModal
 import { toast } from "sonner";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { cn } from "@/lib/utils";
-import { List as ListType, UpdateListParams, List, Card as CardType } from "@/lib/types";
+import {
+  List as ListType,
+  UpdateListParams,
+  List,
+  Card as CardType,
+} from "@/lib/types";
 import { useDndContext } from "@/components/dnd/DndProvider";
 import { useBoardFilters } from "@/contexts/BoardFilterContext";
 import { isToday, isThisWeek, isPast, subDays, isAfter } from "date-fns";
@@ -43,7 +57,9 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
   const [isCreateCardOpen, setIsCreateCardOpen] = useState(false);
-  const [cardFormPosition, setCardFormPosition] = useState<'bottom' | 'top'>('bottom');
+  const [cardFormPosition, setCardFormPosition] = useState<"bottom" | "top">(
+    "bottom"
+  );
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -66,13 +82,15 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
   // Filter cards based on active filters
   const displayCards = useMemo(() => {
     if (!allCards) return [];
-    
+
     return allCards.filter((card: CardType) => {
       // Search query filter
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
         const matchesTitle = card.title?.toLowerCase().includes(query);
-        const matchesDescription = card.description?.toLowerCase().includes(query);
+        const matchesDescription = card.description
+          ?.toLowerCase()
+          .includes(query);
         if (!matchesTitle && !matchesDescription) return false;
       }
 
@@ -82,10 +100,11 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
         const cardLabels = card.labels || [];
         if (cardLabels.length > 0) return false;
       }
-      
+
       if (filters.selectedLabels.length > 0) {
-        const cardLabelIds = card.labels?.map(l => l.boardLabelId || l.id) || [];
-        const hasAnySelectedLabel = filters.selectedLabels.some(labelId => 
+        const cardLabelIds =
+          card.labels?.map((l) => l.boardLabelId || l.id) || [];
+        const hasAnySelectedLabel = filters.selectedLabels.some((labelId) =>
           cardLabelIds.includes(labelId)
         );
         if (!hasAnySelectedLabel) return false;
@@ -97,7 +116,10 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
         if (card.assignedTo) return false;
       } else if (filters.selectedMembers.length > 0) {
         // If specific members are selected, show cards assigned to those members
-        if (!card.assignedTo || !filters.selectedMembers.includes(card.assignedTo)) {
+        if (
+          !card.assignedTo ||
+          !filters.selectedMembers.includes(card.assignedTo)
+        ) {
           return false;
         }
       }
@@ -126,8 +148,10 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
 
       // Completed filter
       if (filters.completedFilter !== "all") {
-        if (filters.completedFilter === "completed" && !card.isCompleted) return false;
-        if (filters.completedFilter === "incomplete" && card.isCompleted) return false;
+        if (filters.completedFilter === "completed" && !card.isCompleted)
+          return false;
+        if (filters.completedFilter === "incomplete" && card.isCompleted)
+          return false;
       }
 
       // Has attachments filter
@@ -145,21 +169,25 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
       // Activity filter
       if (filters.activityFilter !== "all") {
         const now = new Date();
-        const cardUpdatedAt = card.updatedAt ? new Date(card.updatedAt) : card.createdAt ? new Date(card.createdAt) : null;
-        
+        const cardUpdatedAt = card.updatedAt
+          ? new Date(card.updatedAt)
+          : card.createdAt
+          ? new Date(card.createdAt)
+          : null;
+
         if (!cardUpdatedAt) {
           // If card has no update date, only show for "inactive" filter
           if (filters.activityFilter !== "inactive") return false;
           return true;
         }
-        
+
         if (filters.activityFilter === "inactive") {
           // For inactive, we want cards that haven't been updated in the last 4 weeks
           const cutoffDate = subDays(now, 28);
           if (isAfter(cardUpdatedAt, cutoffDate)) return false;
           return true;
         }
-        
+
         // For active filters, check if card was updated after cutoff
         let cutoffDate: Date;
         switch (filters.activityFilter) {
@@ -175,7 +203,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
           default:
             return true;
         }
-        
+
         if (!isAfter(cardUpdatedAt, cutoffDate)) return false;
       }
 
@@ -266,11 +294,14 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
     if (isWatchLoading) return;
     setIsWatchLoading(true);
     toggleWatch({ listId: list.id, watch: !isWatching })
-      .then(() => toast.success(!isWatching ? "Now watching list" : "Stopped watching list"))
+      .then(() =>
+        toast.success(
+          !isWatching ? "Now watching list" : "Stopped watching list"
+        )
+      )
       .catch(() => {})
       .finally(() => setIsWatchLoading(false));
   };
-
 
   const handleEdit = () => {
     if (editTitle.trim() && editTitle !== list.title) {
@@ -300,7 +331,7 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
               snapshot.isDragging
                 ? "opacity-90 scale-[1.02] rotate-1 shadow-lg z-50"
                 : ""
-          }`}
+            }`}
           >
             <Card
               {...provided.dragHandleProps}
@@ -342,7 +373,10 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                     {isWatching && (
                       <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     )}
-                    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+                    <DropdownMenu
+                      open={isDropdownOpen}
+                      onOpenChange={setIsDropdownOpen}
+                    >
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
@@ -352,145 +386,161 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className="w-56 bg-white dark:bg-[#0D1117] border-slate-200 dark:border-slate-800"
-                    >
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setCardFormPosition('top');
-                          setIsCreateCardOpen(true);
-                        }}
-                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-56 bg-white dark:bg-[#0D1117] border-slate-200 dark:border-slate-800"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Card
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setIsEditing(true)}
-                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={handleWatchToggle}
-                        className={`${isWatching ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-white'} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer`}
-                      >
-                        {isWatching ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                        {isWatching ? 'Stop Watching' : 'Watch'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setIsCopyModalOpen(true)}
-                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy List
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setIsMoveModalOpen(true)}
-                        className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
-                      >
-                        <Move className="h-4 w-4 mr-2" />
-                        Move List
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          if (displayCards.length === 0) {
-                            toast.info("This list has no cards to move");
-                            return;
-                          }
-                          setIsDropdownOpen(false); // Close dropdown
-                          setIsMoveAllCardsOpen(true); // Open move menu
-                        }}
-                        className={cn(
-                          "transition-colors duration-200",
-                          displayCards.length === 0
-                            ? "text-slate-400 dark:text-slate-500 cursor-not-allowed"
-                            : "text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                        )}
-                      >
-                        <Move className="h-4 w-4 mr-2" />
-                        Move All Cards
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={handleDelete}
-                        className="text-red-400 focus:text-red-400 hover:bg-red-400/10 transition-colors duration-200 cursor-pointer"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setCardFormPosition("top");
+                            setIsCreateCardOpen(true);
+                          }}
+                          className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Card
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setIsEditing(true)}
+                          className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleWatchToggle}
+                          className={`${
+                            isWatching
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-slate-900 dark:text-white"
+                          } hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer`}
+                        >
+                          {isWatching ? (
+                            <EyeOff className="h-4 w-4 mr-2" />
+                          ) : (
+                            <Eye className="h-4 w-4 mr-2" />
+                          )}
+                          {isWatching ? "Stop Watching" : "Watch"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setIsCopyModalOpen(true)}
+                          className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy List
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setIsMoveModalOpen(true)}
+                          className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
+                        >
+                          <Move className="h-4 w-4 mr-2" />
+                          Move List
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (displayCards.length === 0) {
+                              toast.info("This list has no cards to move");
+                              return;
+                            }
+                            setIsDropdownOpen(false); // Close dropdown
+                            setIsMoveAllCardsOpen(true); // Open move menu
+                          }}
+                          className={cn(
+                            "transition-colors duration-200",
+                            displayCards.length === 0
+                              ? "text-slate-400 dark:text-slate-500 cursor-not-allowed"
+                              : "text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                          )}
+                        >
+                          <Move className="h-4 w-4 mr-2" />
+                          Move All Cards
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleDelete}
+                          className="text-red-400 focus:text-red-400 hover:bg-red-400/10 transition-colors duration-200 cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardHeader>
-
-              <CardContent className={cn("flex flex-col gap-2 px-3 pt-2 pb-1 max-h-[calc(100vh-300px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500", isCreateCardOpen && cardFormPosition === 'top' && "pb-3")}>
-                {isCreateCardOpen && cardFormPosition === 'top' && (
-                  <CreateCardForm
-                    listId={list.id}
-                    boardId={boardId}
-                    onSuccess={() => {
-                      setIsCreateCardOpen(false);
-                      setCardFormPosition('bottom');
-                    }}
-                  />
-                )}
-                <Droppable droppableId={list.id} type="card">
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={cn(
-                        "space-y-2 min-h-[20px]",
-                        snapshot.isDraggingOver && "relative"
-                      )}
-                    >
-                      {displayCards.map((card: CardType, index: number) => (
-                        <CardItemWithWatch
-                          key={card.id}
-                          card={card}
-                          list={{ id: list.id, title: list.title }}
-                          boardId={boardId}
-                          index={index}
-                        />
-                      ))}
-                      {provided.placeholder}
-                    </div>
+              <div className="max-h-[calc(100vh-10rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-200 dark:scrollbar-track-slate-700 hover:scrollbar-thumb-slate-400 dark:hover:scrollbar-thumb-slate-500">
+                <CardContent
+                  className={cn(
+                    "flex flex-col gap-2 px-3 pt-2 pb-1",
+                    isCreateCardOpen && cardFormPosition === "top" && "pb-3"
                   )}
-                </Droppable>
-              </CardContent>
-
-              {/* Fixed Card Footer - Hide when form is at top */}
-              {!(isCreateCardOpen && cardFormPosition === 'top') && (
-              <div className="flex items-center m-1 px-3 py-4 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-all duration-200">
-                  {isCreateCardOpen && cardFormPosition === 'bottom' ? (
-                  <CreateCardForm
-                    listId={list.id}
-                    boardId={boardId}
+                >
+                  {isCreateCardOpen && cardFormPosition === "top" && (
+                    <CreateCardForm
+                      listId={list.id}
+                      boardId={boardId}
                       onSuccess={() => {
                         setIsCreateCardOpen(false);
-                        setCardFormPosition('bottom');
+                        setCardFormPosition("bottom");
                       }}
-                  />
-                ) : (
-                    !isCreateCardOpen && <Button
-                    variant="ghost"
-                    className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white transition-all duration-300 ease-out hover:scale-[1.005] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
-                      onClick={() => {
-                        setCardFormPosition('bottom');
-                        setIsCreateCardOpen(true);
-                      }}
-                  >
-                    <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300 ease-out" />
-                    Add a card
-                  </Button>
+                    />
+                  )}
+                  <Droppable droppableId={list.id} type="card">
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={cn(
+                          "space-y-2 min-h-[20px]",
+                          snapshot.isDraggingOver && "relative"
+                        )}
+                      >
+                        {displayCards.map((card: CardType, index: number) => (
+                          <CardItemWithWatch
+                            key={card.id}
+                            card={card}
+                            list={{ id: list.id, title: list.title }}
+                            boardId={boardId}
+                            index={index}
+                          />
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </CardContent>
+
+                {/* Fixed Card Footer - Hide when form is at top */}
+                {!(isCreateCardOpen && cardFormPosition === "top") && (
+                  <div className="flex items-center m-1 px-3 py-4 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-all duration-200">
+                    {isCreateCardOpen && cardFormPosition === "bottom" ? (
+                      <CreateCardForm
+                        listId={list.id}
+                        boardId={boardId}
+                        onSuccess={() => {
+                          setIsCreateCardOpen(false);
+                          setCardFormPosition("bottom");
+                        }}
+                      />
+                    ) : (
+                      !isCreateCardOpen && (
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-slate-500 dark:text-slate-400 hover:text-strong dark:hover:text-white transition-all duration-300 ease-out hover:scale-[1.005] group p-0 h-auto bg-transparent hover:bg-transparent dark:hover:bg-transparent"
+                          onClick={() => {
+                            setCardFormPosition("bottom");
+                            setIsCreateCardOpen(true);
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300 ease-out" />
+                          Add a card
+                        </Button>
+                      )
+                    )}
+                  </div>
                 )}
               </div>
-              )}
             </Card>
-            
+
             {/* Move All Cards Menu - INSIDE the list container */}
             <MoveAllCardsMenu
               isOpen={isMoveAllCardsOpen}
@@ -531,24 +581,21 @@ export function ListContainer({ list, boardId, index }: ListContainerProps) {
         isLoading={deleteListMutation.isPending}
         variant="list"
       />
-
     </>
   );
 }
 
 // Component wrapper for CardItem
-function CardItemWithWatch({ card, list, boardId, index }: {
+function CardItemWithWatch({
+  card,
+  list,
+  boardId,
+  index,
+}: {
   card: CardType;
   list: { id: string; title: string };
   boardId: string;
   index: number;
 }) {
-  return (
-    <CardItem
-      card={card}
-      list={list}
-      boardId={boardId}
-      index={index}
-    />
-  );
+  return <CardItem card={card} list={list} boardId={boardId} index={index} />;
 }
