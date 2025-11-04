@@ -151,6 +151,14 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
       if (!response.ok) throw new Error("Failed to fetch board");
       return response.json();
     },
+    // Keep showing cached data when offline
+    placeholderData: (previousData) => previousData,
+    retry: (failureCount) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   // Fetch board labels (always enabled for filter)

@@ -20,6 +20,14 @@ export function BoardHeaderWrapper() {
       return response.json();
     },
     enabled: !!boardId && isBoardPage,
+    // Keep showing cached data when offline
+    placeholderData: (previousData) => previousData,
+    retry: (failureCount) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
   
   if (!isBoardPage) return null;

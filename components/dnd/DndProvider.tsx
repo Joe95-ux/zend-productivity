@@ -61,6 +61,19 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     enabled: !!boardId,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    // Keep showing cached data when offline instead of showing errors
+    placeholderData: (previousData) => previousData,
+    // Don't retry when offline - keep using cached data
+    retry: (failureCount, error) => {
+      // Check if we're offline
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return false;
+      }
+      // Retry up to 2 times when online
+      return failureCount < 2;
+    },
+    // Keep data in cache longer
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Batch watch query for the entire board
@@ -92,6 +105,14 @@ export function DndProvider({ children, boardId }: DndProviderProps) {
     enabled: !!serverData,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: false, // Disable automatic refetching
+    // Keep showing cached watch data when offline
+    placeholderData: (previousData) => previousData,
+    retry: (failureCount) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return false;
+      }
+      return failureCount < 1;
+    },
   });
 
   const [optimisticData, setOptimisticData] = useState<Board | null>(null);
