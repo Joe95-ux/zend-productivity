@@ -7,18 +7,6 @@ import { slugify } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-// Helper to handle OPTIONS requests for CORS
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
-}
-
 export async function GET() {
   try {
     const user = await getCurrentUser();
