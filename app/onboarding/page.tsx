@@ -194,7 +194,7 @@ export default function OnboardingPage() {
       {/* Progress Indicator - Top */}
       <div className="w-full border-b border-border">
         <div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center">
             {steps.map((stepItem, index) => {
               const isCompleted = index < currentStepIndex;
               const isActive = index === currentStepIndex;
@@ -205,7 +205,7 @@ export default function OnboardingPage() {
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300",
                       isCompleted
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-teal-800 text-white"
                         : isActive
                         ? "bg-primary/10 text-primary border-2 border-primary"
                         : "bg-muted text-muted-foreground"
@@ -220,7 +220,7 @@ export default function OnboardingPage() {
                   {index < steps.length - 1 && (
                     <div
                       className={cn(
-                        "w-12 h-0.5 transition-all duration-300 mx-2",
+                        "w-12 h-0.5 transition-all duration-300",
                         isCompleted ? "bg-primary" : "bg-border"
                       )}
                     />
@@ -257,7 +257,7 @@ export default function OnboardingPage() {
           {step === "choice" && (
             <div className="space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
               <div className="space-y-2 text-center">
-                <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">
+                <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
                   Choose your account type
                 </h1>
                 <p className="text-lg text-muted-foreground">
@@ -340,16 +340,17 @@ export default function OnboardingPage() {
           {/* Organization Name Step */}
           {step === "name" && (
             <div className="space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
-              <div className="space-y-2 text-center">
-                <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">
+              <div className="space-y-1
+               mx-auto max-w-[35rem] w-full text-center">
+                <h1 className="text-[2rem] font-semibold tracking-tight">
                   Create your organization
                 </h1>
-                <p className="text-lg text-muted-foreground">
+                <p className="text-[1rem] text-muted-foreground">
                   Set up your workspace to collaborate with your team
                 </p>
               </div>
 
-              <div className="space-y-6 pt-4">
+              <div className="space-y-6 pt-4 max-w-[35rem] w-full mx-auto">
                 <div className="space-y-2">
                   <Label htmlFor="org-name">
                     Organization name <span className="text-destructive">*</span>
@@ -382,7 +383,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-6">
+              <div className="flex flex-col sm:flex-row gap-3 pt-6 max-w-[35rem] w-full mx-auto">
                 <Button
                   onClick={() => setStep("choice")}
                   variant="outline"
@@ -394,7 +395,7 @@ export default function OnboardingPage() {
                 <Button
                   onClick={() => setStep("invite")}
                   disabled={!orgName.trim()}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="flex-1 bg-teal-700 hover:bg-teal-900 text-white"
                 >
                   Continue
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -414,17 +415,17 @@ export default function OnboardingPage() {
           {/* Invite Members Step */}
           {step === "invite" && (
             <div className="space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
-              <div className="space-y-2 text-center">
-                <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">
+              <div className="space-y-2 mx-auto max-w-[35rem] w-full text-center">
+                <h1 className="text-[2rem] font-semibold tracking-tight">
                   Invite team members
                 </h1>
-                <p className="text-lg text-muted-foreground">
+                <p className="text-[1rem] text-muted-foreground">
                   Add members to your organization. You can invite more later.
                 </p>
               </div>
 
-              <div className="space-y-6 pt-4">
-                <div className="flex flex-col sm:flex-row gap-3">
+              <div className="space-y-6 pt-4 max-w-[35rem] w-full mx-auto">
+                <div className="flex flex-col sm:flex-row gap-3 text-[1rem]">
                   <div className="flex-1 space-y-2">
                     <Label htmlFor="invite-email">Email address</Label>
                     <Input
@@ -441,7 +442,7 @@ export default function OnboardingPage() {
                       className="h-11"
                     />
                   </div>
-                  <div className="space-y-2 sm:w-[160px]">
+                  <div className="space-y-2 flex-1 sm:flex-initial text-[1rem]">
                     <Label htmlFor="invite-role">Role</Label>
                     <Select
                       value={newInviteRole}
@@ -449,7 +450,7 @@ export default function OnboardingPage() {
                         setNewInviteRole(value)
                       }
                     >
-                      <SelectTrigger id="invite-role" className="h-11">
+                      <SelectTrigger id="invite-role" className="h-11 min-h-11 text-[1rem]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -458,10 +459,10 @@ export default function OnboardingPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-end sm:flex-shrink-0">
+                  <div className="flex items-end flex-1 sm:flex-initial">
                     <Button
                       onClick={addInvitation}
-                      className="h-11 px-6 bg-primary hover:bg-primary/90 text-primary-foreground sm:w-auto w-full"
+                      className="h-11 px-6 bg-teal-700 hover:bg-teal-900 text-white sm:w-auto w-full text-[1rem]"
                       disabled={!newInviteEmail.trim() || !newInviteEmail.includes("@")}
                     >
                       Add
@@ -470,7 +471,7 @@ export default function OnboardingPage() {
                 </div>
 
                 {invitations.length > 0 && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 max-w-[35rem] w-full mx-auto">
                     <p className="text-sm font-medium">
                       {invitations.length} {invitations.length === 1 ? "invitation" : "invitations"} added
                     </p>
@@ -504,11 +505,11 @@ export default function OnboardingPage() {
                 )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-6">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-[35rem] w-full mx-auto">
                 <Button
                   onClick={() => setStep("name")}
                   variant="outline"
-                  className="flex-1 sm:flex-initial"
+                  className="flex-1 sm:flex-initial text-[1rem] h-11"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
@@ -516,7 +517,7 @@ export default function OnboardingPage() {
                 <Button
                   onClick={handleCreate}
                   disabled={createOrgMutation.isPending}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="flex-1 bg-teal-700 hover:bg-teal-9000 text-white text-[1rem] h-11"
                 >
                   {createOrgMutation.isPending ? "Creating..." : "Create organization"}
                   <ArrowRight className="ml-2 h-4 w-4" />
