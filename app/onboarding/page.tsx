@@ -256,11 +256,11 @@ export default function OnboardingPage() {
           {/* Choice Step */}
           {step === "choice" && (
             <div className="space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
-              <div className="space-y-2 text-center">
-                <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+              <div className="space-y-2 text-center max-w-[35rem] w-full mx-auto">
+                <h1 className="text-[2rem] font-semibold tracking-tight">
                   Choose your account type
                 </h1>
-                <p className="text-lg text-muted-foreground">
+                <p className="text-[1rem] text-muted-foreground">
                   Start with a personal workspace or create an organization for your team
                 </p>
               </div>
@@ -352,7 +352,7 @@ export default function OnboardingPage() {
 
               <div className="space-y-6 pt-4 max-w-[35rem] w-full mx-auto">
                 <div className="space-y-2">
-                  <Label htmlFor="org-name">
+                  <Label htmlFor="org-name" className="text-[15px]">
                     Organization name <span className="text-destructive">*</span>
                   </Label>
                   <Input
@@ -369,7 +369,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="org-description">
+                  <Label htmlFor="org-description" className="text-[15px]">
                     Description <span className="text-muted-foreground">(Optional)</span>
                   </Label>
                   <Textarea
@@ -387,7 +387,7 @@ export default function OnboardingPage() {
                 <Button
                   onClick={() => setStep("choice")}
                   variant="outline"
-                  className="flex-1 sm:flex-initial"
+                  className="flex-1 sm:flex-initial h-11 text-[1rem]"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
@@ -395,7 +395,7 @@ export default function OnboardingPage() {
                 <Button
                   onClick={() => setStep("invite")}
                   disabled={!orgName.trim()}
-                  className="flex-1 bg-teal-700 hover:bg-teal-900 text-white"
+                  className="flex-1 bg-teal-700 hover:bg-teal-900 text-white h-11 text-[1rem]"
                 >
                   Continue
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -404,7 +404,7 @@ export default function OnboardingPage() {
                   onClick={handleCreate}
                   disabled={!orgName.trim() || createOrgMutation.isPending}
                   variant="ghost"
-                  className="flex-1 sm:flex-initial"
+                  className="flex-1 sm:flex-initial h-11 text-[1rem]"
                 >
                   {createOrgMutation.isPending ? "Creating..." : "Skip for now"}
                 </Button>
@@ -425,9 +425,9 @@ export default function OnboardingPage() {
               </div>
 
               <div className="space-y-6 pt-4 max-w-[35rem] w-full mx-auto">
-                <div className="flex flex-col sm:flex-row gap-3 text-[1rem]">
+                <div className="flex flex-col sm:flex-row gap-3 text-[15px]">
                   <div className="flex-1 space-y-2">
-                    <Label htmlFor="invite-email">Email address</Label>
+                    <Label htmlFor="invite-email" className="text-[15px]">Email address</Label>
                     <Input
                       id="invite-email"
                       type="email"
@@ -442,15 +442,15 @@ export default function OnboardingPage() {
                       className="h-11"
                     />
                   </div>
-                  <div className="space-y-2 flex-1 sm:flex-initial text-[1rem]">
-                    <Label htmlFor="invite-role">Role</Label>
+                  <div className="space-y-2 flex-1 sm:flex-initial text-[15px]">
+                    <Label htmlFor="invite-role" className="text-[15px]">Role</Label>
                     <Select
                       value={newInviteRole}
                       onValueChange={(value: "MEMBER" | "OBSERVER") =>
                         setNewInviteRole(value)
                       }
                     >
-                      <SelectTrigger id="invite-role" className="h-11 min-h-11 text-[1rem]">
+                      <SelectTrigger id="invite-role" className="h-11 min-h-11 text-[15px] w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -462,7 +462,7 @@ export default function OnboardingPage() {
                   <div className="flex items-end flex-1 sm:flex-initial">
                     <Button
                       onClick={addInvitation}
-                      className="h-11 px-6 bg-teal-700 hover:bg-teal-900 text-white sm:w-auto w-full text-[1rem]"
+                      className="h-11 px-6 bg-teal-700 hover:bg-teal-900 text-white sm:w-auto w-full text-[15px]"
                       disabled={!newInviteEmail.trim() || !newInviteEmail.includes("@")}
                     >
                       Add
@@ -479,7 +479,7 @@ export default function OnboardingPage() {
                       {invitations.map((inv) => (
                         <div
                           key={inv.email}
-                          className="flex items-center justify-between p-4 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors"
+                          className="flex items-center justify-between p-4 rounded-lg border border-teal-300 bg-background hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
