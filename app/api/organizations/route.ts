@@ -4,6 +4,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { clerkClient } from "@clerk/nextjs/server";
 import { slugify } from "@/lib/utils";
 
+// Ensure this route runs on Node.js runtime (required for Prisma and Clerk)
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 // GET /api/organizations - List user's organizations
 export async function GET() {
   try {

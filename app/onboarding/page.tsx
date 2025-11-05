@@ -42,15 +42,25 @@ export default function OnboardingPage() {
     const checkOrganizations = async () => {
       try {
         const response = await fetch("/api/organizations");
+        
+        // Check if response is JSON before parsing
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          console.error("Non-JSON response from organizations API");
+          setHasChecked(true);
+          return;
+        }
+
         if (response.ok) {
           const orgs = await response.json();
-          if (orgs.length > 0) {
+          if (Array.isArray(orgs) && orgs.length > 0) {
             router.push("/dashboard");
             return;
           }
         }
       } catch (error) {
         console.error("Error checking organizations:", error);
+        // Continue with onboarding even if check fails
       }
       setHasChecked(true);
     };
@@ -76,21 +86,42 @@ export default function OnboardingPage() {
         body: JSON.stringify(data),
       });
 
+      // Check content type before parsing
+      const contentType = response.headers.get("content-type");
+      const isJson = contentType && contentType.includes("application/json");
+
       if (!response.ok) {
         let errorMessage = "Failed to create organization";
-        try {
-          const error = await response.json();
-          errorMessage = error.error || errorMessage;
-        } catch {
-          errorMessage = response.statusText || errorMessage;
+        
+        if (isJson) {
+          try {
+            const error = await response.json();
+            errorMessage = error.error || errorMessage;
+          } catch {
+            errorMessage = response.statusText || errorMessage;
+          }
+        } else {
+          // Handle HTML error pages (like 405 Method Not Allowed)
+          const text = await response.text();
+          if (response.status === 405) {
+            errorMessage = "Method not allowed. Please check your API configuration.";
+          } else {
+            errorMessage = response.statusText || `HTTP ${response.status}`;
+          }
+          console.error("Non-JSON error response:", text.substring(0, 200));
         }
+        
         throw new Error(errorMessage);
       }
 
-      try {
-        return await response.json();
-      } catch {
-        throw new Error("Invalid response from server");
+      if (isJson) {
+        try {
+          return await response.json();
+        } catch {
+          throw new Error("Invalid JSON response from server");
+        }
+      } else {
+        throw new Error("Server returned non-JSON response");
       }
     },
     onSuccess: (organization) => {
@@ -479,7 +510,7 @@ export default function OnboardingPage() {
                       {invitations.map((inv) => (
                         <div
                           key={inv.email}
-                          className="flex items-center justify-between p-4 rounded-lg border border-teal-300 bg-background hover:bg-muted/50 transition-colors"
+                          className="flex items-center justify-between p-4 rounded-lg border border-teal-900 bg-background hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />

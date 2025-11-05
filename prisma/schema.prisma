@@ -269,7 +269,9 @@ model Organization {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   clerkOrgId  String   @unique // Clerk Organization ID
   name        String
-  slug        String   @unique // URL-friendly identifier
+  slug        String   @unique 
+  // URL-friendly identifier
+  status        String   @default("PENDING") // PENDING, ACTIVE, DELETED
   description String?
   logoUrl     String?
   boards      Board[]
