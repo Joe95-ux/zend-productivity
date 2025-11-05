@@ -1,14 +1,24 @@
+// app/api/organizations/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { clerkClient } from "@clerk/nextjs/server";
 import { slugify } from "@/lib/utils";
 
-// Ensure this route runs on Node.js runtime (required for Prisma and Clerk)
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/organizations - List user's organizations
+// Helper to handle OPTIONS requests for CORS
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -19,7 +29,7 @@ export async function GET() {
     const memberships = await db.organizationMember.findMany({
       where: {
         userId: user.id,
-        joinedAt: { not: null }, // Only accepted memberships
+        joinedAt: { not: null },
       },
       include: {
         organization: {
@@ -54,7 +64,6 @@ export async function GET() {
   }
 }
 
-// POST /api/organizations - Create organization
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -99,13 +108,13 @@ export async function POST(request: NextRequest) {
         slug: orgSlug,
         createdBy: user.clerkId,
       });
+      console.log("Created organization in Clerk:", clerkOrg.id);
     } catch (clerkError: unknown) {
       console.error("Clerk organization creation error:", clerkError);
       let errorMessage = "Failed to create organization in Clerk";
       
       if (clerkError instanceof Error) {
         errorMessage = clerkError.message;
-        // Provide more helpful error messages
         if (clerkError.message.includes("already exists") || clerkError.message.includes("slug")) {
           errorMessage = "An organization with this name or a similar name already exists. Please choose a different name.";
         } else if (clerkError.message.includes("permission") || clerkError.message.includes("unauthorized")) {
@@ -120,14 +129,9 @@ export async function POST(request: NextRequest) {
     let slug = orgSlug;
     let counter = 1;
 
-    while (
-      await db.organization.findUnique({
-        where: { slug },
-      })
-    ) {
+    while (await db.organization.findUnique({ where: { slug } })) {
       slug = `${orgSlug}-${counter}`;
       counter++;
-      // Prevent infinite loop
       if (counter > 100) {
         return NextResponse.json(
           { error: "Unable to generate a unique slug. Please try a different organization name." },
@@ -147,11 +151,13 @@ export async function POST(request: NextRequest) {
           description: description?.trim() || null,
         },
       });
+      console.log("Created organization in DB:", organization.id);
     } catch (dbError: unknown) {
       console.error("Database organization creation error:", dbError);
       // If DB creation fails, try to clean up Clerk org
       try {
         await clerk.organizations.deleteOrganization(clerkOrg.id);
+        console.log("Cleaned up Clerk organization after DB failure");
       } catch (cleanupError) {
         console.error("Failed to cleanup Clerk organization:", cleanupError);
       }
@@ -171,53 +177,17 @@ export async function POST(request: NextRequest) {
           joinedAt: new Date(),
         },
       });
+      console.log("Added creator as admin");
     } catch (memberError: unknown) {
       console.error("Failed to create organization membership:", memberError);
-      // Don't fail the whole operation if membership creation fails
-      // The webhook might handle it
-    }
-
-    // Update Clerk organization member role to admin
-    try {
-      const clerkMember = await clerk.organizations.getOrganizationMembershipList({
-        organizationId: clerkOrg.id,
-      });
-
-      const member = clerkMember.data?.find(
-        (m) => m.publicUserData?.userId === user.clerkId
-      );
-
-      if (member) {
-        await clerk.organizations.updateOrganizationMembership({
-          organizationId: clerkOrg.id,
-          userId: user.clerkId,
-          role: "org:admin",
-        });
-      }
-    } catch (clerkRoleError: unknown) {
-      console.error("Failed to update Clerk organization member role:", clerkRoleError);
-      // Don't fail the whole operation if role update fails
-      // The webhook might handle it
     }
 
     return NextResponse.json(organization, { status: 201 });
   } catch (error) {
     console.error("Error creating organization:", error);
-    
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
-    
-    // If Clerk org was created but DB failed, try to clean up
-    if (errorMessage.includes("clerkOrgId")) {
-      return NextResponse.json(
-        { error: "Organization name already exists" },
-        { status: 409 }
-      );
-    }
-
     return NextResponse.json(
-      { error: errorMessage },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
-
