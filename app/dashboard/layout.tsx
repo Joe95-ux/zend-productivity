@@ -6,7 +6,6 @@ import Link from "next/link";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardBreadcrumb } from "@/components/dashboard/DashboardBreadcrumb";
-import { Separator } from "@/components/ui/separator";
 
 export default function DashboardLayout({
   children,
@@ -44,7 +43,13 @@ export default function DashboardLayout({
 
   // For board pages, render without sidebar (no distractions)
   if (isBoardPage) {
-    return <>{children}</>;
+    return (
+      <div className="h-[calc(100vh-114px)] bg-background">
+          <main className="w-full overflow-auto scrollbar-thin h-full mx-auto px-4 py-6">
+            {children}
+          </main>
+        </div>
+    );
   }
 
   // For other dashboard pages, render with sidebar
