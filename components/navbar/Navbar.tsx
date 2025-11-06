@@ -410,7 +410,11 @@ export function Navbar() {
                 <>
                   {isSignedIn ? (
                     <>
-                      <Button asChild variant="ghost">
+                      <Button 
+                        asChild 
+                        variant={isDashboardPage ? "secondary" : "ghost"}
+                        disabled={isDashboardPage}
+                      >
                         <Link href="/dashboard">Dashboard</Link>
                       </Button>
 

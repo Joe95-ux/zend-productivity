@@ -7,6 +7,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { NavbarWrapper } from "@/components/navbar/NavbarWrapper";
 import { BoardHeaderWrapper } from "@/components/layout/BoardHeaderWrapper";
 import { BoardFilterWrapper } from "@/components/layout/BoardFilterWrapper";
+import { OrganizationProviderWrapper } from "@/components/providers/OrganizationProviderWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,11 +70,13 @@ export default function RootLayout({
         >
           <Toaster richColors position="bottom-right" />
           <RootProviders>
-            <NavbarWrapper />
-            <BoardFilterWrapper>
-              <BoardHeaderWrapper />
-              {children}
-            </BoardFilterWrapper>
+            <OrganizationProviderWrapper>
+              <NavbarWrapper />
+              <BoardFilterWrapper>
+                <BoardHeaderWrapper />
+                {children}
+              </BoardFilterWrapper>
+            </OrganizationProviderWrapper>
           </RootProviders>
         </body>
       </html>

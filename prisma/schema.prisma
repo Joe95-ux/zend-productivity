@@ -26,6 +26,10 @@ model User {
   organizationMemberships OrganizationMember[]
   joinRequests  BoardJoinRequest[]
   
+  // Workspace relations
+  workspaces           Workspace[]         // Personal workspaces owned by user
+  workspaceMemberships WorkspaceMember[]    // Workspaces user is member of
+  
   // Email preferences
   emailNotifications Boolean    @default(true)
   emailFrequency     String     @default("immediate") // "immediate", "daily", "weekly"
@@ -44,8 +48,17 @@ model Board {
   description String?
   ownerId     String     @db.ObjectId
   owner       User       @relation(fields: [ownerId], references: [id])
+  
+  // Board can belong to Workspace, Project, or Organization (for backward compatibility)
+  workspaceId String?     @db.ObjectId
+  workspace   Workspace?  @relation(fields: [workspaceId], references: [id])
+  
+  projectId   String?    @db.ObjectId
+  project     Project?   @relation(fields: [projectId], references: [id])
+  
   organizationId String?        @db.ObjectId
   organization   Organization?   @relation(fields: [organizationId], references: [id])
+  
   members     Member[]
   lists       List[]
   boardLabels BoardLabel[]
@@ -275,6 +288,7 @@ model Organization {
   description String?
   logoUrl     String?
   boards      Board[]
+  workspaces  Workspace[]  // Organization workspaces
   members     OrganizationMember[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -331,4 +345,69 @@ model BoardJoinRequest {
   @@index([userId])
   @@index([status])
   @@index([boardId, status])
+}
+
+//
+// 🏢 Workspace & Project Models
+//
+model Workspace {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  slug        String   // URL-friendly identifier
+  color       String?  // Optional: workspace color for UI
+  icon        String?  // Optional: workspace icon
+  
+  // Workspace can belong to User (personal) OR Organization (team)
+  ownerId     String?  @db.ObjectId
+  owner       User?    @relation(fields: [ownerId], references: [id])
+  
+  organizationId String?        @db.ObjectId
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
+  
+  // Workspace members (for personal workspaces, user can invite others)
+  members     WorkspaceMember[]
+  projects    Project[]
+  boards      Board[]  // Boards can be directly under workspace (no project)
+  
+  status      String   @default("active") // "active", "archived"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([ownerId, slug])  // Unique slug per user
+  @@unique([organizationId, slug])  // Unique slug per org
+  @@index([ownerId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model WorkspaceMember {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  workspaceId String   @db.ObjectId
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  role        String   @default("member") // "admin", "member", "viewer"
+  createdAt   DateTime @default(now())
+  
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+model Project {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  workspaceId String   @db.ObjectId
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  boards      Board[]
+  color       String?  // Optional: project color
+  icon        String?  // Optional: project icon
+  status      String   @default("active") // "active", "archived", "completed"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([workspaceId])
+  @@index([workspaceId, status])
 }

@@ -15,6 +15,11 @@ Add these environment variables to your `.env.local` file:
 # Email Service
 RESEND_API_KEY=your_resend_api_key_here
 
+# Custom Domain (optional - defaults to Resend's default domain if not set)
+# If set, emails will be sent from: notifications@yourdomain.com
+# If not set, emails will be sent from: onboarding@resend.dev
+RESEND_DOMAIN=yourdomain.com
+
 # App URL (for email links)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
@@ -36,11 +41,9 @@ CRON_SECRET=your_secure_random_string_here
 1. In Resend dashboard, go to "Domains"
 2. Add your domain (e.g., `yourdomain.com`)
 3. Follow the DNS setup instructions
-4. Update your email "from" address in `lib/email.ts`:
+4. Add `RESEND_DOMAIN=yourdomain.com` to your `.env.local` file
 
-```typescript
-from: 'Zend Productivity <notifications@yourdomain.com>'
-```
+The app will automatically use your custom domain for sending emails. If `RESEND_DOMAIN` is not set, it will default to Resend's default domain (`onboarding@resend.dev`).
 
 ### 3. Database Migration
 

@@ -13,9 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Building2, Users, Mail, ArrowRight, X, Check, ArrowLeft, Loader2 } from "lucide-react";
+import { Building2, Users, Mail, ArrowRight, X, Check, ArrowLeft, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Invitation {
@@ -23,12 +23,14 @@ interface Invitation {
   role: "MEMBER" | "OBSERVER";
 }
 
-type OnboardingStep = "welcome" | "choice" | "name" | "invite" | "setting-up";
+type OnboardingStep = "welcome" | "choice" | "name" | "invite" | "setting-up" | "goal" | "team-size" | "workspace";
 
-const steps: OnboardingStep[] = ["welcome", "choice", "name", "invite"];
+// Steps to show in progress indicator (excluding transient steps like "setting-up")
+const steps: OnboardingStep[] = ["welcome", "choice", "name", "invite", "goal", "team-size", "workspace"];
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [hasChecked, setHasChecked] = useState(false);
   const [step, setStep] = useState<OnboardingStep>("welcome");
   const [orgName, setOrgName] = useState("");
@@ -36,6 +38,8 @@ export default function OnboardingPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [newInviteEmail, setNewInviteEmail] = useState("");
   const [newInviteRole, setNewInviteRole] = useState<"MEMBER" | "OBSERVER">("MEMBER");
+  const [primaryGoal, setPrimaryGoal] = useState<string>("");
+  const [teamSize, setTeamSize] = useState<string>("");
 
   // Check if user already has organizations
   useEffect(() => {
@@ -125,6 +129,16 @@ export default function OnboardingPage() {
       }
     },
     onSuccess: (organization) => {
+      // Invalidate queries to refresh organization data
+      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["clerkOrganizations"] });
+      
+      // Force Clerk to refresh organization list
+      // Clerk's useOrganizationList should auto-refresh, but we'll give it a moment
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["clerkOrganizations"] });
+      }, 1000);
+      
       // Show transition screen immediately
       setStep("setting-up");
       
@@ -132,9 +146,9 @@ export default function OnboardingPage() {
       if (invitations.length > 0) {
         sendInvitations(organization.id);
       } else {
-        // No invitations - just redirect after a short delay
+        // No invitations - go to goal step after setting-up
         setTimeout(() => {
-          router.push("/dashboard");
+          setStep("goal");
         }, 1500);
       }
     },
@@ -159,21 +173,47 @@ export default function OnboardingPage() {
         throw new Error("Failed to send invitations");
       }
 
-      // Wait a moment for everything to process, then redirect
+      // Wait a moment for everything to process, then go to goal step
       setTimeout(() => {
-        router.push("/dashboard");
+        setStep("goal");
       }, 1000);
     } catch {
-      // Even if invitations fail, redirect to dashboard
+      // Even if invitations fail, go to goal step
       // User can invite members later
       setTimeout(() => {
-        router.push("/dashboard");
+        setStep("goal");
       }, 1000);
     }
   };
 
   const handleSkip = () => {
-    router.push("/dashboard");
+    // If skipping from choice, go to goal step
+    if (step === "choice") {
+      setStep("goal");
+    } else {
+      // Otherwise, skip to dashboard
+      router.push("/dashboard");
+    }
+  };
+
+  const handleNext = () => {
+    if (step === "goal") {
+      setStep("team-size");
+    } else if (step === "team-size") {
+      setStep("workspace");
+    } else if (step === "workspace") {
+      router.push("/dashboard");
+    }
+  };
+
+  const handleSkipStep = () => {
+    if (step === "goal") {
+      setStep("team-size");
+    } else if (step === "team-size") {
+      setStep("workspace");
+    } else if (step === "workspace") {
+      router.push("/dashboard");
+    }
   };
 
   const handleCreateOrg = () => {
@@ -217,7 +257,11 @@ export default function OnboardingPage() {
     setInvitations(invitations.filter((inv) => inv.email !== email));
   };
 
-  const currentStepIndex = steps.findIndex((s) => s === step);
+  // Calculate current step index for progress indicator
+  // "setting-up" is a transient step, so show progress as if we're at "goal" step
+  const currentStepIndex = step === "setting-up" 
+    ? steps.findIndex((s) => s === "goal")
+    : steps.findIndex((s) => s === step);
 
   // Show loading while checking
   if (!hasChecked) {
@@ -600,6 +644,205 @@ export default function OnboardingPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Goal Step */}
+          {step === "goal" && (
+            <div className="space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+              <div className="space-y-2 mx-auto max-w-[35rem] w-full text-center">
+                <h1 className="text-[2rem] font-semibold tracking-tight">
+                  What&apos;s your primary goal?
+                </h1>
+                <p className="text-[1rem] text-muted-foreground">
+                  Help us personalize your experience
+                </p>
+              </div>
+
+              <div className="space-y-3 max-w-[35rem] w-full mx-auto">
+                {[
+                  { value: "project-management", label: "Project Management", icon: "📋" },
+                  { value: "task-tracking", label: "Task Tracking", icon: "✅" },
+                  { value: "team-collaboration", label: "Team Collaboration", icon: "👥" },
+                  { value: "personal-organization", label: "Personal Organization", icon: "📝" },
+                  { value: "other", label: "Other", icon: "💡" },
+                ].map((goal) => (
+                  <button
+                    key={goal.value}
+                    onClick={() => setPrimaryGoal(goal.value)}
+                    className={cn(
+                      "w-full p-4 rounded-lg border-2 text-left transition-all",
+                      primaryGoal === goal.value
+                        ? "border-teal-600 dark:border-teal-400 bg-teal-50 dark:bg-teal-950/20"
+                        : "border-border hover:border-teal-300 dark:hover:border-teal-700 bg-background"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{goal.icon}</span>
+                      <span className="font-medium">{goal.label}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-[35rem] w-full mx-auto">
+                <Button
+                  onClick={handleSkipStep}
+                  variant="ghost"
+                  className="flex-1 sm:flex-initial text-[1rem] h-11"
+                >
+                  Skip
+                </Button>
+                <Button
+                  onClick={handleNext}
+                  disabled={!primaryGoal}
+                  className="flex-1 bg-teal-700 hover:bg-teal-900 text-white text-[1rem] h-11"
+                >
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Team Size Step */}
+          {step === "team-size" && (
+            <div className="space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+              <div className="space-y-2 mx-auto max-w-[35rem] w-full text-center">
+                <h1 className="text-[2rem] font-semibold tracking-tight">
+                  What&apos;s your team size?
+                </h1>
+                <p className="text-[1rem] text-muted-foreground">
+                  This helps us recommend the right features
+                </p>
+              </div>
+
+              <div className="space-y-3 max-w-[35rem] w-full mx-auto">
+                {[
+                  { value: "just-me", label: "Just me", description: "Solo work" },
+                  { value: "2-5", label: "2-5 people", description: "Small team" },
+                  { value: "6-15", label: "6-15 people", description: "Growing team" },
+                  { value: "16-50", label: "16-50 people", description: "Medium team" },
+                  { value: "50+", label: "50+ people", description: "Large organization" },
+                ].map((size) => (
+                  <button
+                    key={size.value}
+                    onClick={() => setTeamSize(size.value)}
+                    className={cn(
+                      "w-full p-4 rounded-lg border-2 text-left transition-all",
+                      teamSize === size.value
+                        ? "border-teal-600 dark:border-teal-400 bg-teal-50 dark:bg-teal-950/20"
+                        : "border-border hover:border-teal-300 dark:hover:border-teal-700 bg-background"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{size.label}</div>
+                        <div className="text-sm text-muted-foreground">{size.description}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-[35rem] w-full mx-auto">
+                <Button
+                  onClick={handleSkipStep}
+                  variant="ghost"
+                  className="flex-1 sm:flex-initial text-[1rem] h-11"
+                >
+                  Skip
+                </Button>
+                <Button
+                  onClick={handleNext}
+                  disabled={!teamSize}
+                  className="flex-1 bg-teal-700 hover:bg-teal-900 text-white text-[1rem] h-11"
+                >
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Workspace Creation Step */}
+          {step === "workspace" && (
+            <div className="space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+              <div className="space-y-2 mx-auto max-w-[35rem] w-full text-center">
+                <h1 className="text-[2rem] font-semibold tracking-tight">
+                  Create your first workspace
+                </h1>
+                <p className="text-[1rem] text-muted-foreground">
+                  Workspaces help you organize your projects and boards
+                </p>
+              </div>
+
+              <div className="space-y-6 max-w-[35rem] w-full mx-auto">
+                <div className="p-6 rounded-lg border border-border bg-muted/30">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
+                        <Building2 className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <h3 className="font-semibold">Why create a workspace?</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Workspaces let you group related projects and boards together. You can create multiple workspaces for different purposes.
+                        </p>
+                      </div>
+                    </div>
+                    <ul className="space-y-2 text-sm text-muted-foreground ml-13">
+                      <li className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
+                        <span>Organize projects by client, department, or initiative</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
+                        <span>Invite team members to collaborate</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
+                        <span>Create as many workspaces as you need</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <Button
+                    onClick={() => {
+                      // TODO: Open create workspace modal/dialog
+                      // For now, just go to dashboard
+                      router.push("/dashboard");
+                    }}
+                    className="w-full bg-teal-700 hover:bg-teal-900 text-white text-[1rem] h-11"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Workspace
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    You can create workspaces later from your dashboard
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-[35rem] w-full mx-auto">
+                <Button
+                  onClick={handleSkipStep}
+                  variant="ghost"
+                  className="flex-1 sm:flex-initial text-[1rem] h-11"
+                >
+                  Skip for now
+                </Button>
+                <Button
+                  onClick={() => router.push("/dashboard")}
+                  variant="outline"
+                  className="flex-1 text-[1rem] h-11"
+                >
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
             </div>
           )}

@@ -8,7 +8,8 @@ import { DataExport } from "@/components/settings/DataExport";
 import { AccessibilitySettings } from "@/components/settings/AccessibilitySettings";
 import { UserProfile } from "@/components/settings/UserProfile";
 import { CollapsibleCard } from "@/components/settings/CollapsibleCard";
-import { User, Palette, Eye, Keyboard, Mail, Accessibility, Download } from "lucide-react";
+import { OrganizationProfile } from "@/components/organizations/OrganizationProfile";
+import { User, Palette, Eye, Keyboard, Mail, Accessibility, Download, Building2 } from "lucide-react";
 
 export default function SettingsPage() {
   return (
@@ -30,6 +31,16 @@ export default function SettingsPage() {
             defaultExpanded={true}
           >
             <UserProfile />
+          </CollapsibleCard>
+
+          {/* Organization Profile */}
+          <CollapsibleCard
+            icon={Building2}
+            title="Organization Profile"
+            description="View and manage your organization details and membership"
+            defaultExpanded={false}
+          >
+            <OrganizationProfile />
           </CollapsibleCard>
           
           {/* Theme Settings */}

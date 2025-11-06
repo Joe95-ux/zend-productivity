@@ -2,6 +2,10 @@
 
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { DashboardBreadcrumb } from "@/components/dashboard/DashboardBreadcrumb";
+import { Separator } from "@/components/ui/separator";
 
 export default function DashboardLayout({
   children,
@@ -33,11 +37,20 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="h-[calc(100vh-114px)] bg-background">
-      {/* Main Content */}
-      <main className="w-full overflow-auto scrollbar-thin h-full mx-auto px-4 py-6">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider defaultOpen={true}>
+      <DashboardSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <DashboardBreadcrumb />
+          <div className="flex-1" />
+        </header>
+        <div className="h-[calc(100vh-4rem)] overflow-auto">
+          <main className="w-full h-full mx-auto px-4 py-6">
+            {children}
+          </main>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

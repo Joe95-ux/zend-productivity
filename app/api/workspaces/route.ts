@@ -1,0 +1,238 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
+import { slugify } from "@/lib/utils";
+
+// GET /api/workspaces - List user's workspaces
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get personal workspaces
+    const personalWorkspaces = await db.workspace.findMany({
+      where: { ownerId: user.id },
+      include: {
+        projects: {
+          include: {
+            boards: {
+              select: { id: true, title: true }
+            }
+          },
+          orderBy: { createdAt: "desc" }
+        },
+        boards: {
+          where: { projectId: null }, // Only boards not in a project
+          select: { id: true, title: true }
+        },
+        members: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, avatarUrl: true }
+            }
+          }
+        },
+        _count: {
+          select: {
+            projects: true,
+            boards: true
+          }
+        }
+      },
+      orderBy: { updatedAt: "desc" }
+    });
+
+    // Get organization workspaces (where user is a member)
+    const orgMemberships = await db.organizationMember.findMany({
+      where: { userId: user.id },
+      include: {
+        organization: {
+          include: {
+            workspaces: {
+              include: {
+                projects: {
+                  include: {
+                    boards: {
+                      select: { id: true, title: true }
+                    }
+                  },
+                  orderBy: { createdAt: "desc" }
+                },
+                boards: {
+                  where: { projectId: null },
+                  select: { id: true, title: true }
+                },
+                members: {
+                  include: {
+                    user: {
+                      select: { id: true, name: true, email: true, avatarUrl: true }
+                    }
+                  }
+                },
+                _count: {
+                  select: {
+                    projects: true,
+                    boards: true
+                  }
+                }
+              },
+              orderBy: { updatedAt: "desc" }
+            }
+          }
+        }
+      }
+    });
+
+    const orgWorkspaces = orgMemberships.flatMap(
+      (membership) => membership.organization.workspaces
+    );
+
+    // Get workspaces where user is a member (shared personal workspaces)
+    const sharedWorkspaces = await db.workspaceMember.findMany({
+      where: { userId: user.id },
+      include: {
+        workspace: {
+          include: {
+            owner: {
+              select: { id: true, name: true, email: true, avatarUrl: true }
+            },
+            projects: {
+              include: {
+                boards: {
+                  select: { id: true, title: true }
+                }
+              },
+              orderBy: { createdAt: "desc" }
+            },
+            boards: {
+              where: { projectId: null },
+              select: { id: true, title: true }
+            },
+            members: {
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true, avatarUrl: true }
+                }
+              }
+            },
+            _count: {
+              select: {
+                projects: true,
+                boards: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({
+      personal: personalWorkspaces,
+      organization: orgWorkspaces,
+      shared: sharedWorkspaces.map((wm) => wm.workspace)
+    });
+  } catch (error) {
+    console.error("Error fetching workspaces:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+// POST /api/workspaces - Create workspace
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { name, description, organizationId, color, icon } = body;
+
+    if (!name || !name.trim()) {
+      return NextResponse.json(
+        { error: "Workspace name is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate organization access if provided
+    if (organizationId) {
+      const orgMember = await db.organizationMember.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId,
+            userId: user.id
+          }
+        }
+      });
+
+      if (!orgMember || orgMember.role !== "ADMIN") {
+        return NextResponse.json(
+          { error: "Only organization admins can create workspaces" },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Generate unique slug
+    const baseSlug = slugify(name.trim());
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const existing = await db.workspace.findFirst({
+        where: organizationId
+          ? { organizationId, slug }
+          : { ownerId: user.id, slug }
+      });
+
+      if (!existing) break;
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    const workspace = await db.workspace.create({
+      data: {
+        name: name.trim(),
+        description: description?.trim() || null,
+        slug,
+        color: color || null,
+        icon: icon || null,
+        ownerId: organizationId ? null : user.id,
+        organizationId: organizationId || null,
+        status: "active"
+      },
+      include: {
+        owner: organizationId ? undefined : {
+          select: { id: true, name: true, email: true, avatarUrl: true }
+        },
+        organization: organizationId ? {
+          select: { id: true, name: true, slug: true }
+        } : undefined,
+        projects: true,
+        boards: true,
+        members: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, avatarUrl: true }
+            }
+          }
+        },
+        _count: {
+          select: {
+            projects: true,
+            boards: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json(workspace, { status: 201 });
+  } catch (error) {
+    console.error("Error creating workspace:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+

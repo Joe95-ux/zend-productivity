@@ -33,8 +33,12 @@ NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 ### 5. Email Service (Resend) - Optional
 ```
 RESEND_API_KEY=your_resend_api_key_here
+RESEND_DOMAIN=yourdomain.com
 ```
-**Note**: Get this from Resend Dashboard → API Keys
+**Note**: 
+- Get `RESEND_API_KEY` from Resend Dashboard → API Keys
+- `RESEND_DOMAIN` is optional - if set, emails will be sent from `notifications@yourdomain.com`
+- If not set, emails will default to Resend's domain (`onboarding@resend.dev`)
 
 ### 6. Cron Secret (for scheduled emails) - Optional
 ```

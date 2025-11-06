@@ -27,6 +27,7 @@ import { BoardFilter } from "./BoardFilter";
 import { cn } from "@/lib/utils";
 import { ShareBoardModal } from "./ShareBoardModal";
 import { WifiOff } from "lucide-react";
+import { ConditionalOrganizationSwitcher } from "@/components/organizations/ConditionalOrganizationSwitcher";
 
 interface BoardHeaderProps {
   boardId: string;
@@ -99,6 +100,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [isFavorite, setIsFavorite] = useState(false);
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const dndContext = useDndContextOptional();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -792,6 +794,11 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       <span className="text-sm text-slate-600 dark:text-slate-400">Account</span>
                     </div>
                   </div>
+
+                  {/* Organization Switcher - only shows if user has organizations */}
+                  <div className="px-[14px] py-2 border-b border-slate-200 dark:border-slate-700">
+                    <ConditionalOrganizationSwitcher />
+                  </div>
                   
                   <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
                     <div className="p-[14px] space-y-2">
@@ -859,6 +866,16 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
 
                     {/* Settings */}
                     <div className="space-y-0">
+                      <div 
+                        className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                        onClick={() => {
+                          setIsAssignModalOpen(true);
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        <Folder className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm font-normal">Assign to Workspace/Project</span>
+                      </div>
                       <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
                         <Settings className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-normal">Settings</span>
@@ -1494,6 +1511,13 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
         boardId={boardId}
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
+      />
+
+      {/* Assign Board Modal */}
+      <AssignBoardModal
+        boardId={boardId}
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
       />
     </>
   );

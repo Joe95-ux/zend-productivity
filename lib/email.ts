@@ -2,6 +2,19 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+/**
+ * Get the default "from" email address
+ * Uses RESEND_DOMAIN from .env if set, otherwise uses Resend's default domain
+ */
+function getDefaultFromEmail(): string {
+  const domain = process.env.RESEND_DOMAIN;
+  if (domain) {
+    return `Zend Productivity <notifications@${domain}>`;
+  }
+  // Resend's default domain for testing/development
+  return 'Zend Productivity <onboarding@resend.dev>';
+}
+
 export interface EmailNotificationData {
   to: string;
   subject: string;
@@ -17,7 +30,7 @@ export async function sendEmailNotification(data: EmailNotificationData) {
     }
 
     const result = await resend.emails.send({
-      from: data.from || 'Zend Productivity <notifications@zendproductivity.com>',
+      from: data.from || getDefaultFromEmail(),
       to: [data.to],
       subject: data.subject,
       html: data.html,
