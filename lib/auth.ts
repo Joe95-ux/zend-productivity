@@ -37,34 +37,101 @@ export async function getCurrentUser() {
       return null;
     }
 
-    // Try to find existing user
+    const email = clerkUser.emailAddresses[0]?.emailAddress || "";
+    const name = clerkUser.firstName && clerkUser.lastName 
+      ? `${clerkUser.firstName} ${clerkUser.lastName}`
+      : clerkUser.firstName || null;
+
+    // Try to find existing user by clerkId first (primary lookup)
     let user = await db.user.findUnique({
       where: { clerkId }
     });
 
-    // If user doesn't exist, create them
+    // If not found by clerkId, check by email (in case user changed Clerk accounts)
+    if (!user && email) {
+      const userByEmail = await db.user.findUnique({
+        where: { email }
+      });
+      
+      // If found by email but different clerkId, check if the new clerkId is available
+      if (userByEmail && userByEmail.clerkId !== clerkId) {
+        // Check if the new clerkId is already taken by another user
+        const userWithNewClerkId = await db.user.findUnique({
+          where: { clerkId }
+        });
+        
+        if (!userWithNewClerkId) {
+          // New clerkId is available - update existing user's clerkId
+          try {
+            user = await db.user.update({
+              where: { email },
+              data: { clerkId }
+            });
+            console.log("Updated user clerkId:", user.id);
+          } catch (updateError) {
+            console.error("Error updating user clerkId:", updateError);
+            // If update fails, try finding by clerkId again (maybe another request updated it)
+            user = await db.user.findUnique({
+              where: { clerkId }
+            });
+          }
+        } else {
+          // Both email and clerkId are taken by different users - this is a conflict
+          // Use the user with matching clerkId (current session)
+          user = userWithNewClerkId;
+          console.log("Email conflict detected - using user with matching clerkId");
+        }
+      } else if (userByEmail) {
+        // Same clerkId - use it
+        user = userByEmail;
+      }
+    }
+
+    // If user still doesn't exist, create them
     if (!user) {
       try {
         user = await db.user.create({
           data: {
             clerkId,
-            email: clerkUser.emailAddresses[0]?.emailAddress || "",
-            name: clerkUser.firstName && clerkUser.lastName 
-              ? `${clerkUser.firstName} ${clerkUser.lastName}`
-              : clerkUser.firstName || null,
+            email: email || `temp-${clerkId}@placeholder.com`, // Fallback email if none provided
+            name,
             avatarUrl: clerkUser.imageUrl || null,
           }
         });
         console.log("Created new user:", user.id);
       } catch (dbError) {
         console.error("Database error creating user:", dbError);
-        // Try to find user again in case of race condition
+        // Handle race condition - user might have been created between check and create
+        // Try finding by clerkId first
         user = await db.user.findUnique({
           where: { clerkId }
         });
+        
+        // If still not found, try by email
+        if (!user && email) {
+          user = await db.user.findUnique({
+            where: { email }
+          });
+        }
+        
         if (!user) {
           return null;
         }
+      }
+    } else {
+      // User exists - update their info if needed
+      try {
+        user = await db.user.update({
+          where: { clerkId: user.clerkId },
+          data: {
+            email: email || undefined,
+            name: name || undefined,
+            avatarUrl: clerkUser.imageUrl || undefined,
+          }
+        });
+      } catch (updateError) {
+        // If update fails, just use the existing user
+        console.error("Error updating user info:", updateError);
       }
     }
 

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Building2, Users, Mail, ArrowRight, X, Check, ArrowLeft } from "lucide-react";
+import { Building2, Users, Mail, ArrowRight, X, Check, ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Invitation {
@@ -23,7 +23,7 @@ interface Invitation {
   role: "MEMBER" | "OBSERVER";
 }
 
-type OnboardingStep = "welcome" | "choice" | "name" | "invite";
+type OnboardingStep = "welcome" | "choice" | "name" | "invite" | "setting-up";
 
 const steps: OnboardingStep[] = ["welcome", "choice", "name", "invite"];
 
@@ -125,11 +125,17 @@ export default function OnboardingPage() {
       }
     },
     onSuccess: (organization) => {
+      // Show transition screen immediately
+      setStep("setting-up");
+      
+      // Process invitations in background
       if (invitations.length > 0) {
         sendInvitations(organization.id);
       } else {
-        toast.success("Organization created successfully!");
-        router.push("/dashboard");
+        // No invitations - just redirect after a short delay
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1500);
       }
     },
     onError: (error: Error) => {
@@ -153,11 +159,16 @@ export default function OnboardingPage() {
         throw new Error("Failed to send invitations");
       }
 
-      toast.success("Organization created and invitations sent!");
-      router.push("/dashboard");
+      // Wait a moment for everything to process, then redirect
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
     } catch {
-      toast.error("Organization created but failed to send invitations");
-      router.push("/dashboard");
+      // Even if invitations fail, redirect to dashboard
+      // User can invite members later
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
     }
   };
 
@@ -553,6 +564,42 @@ export default function OnboardingPage() {
                   {createOrgMutation.isPending ? "Creating..." : "Create organization"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Setting Up Step */}
+          {step === "setting-up" && (
+            <div className="space-y-8 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+              <div className="space-y-6 mx-auto max-w-[35rem] w-full text-center">
+                <div className="flex justify-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-teal-500/20 animate-ping"></div>
+                    <div className="relative rounded-full bg-teal-500/10 p-6">
+                      <Loader2 className="h-12 w-12 text-teal-600 dark:text-teal-400 animate-spin" />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h1 className="text-[2rem] font-semibold tracking-tight">
+                    Setting up your workspace
+                  </h1>
+                  <p className="text-[1rem] text-muted-foreground max-w-md mx-auto">
+                    We&apos;re creating your organization and {invitations.length > 0 ? "sending invitations" : "preparing everything"}. This will just take a moment...
+                  </p>
+                </div>
+                <div className="pt-4 space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                    <span>Organization created</span>
+                  </div>
+                  {invitations.length > 0 && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 text-teal-600 dark:text-teal-400 animate-spin" />
+                      <span>Sending {invitations.length} {invitations.length === 1 ? "invitation" : "invitations"}...</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

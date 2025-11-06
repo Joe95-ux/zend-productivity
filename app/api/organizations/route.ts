@@ -87,27 +87,94 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate slug format for Clerk (alphanumeric, hyphens, 3-63 chars)
+    if (orgSlug.length < 3) {
+      return NextResponse.json(
+        { error: "Organization name must be at least 3 characters long" },
+        { status: 400 }
+      );
+    }
+
+    if (orgSlug.length > 63) {
+      return NextResponse.json(
+        { error: "Organization name is too long. Please use a shorter name." },
+        { status: 400 }
+      );
+    }
+
+    // Validate slug doesn't start or end with hyphen (Clerk requirement)
+    if (orgSlug.startsWith("-") || orgSlug.endsWith("-")) {
+      return NextResponse.json(
+        { error: "Organization name cannot start or end with special characters" },
+        { status: 400 }
+      );
+    }
+
     // Create organization in Clerk
     const clerk = await clerkClient();
     let clerkOrg;
     try {
-      clerkOrg = await clerk.organizations.createOrganization({
-        name: name.trim(),
+      // Validate required fields before calling Clerk
+      if (!user.clerkId) {
+        return NextResponse.json(
+          { error: "User Clerk ID is missing" },
+          { status: 400 }
+        );
+      }
+
+      const orgName = name.trim();
+      console.log("Creating Clerk organization with:", {
+        name: orgName,
         slug: orgSlug,
         createdBy: user.clerkId,
+      });
+
+      // Try creating organization - createdBy might be optional in some Clerk versions
+      // If it fails, we'll get detailed error from Clerk
+      clerkOrg = await clerk.organizations.createOrganization({
+        name: orgName,
+        slug: orgSlug,
+        ...(user.clerkId && { createdBy: user.clerkId }),
       });
       console.log("Created organization in Clerk:", clerkOrg.id);
     } catch (clerkError: unknown) {
       console.error("Clerk organization creation error:", clerkError);
-      let errorMessage = "Failed to create organization in Clerk";
       
-      if (clerkError instanceof Error) {
-        errorMessage = clerkError.message;
-        if (clerkError.message.includes("already exists") || clerkError.message.includes("slug")) {
-          errorMessage = "An organization with this name or a similar name already exists. Please choose a different name.";
-        } else if (clerkError.message.includes("permission") || clerkError.message.includes("unauthorized")) {
-          errorMessage = "You don't have permission to create organizations. Please check your account settings.";
+      // Extract detailed error information
+      let errorMessage = "Failed to create organization in Clerk";
+      let errorDetails: string[] = [];
+      
+      if (clerkError && typeof clerkError === "object") {
+        // Check if it's a Clerk error object with errors array
+        if ("errors" in clerkError && Array.isArray(clerkError.errors)) {
+          errorDetails = clerkError.errors.map((err: unknown) => {
+            if (err && typeof err === "object" && "message" in err) {
+              return String(err.message);
+            }
+            return String(err);
+          });
+          console.error("Clerk error details:", errorDetails);
         }
+        
+        // Check for status and message
+        if ("status" in clerkError) {
+          console.error("Clerk error status:", clerkError.status);
+        }
+        
+        if ("message" in clerkError && typeof clerkError.message === "string") {
+          errorMessage = clerkError.message;
+        }
+      } else if (clerkError instanceof Error) {
+        errorMessage = clerkError.message;
+      }
+      
+      // Provide user-friendly error messages
+      if (errorMessage.includes("already exists") || errorMessage.includes("slug") || errorDetails.some(d => d.includes("slug"))) {
+        errorMessage = "An organization with this name or a similar name already exists. Please choose a different name.";
+      } else if (errorMessage.includes("permission") || errorMessage.includes("unauthorized") || errorDetails.some(d => d.includes("permission"))) {
+        errorMessage = "You don't have permission to create organizations. Please check your account settings.";
+      } else if (errorMessage.includes("Bad Request") || errorDetails.some(d => d.includes("required") || d.includes("invalid"))) {
+        errorMessage = `Invalid organization data: ${errorDetails.join(", ") || errorMessage}`;
       }
       
       return NextResponse.json({ error: errorMessage }, { status: 500 });

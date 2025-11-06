@@ -13,7 +13,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/cron/digest",
   "/api/webhooks/clerk",
   "/onboarding",
-  "/api/check-onboarding", // Add this route to public routes
+  "/api/check-onboarding",
 ]);
 
 async function needsOnboarding(clerkId: string): Promise<boolean> {
@@ -37,13 +37,16 @@ async function needsOnboarding(clerkId: string): Promise<boolean> {
 export default clerkMiddleware(async (auth, request) => {
   const { userId: clerkId } = await auth();
 
-  // Protect non-public routes
   if (!isPublicRoute(request)) {
-    await auth.protect();
+
+    if (!request.nextUrl.pathname.startsWith("/api")) {
+      await auth.protect();
+    }
   }
 
   // Check onboarding for authenticated users accessing protected routes
-  if (clerkId && !request.nextUrl.pathname.startsWith("/onboarding") && !isPublicRoute(request)) {
+  // Skip onboarding check for API routes (they handle their own auth)
+  if (clerkId && !request.nextUrl.pathname.startsWith("/onboarding") && !isPublicRoute(request) && !request.nextUrl.pathname.startsWith("/api")) {
     const needsOnboardingCheck = await needsOnboarding(clerkId);
     
     if (needsOnboardingCheck) {
