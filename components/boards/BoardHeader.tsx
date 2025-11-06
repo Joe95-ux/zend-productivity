@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search, UsersRound } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search, UsersRound, Folder } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 import { BoardFilter } from "./BoardFilter";
 import { cn } from "@/lib/utils";
 import { ShareBoardModal } from "./ShareBoardModal";
+import { AssignBoardModal } from "./AssignBoardModal";
 import { WifiOff } from "lucide-react";
 import { ConditionalOrganizationSwitcher } from "@/components/organizations/ConditionalOrganizationSwitcher";
 
@@ -358,7 +359,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     },
   });
 
-  const handleEditComment = (_commentId: string, _currentContent: string) => {
+  const handleEditComment = () => {
     // TODO: Implement comment editing UI in activity dropdown
     // For now, editing is not implemented in the activity dropdown
     toast.info("Comment editing is not available in the activity dropdown. Please edit from the card modal.");
