@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
@@ -13,6 +14,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { isLoaded, isSignedIn } = useUser();
+  const pathname = usePathname();
+
+  // Check if we're on a board page (path ends with an ID like /dashboard/boards/[boardId])
+  // MongoDB ObjectId pattern: 24 hex characters
+  const isBoardPage = /\/boards\/[a-f0-9]{24}(\/|$)/.test(pathname);
 
   if (!isLoaded) {
     return (
@@ -36,6 +42,12 @@ export default function DashboardLayout({
     );
   }
 
+  // For board pages, render without sidebar (no distractions)
+  if (isBoardPage) {
+    return <>{children}</>;
+  }
+
+  // For other dashboard pages, render with sidebar
   return (
     <SidebarProvider defaultOpen={true}>
       <DashboardSidebar />

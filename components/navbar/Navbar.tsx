@@ -412,7 +412,7 @@ export function Navbar() {
                     <>
                       <Button 
                         asChild 
-                        variant={isDashboardPage ? "secondary" : "ghost"}
+                        variant="ghost"
                         disabled={isDashboardPage}
                       >
                         <Link href="/dashboard">Dashboard</Link>
