@@ -39,6 +39,10 @@ export function CreateWorkspaceForm({ onSuccess, organizationId }: CreateWorkspa
 
   const createWorkspaceMutation = useMutation({
     mutationFn: async (data: CreateWorkspaceFormData) => {
+      // Only use organizationId if explicitly passed as prop
+      // This allows creating personal workspaces even when an organization is active
+      const finalOrganizationId = organizationId || null;
+      
       const response = await fetch("/api/workspaces", {
         method: "POST",
         headers: {
@@ -46,7 +50,7 @@ export function CreateWorkspaceForm({ onSuccess, organizationId }: CreateWorkspa
         },
         body: JSON.stringify({
           ...data,
-          organizationId: organizationId || organization?.id || null,
+          organizationId: finalOrganizationId,
         }),
       });
 

@@ -6,7 +6,6 @@ import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 interface FileItem {
   id: string;
@@ -119,12 +118,12 @@ export function FilePreviewSheet({ file, open, onOpenChange }: FilePreviewSheetP
           <div className="flex-1 overflow-y-auto px-6 py-6">
             {/* File Preview */}
             <div className="mb-6">
-              <div className="rounded-lg border bg-muted/50 p-6 flex items-center justify-center min-h-[200px] max-h-[400px]">
-                {isImage && file.url ? (
+              {isImage && file.url ? (
+                <div className="flex items-center justify-center min-h-[200px] max-h-[400px]">
                   <img
                     src={file.url}
                     alt={file.filename || "Image"}
-                    className="max-w-full max-h-full object-contain rounded"
+                    className="max-w-full max-h-full object-contain"
                     onError={(e) => {
                       // Fallback to icon if image fails to load
                       e.currentTarget.style.display = 'none';
@@ -134,15 +133,15 @@ export function FilePreviewSheet({ file, open, onOpenChange }: FilePreviewSheetP
                       }
                     }}
                   />
-                ) : null}
-                <div className={cn(
-                  "flex flex-col items-center gap-4",
-                  isImage && file.url ? "hidden" : ""
-                )}>
-                  <FileIcon className="h-16 w-16 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">{getFileTypeLabel()}</p>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-lg border bg-muted/50 p-6 flex items-center justify-center min-h-[200px] max-h-[400px]">
+                  <div className="flex flex-col items-center gap-4">
+                    <FileIcon className="h-16 w-16 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">{getFileTypeLabel()}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}

@@ -23,6 +23,7 @@ model User {
   watches       Watch[]
   notifications Notification[]
   favorites     FavoriteBoard[]
+  favoriteAttachments FavoriteAttachment[]
   organizationMemberships OrganizationMember[]
   joinRequests  BoardJoinRequest[]
   
@@ -159,6 +160,7 @@ model Attachment {
   filename  String?
   cardId    String   @db.ObjectId
   card      Card?    @relation(fields: [cardId], references: [id])
+  favorites FavoriteAttachment[]
   createdAt DateTime @default(now())
 }
 
@@ -325,6 +327,19 @@ model FavoriteBoard {
   @@unique([userId, boardId])
   @@index([userId])
   @@index([boardId])
+}
+
+model FavoriteAttachment {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String     @db.ObjectId
+  user         User       @relation(fields: [userId], references: [id])
+  attachmentId String     @db.ObjectId
+  attachment   Attachment @relation(fields: [attachmentId], references: [id])
+  createdAt    DateTime   @default(now())
+  
+  @@unique([userId, attachmentId])
+  @@index([userId])
+  @@index([attachmentId])
 }
 
 model BoardJoinRequest {

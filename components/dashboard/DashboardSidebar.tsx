@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus, Folder, FolderKanban, Building2, UsersRound, ChevronRight, ChevronDown, Clock, Kanban, Home, Inbox, AlertCircle, FileText, HardDrive, Paperclip } from "lucide-react";
 import { ConditionalOrganizationSwitcher } from "@/components/organizations/ConditionalOrganizationSwitcher";
-import { useOrganization } from "@clerk/nextjs";
 import { CreateWorkspaceForm } from "@/components/workspaces/CreateWorkspaceForm";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -84,7 +83,7 @@ export function DashboardSidebar() {
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [createProjectWorkspaceId, setCreateProjectWorkspaceId] = useState<string | null>(null);
   const [isStorageExpanded, setIsStorageExpanded] = useState(false);
-  const { organization } = useOrganization();
+  // Removed unused organization variable
 
   // Load recent boards from localStorage
   useEffect(() => {
@@ -707,7 +706,7 @@ export function DashboardSidebar() {
           </DialogHeader>
           <CreateWorkspaceForm 
             onSuccess={() => setIsCreateWorkspaceOpen(false)}
-            organizationId={organization?.id}
+            // Don't automatically pass organizationId - let user choose in the form
           />
         </DialogContent>
       </Dialog>

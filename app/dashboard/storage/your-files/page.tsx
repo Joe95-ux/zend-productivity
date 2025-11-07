@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Image, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Image, Search, ChevronLeft, ChevronRight, Grid3x3, List, Star, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilePreviewSheet } from "@/components/storage/FilePreviewSheet";
 import { formatDistanceToNow } from "date-fns";
@@ -13,6 +14,14 @@ import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
 import { extractFilename } from "@/lib/file-utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useMutation } from "@tanstack/react-query";
 
 interface FileItem {
   id: string;
@@ -45,10 +54,16 @@ interface FilesResponse {
 export default function YourFilesPage() {
   const [search, setSearch] = useState("");
   const [type, setType] = useState<"all" | "images" | "documents" | "other">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "filetype" | "filesize">("newest");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingFile, setEditingFile] = useState<FileItem | null>(null);
+  const [editFilename, setEditFilename] = useState("");
+  const [deletingFile, setDeletingFile] = useState<FileItem | null>(null);
+  const [favoriteStatuses, setFavoriteStatuses] = useState<Record<string, boolean>>({});
   const queryClient = useQueryClient();
 
   // Debounce search
@@ -60,25 +75,131 @@ export default function YourFilesPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Reset page when type changes
+  // Reset page when type or sortBy changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [type]);
+  }, [type, sortBy]);
 
   const { data, isLoading } = useQuery<FilesResponse>({
-    queryKey: ["your-files", debouncedSearch, type, currentPage],
+    queryKey: ["your-files", debouncedSearch, type, sortBy, currentPage],
     queryFn: async () => {
       const params = new URLSearchParams({
         search: debouncedSearch,
         type: type,
+        sortBy: sortBy,
         page: currentPage.toString(),
         limit: "24" // Smaller page size for better UX
       });
       const response = await fetch(`/api/storage/your-files?${params}`);
       if (!response.ok) throw new Error("Failed to fetch files");
-      return response.json();
+      const data = await response.json();
+      
+      // Fetch favorite statuses for all files
+      const favoritePromises = data.files.map((file: FileItem) =>
+        fetch(`/api/storage/your-files/${file.id}/favorite`)
+          .then(res => res.json())
+          .then(res => ({ fileId: file.id, isFavorite: res.isFavorite }))
+          .catch(() => ({ fileId: file.id, isFavorite: false }))
+      );
+      const favoriteResults = await Promise.all(favoritePromises);
+      const favorites: Record<string, boolean> = {};
+      favoriteResults.forEach(({ fileId, isFavorite }) => {
+        favorites[fileId] = isFavorite;
+      });
+      setFavoriteStatuses(favorites);
+      
+      return data;
     },
   });
+
+  // Favorite toggle mutation
+  const favoriteMutation = useMutation({
+    mutationFn: async ({ fileId, isFavorite }: { fileId: string; isFavorite: boolean }) => {
+      const response = await fetch(`/api/storage/your-files/${fileId}/favorite`, {
+        method: isFavorite ? "POST" : "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to toggle favorite");
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      setFavoriteStatuses(prev => ({
+        ...prev,
+        [variables.fileId]: variables.isFavorite
+      }));
+      toast.success(variables.isFavorite ? "Added to favorites" : "Removed from favorites");
+    },
+    onError: () => {
+      toast.error("Failed to update favorite");
+    },
+  });
+
+  // Update filename mutation
+  const updateFilenameMutation = useMutation({
+    mutationFn: async ({ fileId, filename }: { fileId: string; filename: string }) => {
+      const response = await fetch(`/api/storage/your-files/${fileId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename }),
+      });
+      if (!response.ok) throw new Error("Failed to update filename");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["your-files"] });
+      setEditingFile(null);
+      setEditFilename("");
+      toast.success("Filename updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update filename");
+    },
+  });
+
+  // Delete file mutation
+  const deleteFileMutation = useMutation({
+    mutationFn: async (fileId: string) => {
+      const response = await fetch(`/api/storage/your-files/${fileId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete file");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["your-files"] });
+      setDeletingFile(null);
+      toast.success("File deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete file");
+    },
+  });
+
+  const handleFavoriteClick = (e: React.MouseEvent, file: FileItem) => {
+    e.stopPropagation();
+    const currentFavorite = favoriteStatuses[file.id] || false;
+    favoriteMutation.mutate({ fileId: file.id, isFavorite: !currentFavorite });
+  };
+
+  const handleEditClick = (e: React.MouseEvent, file: FileItem) => {
+    e.stopPropagation();
+    setEditingFile(file);
+    setEditFilename(file.filename || extractFilename(file.url));
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, file: FileItem) => {
+    e.stopPropagation();
+    setDeletingFile(file);
+  };
+
+  const handleEditSubmit = () => {
+    if (!editingFile || !editFilename.trim()) return;
+    updateFilenameMutation.mutate({ fileId: editingFile.id, filename: editFilename.trim() });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deletingFile) return;
+    deleteFileMutation.mutate(deletingFile.id);
+  };
 
   const getFileIcon = (file: FileItem) => {
     const fileType = file.type?.toLowerCase() || "";
@@ -213,9 +334,9 @@ export default function YourFilesPage() {
             </div>
           </div>
 
-          {/* Search and Tabs Row */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
-            {/* Tabs */}
+          {/* Search, Sort, and View Controls Row */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
+            {/* Tabs - Left */}
             <Tabs value={type} onValueChange={(v) => setType(v as typeof type)}>
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
@@ -225,8 +346,8 @@ export default function YourFilesPage() {
               </TabsList>
             </Tabs>
 
-            {/* Search */}
-            <div className="relative w-full sm:w-auto sm:min-w-[300px]">
+            {/* Search - Center */}
+            <div className="relative flex-1 max-w-md mx-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search files..."
@@ -234,6 +355,41 @@ export default function YourFilesPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 w-full"
               />
+            </div>
+
+            {/* Sort and View - Right */}
+            <div className="flex items-center gap-2 ml-auto">
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                  <SelectItem value="filetype">File Type</SelectItem>
+                  <SelectItem value="filesize">File Size</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-1 border rounded-md p-1">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setViewMode("list")}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -270,59 +426,293 @@ export default function YourFilesPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
-              {data.files.map((file) => {
-                const Icon = getFileIcon(file);
-                const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
-                const fileName = file.filename || extractFilename(file.url);
+            {viewMode === "grid" ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
+                {data.files.map((file) => {
+                  const Icon = getFileIcon(file);
+                  const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
+                  const fileName = file.filename || extractFilename(file.url);
 
-                return (
-                  <div
-                    key={file.id}
-                    onClick={() => setSelectedFile(file)}
-                    className={cn(
-                      "group relative rounded-lg border bg-card hover:bg-accent transition-colors cursor-pointer overflow-hidden",
-                      "flex flex-col"
-                    )}
-                  >
-                    {/* File Preview/Thumbnail */}
-                    <div className="aspect-square bg-muted flex items-center justify-center relative overflow-hidden">
-                      {thumbnailUrl ? (
-                        <img
-                          src={thumbnailUrl}
-                          alt={fileName}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          onError={(e) => {
-                            // Fallback to icon if image fails to load
-                            e.currentTarget.style.display = 'none';
-                            const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
-                            if (iconContainer) {
-                              iconContainer.classList.remove('hidden');
-                            }
-                          }}
-                        />
-                      ) : null}
-                      <div className={cn(
-                        "absolute inset-0 flex items-center justify-center",
-                        thumbnailUrl ? "hidden" : ""
-                      )}>
-                        <Icon className="h-8 w-8 text-muted-foreground" />
+                  const isFavorite = favoriteStatuses[file.id] || false;
+
+                  return (
+                    <div
+                      key={file.id}
+                      className={cn(
+                        "group relative rounded-lg border bg-card hover:bg-accent transition-colors overflow-hidden",
+                        "flex flex-col"
+                      )}
+                    >
+                      {/* Favorite and Menu Icons */}
+                      <div className="absolute top-2 left-2 z-10">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 bg-background/80 hover:bg-background"
+                          onClick={(e) => handleFavoriteClick(e, file)}
+                        >
+                          <Star
+                            className={cn(
+                              "h-4 w-4",
+                              isFavorite ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"
+                            )}
+                          />
+                        </Button>
+                      </div>
+                      <div className="absolute top-2 right-2 z-10">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 bg-background/80 hover:bg-background"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => handleEditClick(e, file)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => handleDeleteClick(e, file)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {/* File Preview/Thumbnail */}
+                      <div
+                        onClick={() => setSelectedFile(file)}
+                        className="aspect-square bg-muted flex items-center justify-center relative overflow-hidden cursor-pointer"
+                      >
+                        {thumbnailUrl ? (
+                          <img
+                            src={thumbnailUrl}
+                            alt={fileName}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            onError={(e) => {
+                              // Fallback to icon if image fails to load
+                              e.currentTarget.style.display = 'none';
+                              const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (iconContainer) {
+                                iconContainer.classList.remove('hidden');
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <div className={cn(
+                          "absolute inset-0 flex items-center justify-center",
+                          thumbnailUrl ? "hidden" : ""
+                        )}>
+                          <Icon className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      </div>
+
+                      {/* File Info */}
+                      <div
+                        onClick={() => setSelectedFile(file)}
+                        className="p-2 flex-1 flex flex-col min-w-0 cursor-pointer"
+                      >
+                        <p className="text-xs font-medium truncate mb-0.5" title={fileName}>
+                          {fileName}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
+                        </p>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data.files.map((file) => {
+                  const Icon = getFileIcon(file);
+                  const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
+                  const fileName = file.filename || extractFilename(file.url);
+                  const isFavorite = favoriteStatuses[file.id] || false;
 
-                    {/* File Info */}
-                    <div className="p-2 flex-1 flex flex-col min-w-0">
-                      <p className="text-xs font-medium truncate mb-0.5" title={fileName}>
-                        {fileName}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
-                      </p>
+                  return (
+                    <div
+                      key={file.id}
+                      className={cn(
+                        "group relative rounded-lg border bg-card hover:bg-accent transition-colors",
+                        "flex items-center gap-4 p-4"
+                      )}
+                    >
+                      {/* Favorite and Menu Icons */}
+                      <div className="absolute top-2 left-2 z-10">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 bg-background/80 hover:bg-background"
+                          onClick={(e) => handleFavoriteClick(e, file)}
+                        >
+                          <Star
+                            className={cn(
+                              "h-4 w-4",
+                              isFavorite ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"
+                            )}
+                          />
+                        </Button>
+                      </div>
+                      <div className="absolute top-2 right-2 z-10">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 bg-background/80 hover:bg-background"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => handleEditClick(e, file)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => handleDeleteClick(e, file)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {/* File Preview/Thumbnail */}
+                      <div
+                        onClick={() => setSelectedFile(file)}
+                        className="w-16 h-16 bg-muted rounded flex items-center justify-center relative overflow-hidden flex-shrink-0 cursor-pointer"
+                      >
+                        {thumbnailUrl ? (
+                          <img
+                            src={thumbnailUrl}
+                            alt={fileName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (iconContainer) {
+                                iconContainer.classList.remove('hidden');
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <div className={cn(
+                          "absolute inset-0 flex items-center justify-center",
+                          thumbnailUrl ? "hidden" : ""
+                        )}>
+                          <Icon className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      </div>
+
+                      {/* File Info */}
+                      <div
+                        onClick={() => setSelectedFile(file)}
+                        className="flex-1 min-w-0 cursor-pointer"
+                      >
+                        <p className="text-sm font-medium truncate mb-1" title={fileName}>
+                          {fileName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
+                        </p>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Edit File Dialog */}
+            <Dialog open={!!editingFile} onOpenChange={(open: boolean) => {
+              if (!open) {
+                setEditingFile(null);
+                setEditFilename("");
+              }
+            }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit File Name</DialogTitle>
+                  <DialogDescription>
+                    Update the filename for this file.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <Input
+                    value={editFilename}
+                    onChange={(e) => setEditFilename(e.target.value)}
+                    placeholder="Enter filename..."
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleEditSubmit();
+                      }
+                    }}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setEditingFile(null);
+                        setEditFilename("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleEditSubmit}
+                      disabled={!editFilename.trim() || updateFilenameMutation.isPending}
+                    >
+                      {updateFilenameMutation.isPending ? "Saving..." : "Save"}
+                    </Button>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deletingFile} onOpenChange={(open: boolean) => {
+              if (!open) {
+                setDeletingFile(null);
+              }
+            }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete File</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete &quot;{deletingFile?.filename || extractFilename(deletingFile?.url || "")}&quot;? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeletingFile(null)}
+                    disabled={deleteFileMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteConfirm}
+                    disabled={deleteFileMutation.isPending}
+                  >
+                    {deleteFileMutation.isPending ? "Deleting..." : "Delete"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* Pagination */}
             {data.totalPages > 1 && (

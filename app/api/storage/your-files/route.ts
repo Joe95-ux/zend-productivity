@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const type = searchParams.get("type") || "all"; // "all", "images", "documents", "other"
+    const sortBy = searchParams.get("sortBy") || "newest"; // "newest", "oldest", "filetype", "filesize"
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
@@ -184,7 +185,21 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: (() => {
+          switch (sortBy) {
+            case "oldest":
+              return { createdAt: "asc" };
+            case "filetype":
+              return { filename: "asc" };
+            case "filesize":
+              // Note: File size sorting would require storing size in DB
+              // For now, fallback to newest
+              return { createdAt: "desc" };
+            case "newest":
+            default:
+              return { createdAt: "desc" };
+          }
+        })(),
         skip,
         take: limit
       }),
