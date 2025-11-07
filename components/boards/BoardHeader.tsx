@@ -1,14 +1,48 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search, UsersRound, Folder, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  MoreHorizontal,
+  Star,
+  Share2,
+  Info,
+  Eye,
+  EyeOff,
+  Printer,
+  Download,
+  Settings,
+  Palette,
+  Crown,
+  Activity,
+  Copy,
+  Mail,
+  Trash2,
+  X,
+  Tag,
+  Edit,
+  Plus,
+  Search,
+  UsersRound,
+  Folder,
+  FileText,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { UserButton } from "@clerk/nextjs";
@@ -79,7 +113,12 @@ interface Comment {
   };
 }
 
-export function BoardHeader({ boardId, boardTitle, boardDescription, membersCount }: BoardHeaderProps) {
+export function BoardHeader({
+  boardId,
+  boardTitle,
+  boardDescription,
+  membersCount,
+}: BoardHeaderProps) {
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   const [isLabelsOpen, setIsLabelsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -95,7 +134,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(boardTitle);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [editDescription, setEditDescription] = useState(boardDescription || "");
+  const [editDescription, setEditDescription] = useState(
+    boardDescription || ""
+  );
   const [activeTab, setActiveTab] = useState("activity");
   const [isWatching, setIsWatching] = useState(false);
   const [isWatchLoading, setIsWatchLoading] = useState(false);
@@ -104,21 +145,26 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isAboutBoardOpen, setIsAboutBoardOpen] = useState(false);
-  const [isEditingBoardDescription, setIsEditingBoardDescription] = useState(false);
-  const [editBoardDescription, setEditBoardDescription] = useState(boardDescription || "");
-  
+  const [isEditingBoardDescription, setIsEditingBoardDescription] =
+    useState(false);
+  const [editBoardDescription, setEditBoardDescription] = useState(
+    boardDescription || ""
+  );
+
   // Fetch board admins (owner + members with admin role)
-  const { data: boardAdmins } = useQuery<Array<{
-    id: string;
-    user: {
+  const { data: boardAdmins } = useQuery<
+    Array<{
       id: string;
-      name?: string;
-      email: string;
-      avatarUrl?: string;
-      clerkId?: string;
-    };
-    role: "admin" | "member";
-  }>>({
+      user: {
+        id: string;
+        name?: string;
+        email: string;
+        avatarUrl?: string;
+        clerkId?: string;
+      };
+      role: "admin" | "member";
+    }>
+  >({
     queryKey: ["boardAdmins", boardId],
     queryFn: async () => {
       const response = await fetch(`/api/boards/${boardId}/members`);
@@ -129,29 +175,34 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     },
     enabled: isAboutBoardOpen,
   });
-  
+
   const dndContext = useDndContextOptional();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const currentUserId = useCurrentUserId();
   const { isOnline } = useOnlineStatus();
-  
+
   // Show toast when going offline
   useEffect(() => {
     if (!isOnline) {
-      toast.info("You are offline. Your work won't be saved until you reconnect.", {
-        duration: 5000,
-        id: "offline-notification", // Use a unique ID to prevent duplicate toasts
-      });
+      toast.info(
+        "You are offline. Your work won't be saved until you reconnect.",
+        {
+          duration: 5000,
+          id: "offline-notification", // Use a unique ID to prevent duplicate toasts
+        }
+      );
     }
   }, [isOnline]);
-  
+
   // Comment editing state (for future use)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [_editingCommentId, setEditingCommentId] = useState<string | null>(
+    null
+  );
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_commentToDelete, setCommentToDelete] = useState<string | null>(null);
-  
+
   // Fetch activities
   const { data: activities, isLoading: activitiesLoading } = useQuery({
     queryKey: ["activities", boardId],
@@ -204,11 +255,22 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   });
 
   // Get members array for filter (from boardData or dndContext as fallback)
-  const filterMembers = boardData?.owner && boardData?.members
-    ? [boardData.owner, ...(boardData.members.map((m: { user: unknown }) => m.user).filter(Boolean) || [])]
-    : dndContext?.orderedData
-    ? [dndContext.orderedData.owner, ...(dndContext.orderedData.members?.map(m => m.user).filter(Boolean) || [])]
-    : [];
+  const filterMembers =
+    boardData?.owner && boardData?.members
+      ? [
+          boardData.owner,
+          ...(boardData.members
+            .map((m: { user: unknown }) => m.user)
+            .filter(Boolean) || []),
+        ]
+      : dndContext?.orderedData
+      ? [
+          dndContext.orderedData.owner,
+          ...(dndContext.orderedData.members
+            ?.map((m) => m.user)
+            .filter(Boolean) || []),
+        ]
+      : [];
 
   // Fallback: Check watch status if not in DndProvider context
   const { data: watchStatusFallback } = useQuery({
@@ -244,20 +306,27 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     onMutate: async (newData) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["board", boardId] });
-      
+
       // Snapshot the previous value
       const previousBoard = queryClient.getQueryData(["board", boardId]);
-      
+
       // Optimistically update the cache
-      queryClient.setQueryData(["board", boardId], (old: { title?: string; description?: string; [key: string]: unknown } | undefined) => {
-        if (!old) return old;
-        return {
-          ...old,
-          title: newData.title || old.title,
-          description: newData.description || old.description,
-        };
-      });
-      
+      queryClient.setQueryData(
+        ["board", boardId],
+        (
+          old:
+            | { title?: string; description?: string; [key: string]: unknown }
+            | undefined
+        ) => {
+          if (!old) return old;
+          return {
+            ...old,
+            title: newData.title || old.title,
+            description: newData.description || old.description,
+          };
+        }
+      );
+
       // Return a context object with the snapshotted value
       return { previousBoard };
     },
@@ -431,7 +500,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const handleEditComment = () => {
     // TODO: Implement comment editing UI in activity dropdown
     // For now, editing is not implemented in the activity dropdown
-    toast.info("Comment editing is not available in the activity dropdown. Please edit from the card modal.");
+    toast.info(
+      "Comment editing is not available in the activity dropdown. Please edit from the card modal."
+    );
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -478,7 +549,15 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
 
   // Update label mutation
   const updateLabelMutation = useMutation({
-    mutationFn: async ({ labelId, name, color }: { labelId: string; name: string; color: string }) => {
+    mutationFn: async ({
+      labelId,
+      name,
+      color,
+    }: {
+      labelId: string;
+      name: string;
+      color: string;
+    }) => {
       const response = await fetch(`/api/labels/${labelId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -519,7 +598,11 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     },
   });
 
-  const handleEditLabel = (label: { id: string; name: string; color: string }) => {
+  const handleEditLabel = (label: {
+    id: string;
+    name: string;
+    color: string;
+  }) => {
     setEditingLabelId(label.id);
     setEditLabelName(label.name);
     setEditLabelColor(label.color);
@@ -552,8 +635,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   };
 
   // Filter labels based on search
-  const filteredLabels = boardLabels.filter((label: { id: string; name: string; color: string }) =>
-    label.name.toLowerCase().includes(labelSearchQuery.toLowerCase())
+  const filteredLabels = boardLabels.filter(
+    (label: { id: string; name: string; color: string }) =>
+      label.name.toLowerCase().includes(labelSearchQuery.toLowerCase())
   );
 
   // Fetch favorite status
@@ -593,14 +677,14 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     onMutate: async (shouldAdd: boolean) => {
       // Cancel any outgoing refetches to avoid snap-backs
       await queryClient.cancelQueries({ queryKey: ["boardFavorite", boardId] });
-      
+
       // Snapshot the previous value for rollback
       const previousFavoriteStatus = isFavorite;
-      
+
       // Optimistically update UI immediately
       setIsFavorite(shouldAdd);
       setIsFavoriteLoading(false);
-      
+
       // Return context for potential rollback
       return { previousFavoriteStatus, shouldAdd };
     },
@@ -608,8 +692,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
       // Success - keep the optimistic update
       // Don't invalidate queries to avoid snap-backs
       setIsFavoriteLoading(false);
-      const message = context?.shouldAdd 
-        ? "Added to favorites" 
+      const message = context?.shouldAdd
+        ? "Added to favorites"
         : "Removed from favorites";
       toast.success(message);
     },
@@ -642,7 +726,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     onSuccess: () => {
       setIsWatching(!isWatching);
       queryClient.invalidateQueries({ queryKey: ["watch", boardId] });
-      toast.success(isWatching ? "Stopped watching board" : "Now watching board");
+      toast.success(
+        isWatching ? "Stopped watching board" : "Now watching board"
+      );
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -652,11 +738,16 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const handleWatchToggle = () => {
     if (isWatchLoading) return;
     setIsWatchLoading(true);
-    
+
     // Use context toggle if available, otherwise use mutation
     if (dndContext?.toggleWatch) {
-      dndContext.toggleWatch({ boardId, watch: !isWatching })
-        .then(() => toast.success(!isWatching ? "Now watching board" : "Stopped watching board"))
+      dndContext
+        .toggleWatch({ boardId, watch: !isWatching })
+        .then(() =>
+          toast.success(
+            !isWatching ? "Now watching board" : "Stopped watching board"
+          )
+        )
         .catch(() => {})
         .finally(() => setIsWatchLoading(false));
     } else {
@@ -689,7 +780,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-6 w-full max-w-md"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Edit Board Title</h3>
+              <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
+                Edit Board Title
+              </h3>
               <Input
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
@@ -733,13 +826,18 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           <div className="flex items-center justify-between h-12">
             {/* Left side - Board title only */}
             <div className="flex items-center gap-1 min-[320px]:gap-2 sm:gap-4 min-w-0 flex-1">
-              <Button variant="ghost" size="sm" asChild className="cursor-pointer transition-all duration-300 ease-out hover:bg-muted/80 hover:scale-105">
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="cursor-pointer transition-all duration-300 ease-out hover:bg-muted/80 hover:scale-105"
+              >
                 <Link href="/dashboard">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
                 </Link>
               </Button>
-              <h1 
+              <h1
                 className="text-sm sm:text-[17px] font-bold text-slate-900 dark:text-white cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 px-2 py-1 rounded transition-all duration-300 ease-out truncate"
                 onClick={() => setIsEditingTitle(true)}
               >
@@ -760,18 +858,22 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               )}
               {/* User Profile - Hidden on mobile, shown in menu */}
               <div className="hidden lg:block mt-2">
-                <UserButton 
+                <UserButton
                   afterSignOutUrl="/"
                   appearance={{
                     elements: {
-                      avatarBox: "w-8 h-8"
-                    }
+                      avatarBox: "w-8 h-8",
+                    },
                   }}
                 />
               </div>
 
               {/* Members count - Clickable - Hidden on mobile */}
-              <Button variant="ghost" size="sm" className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex"
+              >
                 <HoverHint label={`${membersCount} members`} side="bottom">
                   <UsersRound className="h-4 w-4 mr-1" />
                 </HoverHint>
@@ -779,30 +881,35 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </Button>
 
               {/* Favorite button - Clickable - Hidden on mobile */}
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex"
                 onClick={() => favoriteToggleMutation.mutate(!isFavorite)}
                 disabled={isFavoriteLoading}
               >
-                <HoverHint label={isFavorite ? "Remove from favorites" : "Add to favorites"} side="bottom">
-                  <Star 
+                <HoverHint
+                  label={
+                    isFavorite ? "Remove from favorites" : "Add to favorites"
+                  }
+                  side="bottom"
+                >
+                  <Star
                     className={cn(
                       "h-4 w-4 transition-colors",
-                      isFavorite 
-                        ? "fill-yellow-400 text-yellow-400" 
+                      isFavorite
+                        ? "fill-yellow-400 text-yellow-400"
                         : "text-slate-500 dark:text-slate-400"
-                    )} 
+                    )}
                   />
                 </HoverHint>
               </Button>
 
               {/* Share button - Clickable - Hidden on mobile */}
               <HoverHint label="Share board" side="bottom">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="cursor-pointer transition-all duration-300 ease-out hover:scale-105 hidden lg:flex"
                   onClick={() => setIsShareModalOpen(true)}
                 >
@@ -811,17 +918,14 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </HoverHint>
 
               {/* Filter button */}
-              <BoardFilter
-                labels={boardLabels}
-                members={filterMembers}
-              />
+              <BoardFilter labels={boardLabels} members={filterMembers} />
 
               {/* Menu - Clickable */}
               <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="cursor-pointer transition-all duration-300 ease-out hover:scale-105"
                   >
                     <HoverHint label="Board menu" side="bottom">
@@ -829,10 +933,10 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     </HoverHint>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  side="bottom" 
-                  align="end" 
-                  sideOffset={isMobile ? -14 : 4} 
+                <DropdownMenuContent
+                  side="bottom"
+                  align="end"
+                  sideOffset={isMobile ? -14 : 4}
                   alignOffset={-25}
                   className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] rounded-lg p-0 flex flex-col dark:bg-[#0D1117]"
                 >
@@ -849,19 +953,21 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       </HoverHint>
                     </Button>
                   </div>
-                  
+
                   {/* Mobile User Profile - Only visible on mobile */}
                   <div className="lg:hidden px-[14px] py-2 border-b border-slate-200 dark:border-slate-700">
                     <div className="flex items-center gap-3">
-                      <UserButton 
+                      <UserButton
                         afterSignOutUrl="/"
                         appearance={{
                           elements: {
-                            avatarBox: "w-8 h-8"
-                          }
+                            avatarBox: "w-8 h-8",
+                          },
                         }}
                       />
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Account</span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Account
+                      </span>
                     </div>
                   </div>
 
@@ -869,158 +975,199 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                   <div className="px-[14px] py-2 border-b border-slate-200 dark:border-slate-700">
                     <ConditionalOrganizationSwitcher />
                   </div>
-                  
+
                   <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
                     <div className="p-[14px] space-y-2">
-                    {/* About this board */}
-                    <div className="space-y-0">
-                      <div 
-                        className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
-                        onClick={() => {
-                          setIsAboutBoardOpen(true);
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        <Info className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">About this board</span>
-                      </div>
-                      {!boardDescription && (
-                        <div className="px-2 pb-2">
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Add a description to your board</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Visibility */}
-                    <div className="space-y-0">
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Users className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Visibility</span>
-                      </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Printer className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Print</span>
-                      </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Download className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Export</span>
-                      </div>
-                      <div 
-                        className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
-                        onClick={() => {
-                          setIsShareModalOpen(true);
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        <Share2 className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Share</span>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Settings */}
-                    <div className="space-y-0">
-                      <div 
-                        className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
-                        onClick={() => {
-                          setIsAssignModalOpen(true);
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        <Folder className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Assign to Workspace/Project</span>
-                      </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Settings className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Settings</span>
-                      </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Palette className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Change background</span>
-                      </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Crown className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Upgrade plan</span>
-                      </div>
-                    </div>
-
-                    {/* Upgrade Plan Card */}
-                    <Card className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 shadow-lg dark:shadow-slate-900/50 rounded-md py-6">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold text-slate-900 dark:text-white">Upgrade to Pro</CardTitle>
-                        <CardDescription className="text-xs text-slate-600 dark:text-slate-400">
-                          Get unlimited boards, advanced features, and priority support.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <Button 
-                          size="sm" 
-                          className="w-full bg-slate-600 hover:bg-slate-700 dark:bg-purple-600 dark:hover:bg-purple-700 text-white text-xs"
+                      {/* About this board */}
+                      <div className="space-y-0">
+                        <div
+                          className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                          onClick={() => {
+                            setIsAboutBoardOpen(true);
+                            setIsMenuOpen(false);
+                          }}
                         >
-                          Upgrade Now
-                        </Button>
-                      </CardContent>
-                    </Card>
+                          <Info className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">
+                            About this board
+                          </span>
+                        </div>
+                        {!boardDescription && (
+                          <div className="px-2 pb-2">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Add a description to your board
+                            </p>
+                          </div>
+                        )}
+                      </div>
 
-                    <Separator />
+                      {/* Visibility */}
+                      <div className="space-y-0">
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <UsersRound className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">
+                            Visibility
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <Printer className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">Print</span>
+                        </div>
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <Download className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">Export</span>
+                        </div>
+                        <div
+                          className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                          onClick={() => {
+                            setIsShareModalOpen(true);
+                            setIsMenuOpen(false);
+                          }}
+                        >
+                          <Share2 className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">Share</span>
+                        </div>
+                      </div>
 
-                    {/* Board Features - Only on smaller screens */}
-                    <div className="space-y-0 lg:hidden">
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Users className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Members ({membersCount})</span>
-                      </div>
-                      <div 
-                        className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
-                        onClick={() => favoriteToggleMutation.mutate(!isFavorite)}
-                      >
-                        <Star 
-                          className={cn(
-                            "h-4 w-4 transition-colors",
-                            isFavorite 
-                              ? "fill-yellow-400 text-yellow-400" 
-                              : "text-slate-400"
-                          )} 
-                        />
-                        <span className="text-sm font-normal">
-                          {isFavorite ? "Remove from favorites" : "Add to favorites"}
-                        </span>
-                      </div>
-                    </div>
+                      <Separator />
 
-                    <Separator className="lg:hidden" />
+                      {/* Settings */}
+                      <div className="space-y-0">
+                        <div
+                          className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                          onClick={() => {
+                            setIsAssignModalOpen(true);
+                            setIsMenuOpen(false);
+                          }}
+                        >
+                          <Folder className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">
+                            Assign to Workspace/Project
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <Settings className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">Settings</span>
+                        </div>
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <Palette className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">
+                            Change background
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <Crown className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">
+                            Upgrade plan
+                          </span>
+                        </div>
+                      </div>
 
-                    {/* Actions */}
-                    <div className="space-y-0">
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors" onClick={handleActivityClick}>
-                        <Activity className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Activity</span>
+                      {/* Upgrade Plan Card */}
+                      <Card className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 shadow-lg dark:shadow-slate-900/50 rounded-md py-6">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-semibold text-slate-900 dark:text-white">
+                            Upgrade to Pro
+                          </CardTitle>
+                          <CardDescription className="text-xs text-slate-600 dark:text-slate-400">
+                            Get unlimited boards, advanced features, and
+                            priority support.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <Button
+                            size="sm"
+                            className="w-full bg-slate-600 hover:bg-slate-700 dark:bg-purple-600 dark:hover:bg-purple-700 text-white text-xs"
+                          >
+                            Upgrade Now
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      <Separator />
+
+                      {/* Board Features - Only on smaller screens */}
+                      <div className="space-y-0 lg:hidden">
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <UsersRound className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">
+                            Members ({membersCount})
+                          </span>
+                        </div>
+                        <div
+                          className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                          onClick={() =>
+                            favoriteToggleMutation.mutate(!isFavorite)
+                          }
+                        >
+                          <Star
+                            className={cn(
+                              "h-4 w-4 transition-colors",
+                              isFavorite
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-slate-400"
+                            )}
+                          />
+                          <span className="text-sm font-normal">
+                            {isFavorite
+                              ? "Remove from favorites"
+                              : "Add to favorites"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors" onClick={handleLabelsClick}>
-                        <Tag className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Labels</span>
+
+                      <Separator className="lg:hidden" />
+
+                      {/* Actions */}
+                      <div className="space-y-0">
+                        <div
+                          className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                          onClick={handleActivityClick}
+                        >
+                          <Activity className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">Activity</span>
+                        </div>
+                        <div
+                          className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                          onClick={handleLabelsClick}
+                        >
+                          <Tag className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">Labels</span>
+                        </div>
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <Copy className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">
+                            Copy board
+                          </span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors ${
+                            isWatching ? "text-blue-600 dark:text-blue-400" : ""
+                          }`}
+                          onClick={handleWatchToggle}
+                        >
+                          {isWatching ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-slate-400" />
+                          )}
+                          <span className="text-sm font-normal">
+                            {isWatching ? "Stop Watching" : "Watch"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <Mail className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">
+                            Email-to-board
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
+                          <Trash2 className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm font-normal">
+                            Close board
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Copy className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Copy board</span>
-                      </div>
-                      <div 
-                        className={`flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors ${isWatching ? 'text-blue-600 dark:text-blue-400' : ''}`}
-                        onClick={handleWatchToggle}
-                      >
-                        {isWatching ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-slate-400" />}
-                        <span className="text-sm font-normal">{isWatching ? 'Stop Watching' : 'Watch'}</span>
-                      </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Mail className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Email-to-board</span>
-                      </div>
-                      <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors">
-                        <Trash2 className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-normal">Close board</span>
-                      </div>
-                    </div>
                     </div>
                   </div>
                 </DropdownMenuContent>
@@ -1035,27 +1182,25 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
         <DropdownMenuTrigger asChild>
           <div />
         </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          side="bottom" 
-          align="end" 
-          sideOffset={isMobile ? -14 : 4} 
+        <DropdownMenuContent
+          side="bottom"
+          align="end"
+          sideOffset={isMobile ? -14 : 4}
           alignOffset={-10}
           className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117] rounded-lg"
         >
           <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleAboutBoardBack}
-                className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
-              >
-                <HoverHint label="Back to menu" side="bottom">
-                  <ArrowLeft className="h-4 w-4" />
-                </HoverHint>
-              </Button>
-              <h3 className="text-[17px] font-bold">About this board</h3>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAboutBoardBack}
+              className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              <HoverHint label="Back to menu" side="bottom">
+                <ArrowLeft className="h-4 w-4" />
+              </HoverHint>
+            </Button>
+            <h3 className="text-[16px] font-normal">About this board</h3>
             <Button
               variant="ghost"
               size="sm"
@@ -1067,13 +1212,13 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </HoverHint>
             </Button>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
             <div className="p-[14px] space-y-4">
               {/* Board Admins Section */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-slate-400" />
+                  <UsersRound className="h-4 w-4 text-slate-400" />
                   <h4 className="text-sm font-semibold">Board admins</h4>
                 </div>
                 {boardAdmins && boardAdmins.length > 0 ? (
@@ -1095,11 +1240,13 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">No admins found</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    No admins found
+                  </p>
                 )}
               </div>
 
-              <Separator />
+              <Separator className="my-6 bg-slate-200 dark:bg-slate-800" />
 
               {/* Description Section */}
               <div className="space-y-3">
@@ -1123,7 +1270,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     </Button>
                   )}
                 </div>
-                
+
                 {isEditingBoardDescription ? (
                   <div className="space-y-2">
                     <RichTextEditor
@@ -1151,19 +1298,23 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                         onClick={handleSaveBoardDescription}
                         disabled={updateBoardDescriptionMutation.isPending}
                       >
-                        {updateBoardDescriptionMutation.isPending ? "Saving..." : "Save"}
+                        {updateBoardDescriptionMutation.isPending
+                          ? "Saving..."
+                          : "Save"}
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <div 
+                  <div
                     className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-3 rounded transition-all duration-300 ease-out min-h-[60px]"
                     onClick={() => {
                       setIsEditingBoardDescription(true);
                       setEditBoardDescription(boardDescription || "");
                     }}
                     dangerouslySetInnerHTML={{
-                      __html: boardDescription || "<span class='text-slate-400'>Add a description to let your teammates know what this board is used for.</span>"
+                      __html:
+                        boardDescription ||
+                        "<span class='text-slate-400'>Add a description to let your teammates know what this board is used for.</span>",
                     }}
                   />
                 )}
@@ -1178,10 +1329,10 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
         <DropdownMenuTrigger asChild>
           <div />
         </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          side="bottom" 
-          align="end" 
-          sideOffset={isMobile ? -14 : 4} 
+        <DropdownMenuContent
+          side="bottom"
+          align="end"
+          sideOffset={isMobile ? -14 : 4}
           alignOffset={-10}
           className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117] rounded-lg"
         >
@@ -1210,19 +1361,30 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </HoverHint>
             </Button>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
             <div className="p-[14px]">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="w-full"
+              >
                 <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="activity" className="text-xs">All Activity</TabsTrigger>
-                  <TabsTrigger value="comments" className="text-xs">Comments</TabsTrigger>
+                  <TabsTrigger value="activity" className="text-xs">
+                    All Activity
+                  </TabsTrigger>
+                  <TabsTrigger value="comments" className="text-xs">
+                    Comments
+                  </TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="activity" className="space-y-3">
                   {activitiesLoading ? (
                     Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                      >
                         <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />
                         <div className="flex-1 space-y-2">
                           <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
@@ -1232,12 +1394,23 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     ))
                   ) : activities && activities.length > 0 ? (
                     activities.map((activity: Activity) => (
-                      <div key={activity.id} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <ConditionalUserProfile user={activity.user} size="md" />
+                      <div
+                        key={activity.id}
+                        className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                      >
+                        <ConditionalUserProfile
+                          user={activity.user}
+                          size="md"
+                        />
                         <div className="flex-1">
-                          <p className="text-sm text-slate-900 dark:text-white">{activity.message}</p>
+                          <p className="text-sm text-slate-900 dark:text-white">
+                            {activity.message}
+                          </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            {format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                            {format(
+                              new Date(activity.createdAt),
+                              "MMM d, yyyy 'at' h:mm a"
+                            )}
                           </p>
                         </div>
                       </div>
@@ -1249,12 +1422,15 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     </div>
                   )}
                 </TabsContent>
-                
+
                 <TabsContent value="comments" className="space-y-3">
                   {commentsLoading ? (
                     // Loading skeleton for comments
                     Array.from({ length: 6 }).map((_, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                      >
                         <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />
                         <div className="flex-1 space-y-2">
                           <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
@@ -1301,10 +1477,10 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
         <DropdownMenuTrigger asChild>
           <div />
         </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          side="bottom" 
-          align="end" 
-          sideOffset={isMobile ? -14 : 4} 
+        <DropdownMenuContent
+          side="bottom"
+          align="end"
+          sideOffset={isMobile ? -14 : 4}
           alignOffset={-10}
           className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117] rounded-lg"
         >
@@ -1333,7 +1509,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               </HoverHint>
             </Button>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
             <div className="p-[14px] space-y-4">
               {/* Search Input - First */}
@@ -1353,7 +1529,10 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
               {labelsLoading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="h-12 flex items-center gap-3 px-3 rounded-md bg-slate-100 dark:bg-slate-800 animate-pulse">
+                    <div
+                      key={i}
+                      className="h-12 flex items-center gap-3 px-3 rounded-md bg-slate-100 dark:bg-slate-800 animate-pulse"
+                    >
                       <div className="w-20 h-8 bg-slate-200 dark:bg-slate-700 rounded-sm" />
                       <div className="flex-1 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
                     </div>
@@ -1361,181 +1540,212 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                 </div>
               ) : filteredLabels.length > 0 ? (
                 <div className="space-y-2">
-                  {filteredLabels.map((label: { id: string; name: string; color: string }) => {
-                    const isEditing = editingLabelId === label.id;
-                    return (
-                      <div key={label.id}>
-                        {isEditing ? (
-                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                                Name
-                              </label>
-                              <Input
-                                value={editLabelName}
-                                onChange={(e) => setEditLabelName(e.target.value)}
-                                placeholder="Enter label name..."
-                                className="h-8 text-sm"
-                                autoFocus
-                                onKeyPress={(e) => {
-                                  if (e.key === "Enter") {
-                                    handleSaveLabel();
-                                  } else if (e.key === "Escape") {
-                                    setEditingLabelId(null);
-                                  }
-                                }}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                <Palette className="w-3 h-3" />
-                                Select a color
-                              </label>
-                              <div className="grid grid-cols-10 gap-1.5">
-                                {LABEL_COLORS.map((color) => (
-                                  <button
-                                    key={color.value}
-                                    onClick={() => {
-                                      setEditLabelColor(color.value);
-                                      setEditLabelCustomColor(""); // Clear custom color when selecting predefined
-                                    }}
-                                    className={`w-7 h-7 rounded border-2 transition-all ${
-                                      editLabelColor === color.value && !editLabelCustomColor
-                                        ? "border-slate-900 dark:border-white scale-110"
-                                        : "border-slate-300 dark:border-slate-600 hover:scale-105"
-                                    }`}
-                                    style={{ backgroundColor: color.value }}
-                                    title={color.name}
-                                  />
-                                ))}
-                              </div>
-                              
-                              {/* Custom Color Picker for Edit */}
+                  {filteredLabels.map(
+                    (label: { id: string; name: string; color: string }) => {
+                      const isEditing = editingLabelId === label.id;
+                      return (
+                        <div key={label.id}>
+                          {isEditing ? (
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
                               <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-xs text-slate-600 dark:text-slate-400">
-                                    Or choose custom color:
-                                  </label>
-                                  {!editLabelCustomColor && (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => setEditLabelCustomColor(editLabelColor)}
-                                      className="h-6 px-2 text-xs"
-                                    >
-                                      <Palette className="w-3 h-3 mr-1" />
-                                      Custom
-                                    </Button>
-                                  )}
-                                </div>
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 rounded-sm cursor-pointer"
-                                      style={{ backgroundColor: editLabelCustomColor || editLabelColor }}
+                                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  Name
+                                </label>
+                                <Input
+                                  value={editLabelName}
+                                  onChange={(e) =>
+                                    setEditLabelName(e.target.value)
+                                  }
+                                  placeholder="Enter label name..."
+                                  className="h-8 text-sm"
+                                  autoFocus
+                                  onKeyPress={(e) => {
+                                    if (e.key === "Enter") {
+                                      handleSaveLabel();
+                                    } else if (e.key === "Escape") {
+                                      setEditingLabelId(null);
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                  <Palette className="w-3 h-3" />
+                                  Select a color
+                                </label>
+                                <div className="grid grid-cols-10 gap-1.5">
+                                  {LABEL_COLORS.map((color) => (
+                                    <button
+                                      key={color.value}
                                       onClick={() => {
-                                        if (!editLabelCustomColor) {
-                                          setEditLabelCustomColor(editLabelColor);
-                                        }
+                                        setEditLabelColor(color.value);
+                                        setEditLabelCustomColor(""); // Clear custom color when selecting predefined
                                       }}
+                                      className={`w-7 h-7 rounded border-2 transition-all ${
+                                        editLabelColor === color.value &&
+                                        !editLabelCustomColor
+                                          ? "border-slate-900 dark:border-white scale-110"
+                                          : "border-slate-300 dark:border-slate-600 hover:scale-105"
+                                      }`}
+                                      style={{ backgroundColor: color.value }}
+                                      title={color.name}
                                     />
-                                    <Input
-                                      type="text"
-                                      value={editLabelCustomColor}
-                                      onChange={(e) => {
-                                        setEditLabelCustomColor(e.target.value);
-                                        setEditLabelColor(e.target.value);
-                                      }}
-                                      placeholder="#000000"
-                                      className="flex-1 h-8 text-sm"
-                                    />
-                                    {editLabelCustomColor && (
+                                  ))}
+                                </div>
+
+                                {/* Custom Color Picker for Edit */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-xs text-slate-600 dark:text-slate-400">
+                                      Or choose custom color:
+                                    </label>
+                                    {!editLabelCustomColor && (
                                       <Button
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setEditLabelCustomColor("")}
-                                        className="h-8 px-2"
+                                        onClick={() =>
+                                          setEditLabelCustomColor(
+                                            editLabelColor
+                                          )
+                                        }
+                                        className="h-6 px-2 text-xs"
                                       >
-                                        <X className="w-3 h-3" />
+                                        <Palette className="w-3 h-3 mr-1" />
+                                        Custom
                                       </Button>
                                     )}
                                   </div>
-                                  {editLabelCustomColor && (
-                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-sm border border-slate-200 dark:border-slate-700">
-                                      <HexColorPicker
-                                        color={editLabelCustomColor}
-                                        onChange={(color) => {
-                                          setEditLabelCustomColor(color);
-                                          setEditLabelColor(color);
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 rounded-sm cursor-pointer"
+                                        style={{
+                                          backgroundColor:
+                                            editLabelCustomColor ||
+                                            editLabelColor,
+                                        }}
+                                        onClick={() => {
+                                          if (!editLabelCustomColor) {
+                                            setEditLabelCustomColor(
+                                              editLabelColor
+                                            );
+                                          }
                                         }}
                                       />
+                                      <Input
+                                        type="text"
+                                        value={editLabelCustomColor}
+                                        onChange={(e) => {
+                                          setEditLabelCustomColor(
+                                            e.target.value
+                                          );
+                                          setEditLabelColor(e.target.value);
+                                        }}
+                                        placeholder="#000000"
+                                        className="flex-1 h-8 text-sm"
+                                      />
+                                      {editLabelCustomColor && (
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            setEditLabelCustomColor("")
+                                          }
+                                          className="h-8 px-2"
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </Button>
+                                      )}
                                     </div>
-                                  )}
+                                    {editLabelCustomColor && (
+                                      <div className="p-3 bg-white dark:bg-slate-900 rounded-sm border border-slate-200 dark:border-slate-700">
+                                        <HexColorPicker
+                                          color={editLabelCustomColor}
+                                          onChange={(color) => {
+                                            setEditLabelCustomColor(color);
+                                            setEditLabelColor(color);
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={handleSaveLabel}
+                                  disabled={
+                                    updateLabelMutation.isPending ||
+                                    !editLabelName.trim()
+                                  }
+                                  size="sm"
+                                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                  {updateLabelMutation.isPending
+                                    ? "Saving..."
+                                    : "Save"}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingLabelId(null);
+                                    setEditLabelName("");
+                                    setEditLabelColor("");
+                                    setEditLabelCustomColor("");
+                                  }}
+                                  className="px-3"
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    deleteLabelMutation.mutate(label.id)
+                                  }
+                                  disabled={deleteLabelMutation.isPending}
+                                  className="px-3 border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                >
+                                  {deleteLabelMutation.isPending
+                                    ? "..."
+                                    : "Delete"}
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                onClick={handleSaveLabel}
-                                disabled={updateLabelMutation.isPending || !editLabelName.trim()}
-                                size="sm"
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                              >
-                                {updateLabelMutation.isPending ? "Saving..." : "Save"}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingLabelId(null);
-                                  setEditLabelName("");
-                                  setEditLabelColor("");
-                                  setEditLabelCustomColor("");
-                                }}
-                                className="px-3"
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => deleteLabelMutation.mutate(label.id)}
-                                disabled={deleteLabelMutation.isPending}
-                                className="px-3 border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                              >
-                                {deleteLabelMutation.isPending ? "..." : "Delete"}
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label 
-                            className="h-12 flex items-center justify-between gap-3 px-3 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
-                            onClick={() => handleEditLabel(label)}
-                          >
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className="w-10 h-3 rounded-sm" style={{ backgroundColor: label.color }} />
-                              <span className="text-sm text-slate-800 dark:text-slate-200">
-                                {label.name}
-                              </span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditLabel(label);
-                              }}
-                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-sm transition-all"
-                              title="Edit label"
-                              type="button"
+                          ) : (
+                            <label
+                              className="h-12 flex items-center justify-between gap-3 px-3 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+                              onClick={() => handleEditLabel(label)}
                             >
-                              <Edit className="w-3 h-3 text-slate-500 dark:text-slate-400" />
-                            </button>
-                          </label>
-                        )}
-                      </div>
-                    );
-                  })}
+                              <div className="flex items-center gap-3 flex-1">
+                                <div
+                                  className="w-10 h-3 rounded-sm"
+                                  style={{ backgroundColor: label.color }}
+                                />
+                                <span className="text-sm text-slate-800 dark:text-slate-200">
+                                  {label.name}
+                                </span>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditLabel(label);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-sm transition-all"
+                                title="Edit label"
+                                type="button"
+                              >
+                                <Edit className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                              </button>
+                            </label>
+                          )}
+                        </div>
+                      );
+                    }
+                  )}
                 </div>
               ) : labelSearchQuery ? (
                 <div className="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -1546,7 +1756,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                 <div className="text-center py-8 text-slate-500 dark:text-slate-400">
                   <Tag className="h-8 w-8 mx-auto mb-2" />
                   <p className="text-sm">No labels yet</p>
-                  <p className="text-xs mt-1">Create a new label to get started</p>
+                  <p className="text-xs mt-1">
+                    Create a new label to get started
+                  </p>
                 </div>
               )}
 
@@ -1596,7 +1808,8 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                                 setNewLabelCustomColor(""); // Clear custom color when selecting predefined
                               }}
                               className={`w-7 h-7 rounded border-2 transition-all ${
-                                newLabelColor === color.value && !newLabelCustomColor
+                                newLabelColor === color.value &&
+                                !newLabelCustomColor
                                   ? "border-slate-900 dark:border-white scale-110"
                                   : "border-slate-300 dark:border-slate-600 hover:scale-105"
                               }`}
@@ -1605,7 +1818,7 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                             />
                           ))}
                         </div>
-                        
+
                         {/* Custom Color Picker */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
@@ -1617,7 +1830,9 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setNewLabelCustomColor(newLabelColor)}
+                                onClick={() =>
+                                  setNewLabelCustomColor(newLabelColor)
+                                }
                                 className="h-6 px-2 text-xs"
                               >
                                 <Palette className="w-3 h-3 mr-1" />
@@ -1629,7 +1844,10 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                             <div className="flex items-center gap-2">
                               <div
                                 className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 rounded-sm cursor-pointer"
-                                style={{ backgroundColor: newLabelCustomColor || newLabelColor }}
+                                style={{
+                                  backgroundColor:
+                                    newLabelCustomColor || newLabelColor,
+                                }}
                                 onClick={() => {
                                   if (!newLabelCustomColor) {
                                     setNewLabelCustomColor(newLabelColor);
@@ -1675,11 +1893,16 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                       <div className="flex gap-2">
                         <Button
                           onClick={handleCreateLabel}
-                          disabled={createLabelMutation.isPending || !newLabelName.trim()}
+                          disabled={
+                            createLabelMutation.isPending ||
+                            !newLabelName.trim()
+                          }
                           size="sm"
                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                         >
-                          {createLabelMutation.isPending ? "Creating..." : "Create"}
+                          {createLabelMutation.isPending
+                            ? "Creating..."
+                            : "Create"}
                         </Button>
                         <Button
                           variant="outline"
