@@ -258,8 +258,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       files: sortedAttachments.map((attachment) => {
         // Remove favorites from response if it exists
-        const { favorites: _, ...rest } = attachment as any;
-        return rest;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { favorites: _, ...rest } = attachment;
+        return rest as Omit<typeof attachment, 'favorites'>;
       }),
       total,
       page,
