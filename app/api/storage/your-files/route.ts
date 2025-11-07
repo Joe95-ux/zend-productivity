@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const type = searchParams.get("type") || "all"; // "all", "images", "documents", "other"
-    const sortBy = searchParams.get("sortBy") || "newest"; // "newest", "oldest", "filetype", "filesize"
+    const sortBy = searchParams.get("sortBy") || "newest"; // "newest", "oldest", "filetype", "filesize", "favorites"
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
@@ -157,13 +157,26 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // Build favorites filter (when sortBy is "favorites", only show favorited items)
+    let favoritesFilter: Prisma.AttachmentWhereInput = {};
+    if (sortBy === "favorites") {
+      favoritesFilter = {
+        favorites: {
+          some: {
+            userId: user.id
+          }
+        }
+      };
+    }
+
     // Get attachments with pagination
     const [attachments, total] = await Promise.all([
       db.attachment.findMany({
         where: {
           cardId: { in: cardIds },
           ...typeFilter,
-          ...searchFilter
+          ...searchFilter,
+          ...favoritesFilter
         },
         include: {
           card: {
@@ -183,7 +196,18 @@ export async function GET(request: NextRequest) {
                 }
               }
             }
-          }
+          },
+          ...(sortBy === "favorites" ? {
+            favorites: {
+              where: {
+                userId: user.id
+              },
+              orderBy: {
+                createdAt: "desc"
+              },
+              take: 1
+            }
+          } : {})
         },
         orderBy: (() => {
           switch (sortBy) {
@@ -194,6 +218,11 @@ export async function GET(request: NextRequest) {
             case "filesize":
               // Note: File size sorting would require storing size in DB
               // For now, fallback to newest
+              return { createdAt: "desc" };
+            case "favorites":
+              // Sort by when the attachment was favorited (newest favorites first)
+              // Since we can't order by relation directly, we'll sort by attachment createdAt
+              // as a proxy (favorited items are likely to be recent)
               return { createdAt: "desc" };
             case "newest":
             default:
@@ -207,13 +236,31 @@ export async function GET(request: NextRequest) {
         where: {
           cardId: { in: cardIds },
           ...typeFilter,
-          ...searchFilter
+          ...searchFilter,
+          ...favoritesFilter
         }
       })
     ]);
 
+    // For favorites sorting, sort by when they were favorited (newest first)
+    let sortedAttachments = attachments;
+    if (sortBy === "favorites") {
+      sortedAttachments = [...attachments].sort((a, b) => {
+        const aFavorite = a.favorites?.[0]?.createdAt;
+        const bFavorite = b.favorites?.[0]?.createdAt;
+        if (!aFavorite && !bFavorite) return 0;
+        if (!aFavorite) return 1;
+        if (!bFavorite) return -1;
+        return new Date(bFavorite).getTime() - new Date(aFavorite).getTime();
+      });
+    }
+
     return NextResponse.json({
-      files: attachments,
+      files: sortedAttachments.map((attachment) => {
+        // Remove favorites from response if it exists
+        const { favorites: _, ...rest } = attachment as any;
+        return rest;
+      }),
       total,
       page,
       limit,

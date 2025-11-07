@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Image, Search, ChevronLeft, ChevronRight, Grid3x3, List, Star, MoreHorizontal, Edit, Trash2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileText, Image, Search, ChevronLeft, ChevronRight, Grid3x3, List, Star, MoreHorizontal, Edit, Trash2, Filter } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilePreviewSheet } from "@/components/storage/FilePreviewSheet";
 import { formatDistanceToNow } from "date-fns";
@@ -54,7 +53,7 @@ interface FilesResponse {
 export default function YourFilesPage() {
   const [search, setSearch] = useState("");
   const [type, setType] = useState<"all" | "images" | "documents" | "other">("all");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "filetype" | "filesize">("newest");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "filetype" | "filesize" | "favorites">("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -233,6 +232,37 @@ export default function YourFilesPage() {
     return null;
   };
 
+  const getFileTypeBadge = (file: FileItem) => {
+    const fileType = file.type?.toLowerCase() || "";
+    const filename = file.filename?.toLowerCase() || "";
+    const url = file.url?.toLowerCase() || "";
+    
+    // Check if it's an image
+    const isImage = fileType.startsWith("image/") || 
+        filename.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ||
+        url.startsWith('data:image/') ||
+        /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url);
+    
+    if (isImage) return "Image";
+    
+    // Check for documents
+    if (fileType.startsWith("application/pdf") || filename.match(/\.pdf$/i)) return "PDF";
+    if (fileType.includes("word") || filename.match(/\.(doc|docx)$/i)) return "Word";
+    if (fileType.includes("excel") || filename.match(/\.(xls|xlsx)$/i)) return "Excel";
+    if (fileType.includes("powerpoint") || filename.match(/\.(ppt|pptx)$/i)) return "PowerPoint";
+    if (fileType.startsWith("text/") || filename.match(/\.txt$/i)) return "Text";
+    
+    // Check for other common types
+    if (fileType.startsWith("video/")) return "Video";
+    if (fileType.startsWith("audio/")) return "Audio";
+    
+    // Extract extension from filename or URL
+    const extension = filename.match(/\.([^.]+)$/)?.[1] || url.match(/\.([^.]+)(\?|$)/)?.[1];
+    if (extension) return extension.toUpperCase();
+    
+    return "File";
+  };
+
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
     const loadingToastId = toast.loading(`Uploading "${file.name}"...`);
@@ -346,30 +376,46 @@ export default function YourFilesPage() {
               </TabsList>
             </Tabs>
 
-            {/* Search - Center */}
-            <div className="relative flex-1 max-w-md mx-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search files..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 w-full"
-              />
-            </div>
-
-            {/* Sort and View - Right */}
+            {/* Search, Sort, and View Controls - Right */}
             <div className="flex items-center gap-2 ml-auto">
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="oldest">Oldest</SelectItem>
-                  <SelectItem value="filetype">File Type</SelectItem>
-                  <SelectItem value="filesize">File Size</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Search with Sort */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search files..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 pr-10 w-[200px] sm:w-[250px]"
+                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/80"
+                    >
+                      <Filter className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => setSortBy("newest")}>
+                      Newest {sortBy === "newest" && "✓"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy("oldest")}>
+                      Oldest {sortBy === "oldest" && "✓"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy("filetype")}>
+                      File Type {sortBy === "filetype" && "✓"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy("filesize")}>
+                      File Size {sortBy === "filesize" && "✓"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy("favorites")}>
+                      Favorites {sortBy === "favorites" && "✓"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
               {/* View Mode Toggle */}
               <div className="flex items-center gap-1 border rounded-md p-1">
@@ -398,7 +444,7 @@ export default function YourFilesPage() {
       {/* Files Grid */}
       <div className="flex-1 overflow-auto p-6">
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3">
             {Array.from({ length: 24 }).map((_, i) => (
               <div
                 key={i}
@@ -538,97 +584,207 @@ export default function YourFilesPage() {
                   const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
                   const fileName = file.filename || extractFilename(file.url);
                   const isFavorite = favoriteStatuses[file.id] || false;
+                  const fileTypeBadge = getFileTypeBadge(file);
+                  const location = `${file.card.list.board.title} / ${file.card.list.title}`;
 
                   return (
                     <div
                       key={file.id}
                       className={cn(
                         "group relative rounded-lg border bg-card hover:bg-accent transition-colors",
-                        "flex items-center gap-4 p-4"
+                        "flex items-center gap-4 p-4",
+                        // Mobile: simple layout, Desktop: table-like layout
+                        "md:px-6 md:py-3"
                       )}
+                      onClick={() => setSelectedFile(file)}
                     >
-                      {/* Favorite and Menu Icons */}
-                      <div className="absolute top-2 left-2 z-10">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 bg-background/80 hover:bg-background"
-                          onClick={(e) => handleFavoriteClick(e, file)}
-                        >
-                          <Star
-                            className={cn(
-                              "h-4 w-4",
-                              isFavorite ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"
-                            )}
-                          />
-                        </Button>
-                      </div>
-                      <div className="absolute top-2 right-2 z-10">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 bg-background/80 hover:bg-background"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => handleEditClick(e, file)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => handleDeleteClick(e, file)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      {/* Mobile Layout - Keep existing design */}
+                      <div className="flex items-center gap-4 flex-1 md:hidden">
+                        {/* Favorite and Menu Icons - Mobile */}
+                        <div className="absolute top-2 left-2 z-10">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 bg-background/80 hover:bg-background"
+                            onClick={(e) => handleFavoriteClick(e, file)}
+                          >
+                            <Star
+                              className={cn(
+                                "h-4 w-4",
+                                isFavorite ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"
+                              )}
+                            />
+                          </Button>
+                        </div>
+                        <div className="absolute top-2 right-2 z-10">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 bg-background/80 hover:bg-background"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={(e) => handleEditClick(e, file)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => handleDeleteClick(e, file)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
 
-                      {/* File Preview/Thumbnail */}
-                      <div
-                        onClick={() => setSelectedFile(file)}
-                        className="w-16 h-16 bg-muted rounded flex items-center justify-center relative overflow-hidden flex-shrink-0 cursor-pointer"
-                      >
-                        {thumbnailUrl ? (
-                          <img
-                            src={thumbnailUrl}
-                            alt={fileName}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
-                              if (iconContainer) {
-                                iconContainer.classList.remove('hidden');
-                              }
-                            }}
-                          />
-                        ) : null}
-                        <div className={cn(
-                          "absolute inset-0 flex items-center justify-center",
-                          thumbnailUrl ? "hidden" : ""
-                        )}>
-                          <Icon className="h-6 w-6 text-muted-foreground" />
+                        {/* File Preview/Thumbnail - Mobile */}
+                        <div
+                          className="w-16 h-16 bg-muted rounded flex items-center justify-center relative overflow-hidden flex-shrink-0 cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={fileName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (iconContainer) {
+                                  iconContainer.classList.remove('hidden');
+                                }
+                              }}
+                            />
+                          ) : null}
+                          <div className={cn(
+                            "absolute inset-0 flex items-center justify-center",
+                            thumbnailUrl ? "hidden" : ""
+                          )}>
+                            <Icon className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        </div>
+
+                        {/* File Info - Mobile */}
+                        <div className="flex-1 min-w-0 cursor-pointer">
+                          <p className="text-sm font-medium truncate mb-1" title={fileName}>
+                            {fileName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
+                          </p>
                         </div>
                       </div>
 
-                      {/* File Info */}
-                      <div
-                        onClick={() => setSelectedFile(file)}
-                        className="flex-1 min-w-0 cursor-pointer"
-                      >
-                        <p className="text-sm font-medium truncate mb-1" title={fileName}>
-                          {fileName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
-                        </p>
+                      {/* Desktop Layout - Table-like design */}
+                      <div className="hidden md:flex items-center gap-4 w-full">
+                        {/* Thumbnail/Icon Column */}
+                        <div
+                          className="w-12 h-12 bg-muted rounded flex items-center justify-center relative overflow-hidden flex-shrink-0 cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={fileName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (iconContainer) {
+                                  iconContainer.classList.remove('hidden');
+                                }
+                              }}
+                            />
+                          ) : null}
+                          <div className={cn(
+                            "absolute inset-0 flex items-center justify-center",
+                            thumbnailUrl ? "hidden" : ""
+                          )}>
+                            <Icon className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        </div>
+
+                        {/* Filename Column */}
+                        <div className="flex-1 min-w-0 cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold truncate" title={fileName}>
+                              {fileName}
+                            </p>
+                            {isFavorite && (
+                              <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 flex-shrink-0" />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* File Type Column */}
+                        <div className="hidden lg:block w-24 flex-shrink-0">
+                          <span className="text-xs text-muted-foreground px-2 py-1 rounded bg-muted/50">
+                            {fileTypeBadge}
+                          </span>
+                        </div>
+
+                        {/* Location Column */}
+                        <div className="hidden xl:block flex-1 min-w-0 max-w-xs">
+                          <p className="text-xs text-muted-foreground truncate" title={location}>
+                            {location}
+                          </p>
+                        </div>
+
+                        {/* Date Column */}
+                        <div className="hidden lg:block w-32 flex-shrink-0 text-right">
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+
+                        {/* Actions Column */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => handleFavoriteClick(e, file)}
+                          >
+                            <Star
+                              className={cn(
+                                "h-4 w-4",
+                                isFavorite ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"
+                              )}
+                            />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={(e) => handleEditClick(e, file)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => handleDeleteClick(e, file)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     </div>
                   );
