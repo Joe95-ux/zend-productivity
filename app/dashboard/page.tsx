@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Folder, Star, Clock, ArrowRight } from "lucide-react";
+import { Plus, Star, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { CreateBoardForm } from "@/components/boards/CreateBoardForm";
@@ -38,16 +38,6 @@ interface Board {
   updatedAt: string;
 }
 
-interface Workspace {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  _count: {
-    projects: number;
-    boards: number;
-  };
-}
 
 export default function DashboardPage() {
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
@@ -76,21 +66,6 @@ export default function DashboardPage() {
     },
   });
 
-  const { data: workspacesData } = useQuery<{
-    personal: Workspace[];
-    organization: Workspace[];
-    shared: Workspace[];
-  }>({
-    queryKey: ["workspaces"],
-    queryFn: async () => {
-      const response = await fetch("/api/workspaces");
-      if (!response.ok) {
-        throw new Error("Failed to fetch workspaces");
-      }
-      return response.json();
-    },
-  });
-
   const { data: favoriteBoardsData } = useQuery<Array<{ boardId: string }>>({
     queryKey: ["favoriteBoards"],
     queryFn: async () => {
@@ -106,9 +81,6 @@ export default function DashboardPage() {
   const starredBoards = boards?.filter((board) => favoriteBoardIds.includes(board.id)).slice(0, 6) || [];
   const recentBoardsList = boards?.filter((board) => recentBoards.includes(board.id)).slice(0, 6) || [];
   
-  const personalWorkspaces = workspacesData?.personal || [];
-  const orgWorkspaces = workspacesData?.organization || [];
-  const totalWorkspaces = (personalWorkspaces.length + orgWorkspaces.length) || 0;
 
   if (error) {
     return (
@@ -165,49 +137,6 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* Workspaces Overview */}
-          {totalWorkspaces > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Folder className="h-5 w-5 text-muted-foreground" />
-                    <CardTitle>Workspaces</CardTitle>
-                  </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/dashboard/boards">
-                      View all
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Link>
-                  </Button>
-                </div>
-                <CardDescription>
-                  {totalWorkspaces} workspace{totalWorkspaces !== 1 ? "s" : ""} available
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {personalWorkspaces.slice(0, 3).map((workspace) => (
-                    <Link key={workspace.id} href={`/dashboard/workspaces/${workspace.id}`}>
-                      <Card className="hover:bg-accent transition-colors cursor-pointer">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center gap-2">
-                            <Folder className="h-4 w-4 text-muted-foreground" />
-                            <CardTitle className="text-sm">{workspace.name}</CardTitle>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-xs text-muted-foreground">
-                            {workspace._count?.boards || 0} boards • {workspace._count?.projects || 0} projects
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Starred Boards */}
           {starredBoards.length > 0 && (
@@ -257,7 +186,7 @@ export default function DashboardPage() {
           )}
 
           {/* Empty State */}
-          {boards && boards.length === 0 && totalWorkspaces === 0 && (
+          {boards && boards.length === 0 && (
             <div className="text-center py-12">
               <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                 <Plus className="w-8 h-8 text-muted-foreground" />

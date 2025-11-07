@@ -62,11 +62,9 @@ export default function DashboardLayout({
           <DashboardBreadcrumb />
           <div className="flex-1" />
         </header>
-        <div className="h-[calc(100vh-4rem)] overflow-auto">
-          <main className="w-full h-full mx-auto px-4 py-6">
+        <main className="w-full h-full mx-auto px-4 py-6">
             {children}
-          </main>
-        </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

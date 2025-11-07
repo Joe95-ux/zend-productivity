@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Building2, Users, Mail, ArrowRight, X, Check, ArrowLeft, Loader2, Plus } from "lucide-react";
+import { Building2, UsersRound, Mail, ArrowRight, X, Check, ArrowLeft, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Invitation {
@@ -132,11 +132,13 @@ export default function OnboardingPage() {
       // Invalidate queries to refresh organization data
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
       queryClient.invalidateQueries({ queryKey: ["clerkOrganizations"] });
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       
       // Force Clerk to refresh organization list
       // Clerk's useOrganizationList should auto-refresh, but we'll give it a moment
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["clerkOrganizations"] });
+        queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       }, 1000);
       
       // Show transition screen immediately
@@ -202,6 +204,9 @@ export default function OnboardingPage() {
     } else if (step === "team-size") {
       setStep("workspace");
     } else if (step === "workspace") {
+      // Invalidate queries before navigating to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      queryClient.invalidateQueries({ queryKey: ["organizations"] });
       router.push("/dashboard");
     }
   };
@@ -212,6 +217,9 @@ export default function OnboardingPage() {
     } else if (step === "team-size") {
       setStep("workspace");
     } else if (step === "workspace") {
+      // Invalidate queries before navigating to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      queryClient.invalidateQueries({ queryKey: ["organizations"] });
       router.push("/dashboard");
     }
   };
@@ -359,7 +367,7 @@ export default function OnboardingPage() {
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors flex-shrink-0">
-                      <Users className="w-6 h-6 text-primary" />
+                      <UsersRound className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex-1 space-y-1">
                       <h3 className="font-semibold text-lg">Personal Account</h3>
@@ -835,14 +843,19 @@ export default function OnboardingPage() {
                 >
                   Skip for now
                 </Button>
-                <Button
-                  onClick={() => router.push("/dashboard")}
-                  variant="outline"
-                  className="flex-1 text-[1rem] h-11"
-                >
-                  Go to Dashboard
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                  <Button
+                    onClick={() => {
+                      // Invalidate queries before navigating to ensure fresh data
+                      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+                      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+                      router.push("/dashboard");
+                    }}
+                    variant="outline"
+                    className="flex-1 text-[1rem] h-11"
+                  >
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
               </div>
             </div>
           )}

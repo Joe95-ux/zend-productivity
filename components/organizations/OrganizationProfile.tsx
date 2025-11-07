@@ -2,7 +2,7 @@
 
 import { useOrganization, useOrganizationList } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Users, Calendar, Shield, Settings, ExternalLink } from "lucide-react";
+import { Building2, UsersRound, Calendar, Shield, Settings, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,7 +123,7 @@ export function OrganizationProfile() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Users className="h-5 w-5 text-muted-foreground" />
+                     <UsersRound className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">{currentOrg?._count.members || 0} Members</p>
                 <p className="text-xs text-muted-foreground">Total members</p>
@@ -208,7 +208,7 @@ export function OrganizationProfile() {
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link href={`/dashboard/organizations/${currentOrg?.slug || organization.slug}/members`}>
-                    <Users className="h-4 w-4 mr-2" />
+                     <UsersRound className="h-4 w-4 mr-2" />
                     Manage Members
                   </Link>
                 </Button>

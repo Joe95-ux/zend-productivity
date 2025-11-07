@@ -243,6 +243,17 @@
   }
 }
 
+/* Clerk Organization Switcher text color fix */
+.cl-organizationSwitcherTriggerText,
+.cl-organizationPreviewMainIdentifier {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .cl-organizationSwitcherTriggerText,
+.dark .cl-organizationPreviewMainIdentifier {
+  color: white !important;
+}
+
 /* Custom scrollbar styles */
 .scrollbar-thin {
   scrollbar-width: thin;

@@ -17,7 +17,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutDashboard, Folder, FolderKanban, Building2, Users, ChevronRight, ChevronDown, Clock, Kanban, Home } from "lucide-react";
+import { Plus, Folder, FolderKanban, Building2, UsersRound, ChevronRight, ChevronDown, Clock, Kanban, Home, Inbox, AlertCircle, FileText } from "lucide-react";
 import { ConditionalOrganizationSwitcher } from "@/components/organizations/ConditionalOrganizationSwitcher";
 import { useOrganization } from "@clerk/nextjs";
 import { CreateWorkspaceForm } from "@/components/workspaces/CreateWorkspaceForm";
@@ -79,7 +79,6 @@ interface WorkspacesResponse {
 export function DashboardSidebar() {
   const pathname = usePathname();
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set());
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [recentBoards, setRecentBoards] = useState<string[]>([]);
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
@@ -150,32 +149,8 @@ export function DashboardSidebar() {
       const next = new Set(prev);
       if (next.has(workspaceId)) {
         next.delete(workspaceId);
-        // Also collapse all projects in this workspace
-        setExpandedProjects((prevProjects) => {
-          const nextProjects = new Set(prevProjects);
-          const workspace = workspacesData?.personal
-            .concat(workspacesData?.organization || [])
-            .concat(workspacesData?.shared || [])
-            .find((w) => w.id === workspaceId);
-          workspace?.projects?.forEach((project) => {
-            nextProjects.delete(project.id);
-          });
-          return nextProjects;
-        });
       } else {
         next.add(workspaceId);
-      }
-      return next;
-    });
-  };
-
-  const toggleProject = (projectId: string) => {
-    setExpandedProjects((prev) => {
-      const next = new Set(prev);
-      if (next.has(projectId)) {
-        next.delete(projectId);
-      } else {
-        next.add(projectId);
       }
       return next;
     });
@@ -188,11 +163,11 @@ export function DashboardSidebar() {
   return (
     <Sidebar>
       {/* Organization switcher - always show so users can create organizations */}
-      <SidebarHeader className="border-b px-4 py-3">
+      <SidebarHeader className="flex items-center justify-start border-b px-4 h-[65px]">
         <ConditionalOrganizationSwitcher />
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="py-2">
         {/* Quick Actions */}
         <SidebarGroup>
           <SidebarGroupContent>
@@ -210,13 +185,22 @@ export function DashboardSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  asChild
-                  isActive={pathname === "/dashboard/boards"}
+                  disabled
+                  className="opacity-50 cursor-not-allowed"
                 >
-                  <Link href="/dashboard/boards">
-                    <LayoutDashboard className="h-4 w-4" />
-                    <span>All Boards</span>
-                  </Link>
+                  <Inbox className="h-4 w-4" />
+                  <span>Inbox</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  disabled
+                  className="opacity-50 cursor-not-allowed"
+                >
+                  <AlertCircle className="h-4 w-4" />
+                  <span>My Issues</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Soon</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -262,8 +246,6 @@ export function DashboardSidebar() {
               <SidebarMenu>
                 {workspacesData.personal.map((workspace) => {
                   const isExpanded = expandedWorkspaces.has(workspace.id);
-                  const directBoards = workspace.boards || [];
-                  const projects = workspace.projects || [];
 
                   return (
                     <Collapsible
@@ -292,109 +274,67 @@ export function DashboardSidebar() {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <SidebarMenu className="ml-6 mt-1">
-                            {/* Direct Boards (not in projects) */}
-                            {directBoards.length > 0 && (
-                              <>
-                                {directBoards.map((board) => (
-                                  <SidebarMenuItem key={board.id}>
+                            {/* Projects */}
+                            <SidebarMenuItem>
                               <SidebarMenuButton
                                 asChild
                                 className={cn(
                                   "h-8",
-                                        pathname === `/dashboard/boards/${board.id}` && "bg-accent"
+                                  isActive(`/dashboard/workspaces/${workspace.id}/projects`) && "bg-accent"
                                 )}
                               >
-                                      <Link href={`/dashboard/boards/${board.id}`}>
-                                        <Kanban className="h-3.5 w-3.5" />
-                                        <span className="text-xs truncate">{board.title}</span>
+                                <Link href={`/dashboard/workspaces/${workspace.id}/projects`}>
+                                  <FolderKanban className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Projects</span>
                                 </Link>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
-                                ))}
-                              </>
-                            )}
 
-                            {/* Projects Section */}
-                            {projects.length > 0 && (
-                              <>
-                                <SidebarMenuItem>
-                                  <div className="px-2 py-1.5">
-                                    <span className="text-xs font-medium text-muted-foreground">Projects</span>
-                                  </div>
-                                </SidebarMenuItem>
-                            {projects.map((project) => {
-                              const isProjectExpanded = expandedProjects.has(project.id);
-                                  const projectBoards = project.boards || [];
-                              return (
-                                <SidebarMenuItem key={project.id}>
-                                  <Collapsible
-                                    open={isProjectExpanded}
-                                    onOpenChange={() => toggleProject(project.id)}
-                                  >
-                                    <CollapsibleTrigger asChild>
-                                      <SidebarMenuButton
-                                        className={cn(
-                                          "h-8 w-full justify-between",
-                                          isActive(`/dashboard/projects/${project.id}`) && "bg-accent"
-                                        )}
-                                      >
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                          <FolderKanban className="h-3.5 w-3.5 flex-shrink-0" />
-                                          <span className="truncate text-xs">{project.name}</span>
-                                        </div>
-                                        {isProjectExpanded ? (
-                                          <ChevronDown className="h-3 w-3 flex-shrink-0" />
-                                        ) : (
-                                          <ChevronRight className="h-3 w-3 flex-shrink-0" />
-                                        )}
-                                      </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                      <SidebarMenu className="ml-4 mt-1">
-                                            {projectBoards.length > 0 ? (
-                                              projectBoards.map((board) => (
-                                                <SidebarMenuItem key={board.id}>
-                                          <SidebarMenuButton
-                                            asChild
-                                            className={cn(
-                                              "h-7",
-                                                      pathname === `/dashboard/boards/${board.id}` && "bg-accent"
-                                            )}
-                                          >
-                                                    <Link href={`/dashboard/boards/${board.id}`}>
-                                                      <Kanban className="h-3 w-3" />
-                                                      <span className="text-xs truncate">{board.title}</span>
-                                            </Link>
-                                          </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                              ))
-                                            ) : (
-                                              <SidebarMenuItem>
-                                                <div className="px-2 py-1">
-                                                  <span className="text-xs text-muted-foreground">No boards</span>
-                                                </div>
-                                              </SidebarMenuItem>
-                                            )}
-                                      </SidebarMenu>
-                                    </CollapsibleContent>
-                                  </Collapsible>
-                                </SidebarMenuItem>
-                              );
-                            })}
-                              </>
-                            )}
-
-                            {/* Create Project Button */}
+                            {/* Boards */}
                             <SidebarMenuItem>
                               <SidebarMenuButton
-                                className="h-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => {
-                                  setCreateProjectWorkspaceId(workspace.id);
-                                  setIsCreateProjectOpen(true);
-                                }}
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/boards`) && "bg-accent"
+                                )}
                               >
-                                <Plus className="h-3.5 w-3.5" />
-                                <span className="text-xs">New Project</span>
+                                <Link href={`/dashboard/workspaces/${workspace.id}/boards`}>
+                                  <Kanban className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Boards</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+                            {/* Team */}
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/team`) && "bg-accent"
+                                )}
+                              >
+                                <Link href={`/dashboard/workspaces/${workspace.id}/team`}>
+                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Team</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+                            {/* Members */}
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/members`) && "bg-accent"
+                                )}
+                              >
+                                <Link href={`/dashboard/workspaces/${workspace.id}/members`}>
+                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Members</span>
+                                </Link>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
                           </SidebarMenu>
@@ -421,8 +361,6 @@ export function DashboardSidebar() {
               <SidebarMenu>
                     {group.workspaces.map((workspace) => {
                   const isExpanded = expandedWorkspaces.has(workspace.id);
-                      const directBoards = workspace.boards || [];
-                      const projects = workspace.projects || [];
 
                   return (
                     <Collapsible
@@ -451,109 +389,67 @@ export function DashboardSidebar() {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <SidebarMenu className="ml-6 mt-1">
-                                {/* Direct Boards (not in projects) */}
-                                {directBoards.length > 0 && (
-                                  <>
-                                    {directBoards.map((board) => (
-                                      <SidebarMenuItem key={board.id}>
+                            {/* Projects */}
+                            <SidebarMenuItem>
                               <SidebarMenuButton
                                 asChild
                                 className={cn(
                                   "h-8",
-                                            pathname === `/dashboard/boards/${board.id}` && "bg-accent"
+                                  isActive(`/dashboard/workspaces/${workspace.id}/projects`) && "bg-accent"
                                 )}
                               >
-                                          <Link href={`/dashboard/boards/${board.id}`}>
-                                            <Kanban className="h-3.5 w-3.5" />
-                                            <span className="text-xs truncate">{board.title}</span>
+                                <Link href={`/dashboard/workspaces/${workspace.id}/projects`}>
+                                  <FolderKanban className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Projects</span>
                                 </Link>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
-                                    ))}
-                                  </>
-                                )}
 
-                                {/* Projects Section */}
-                                {projects.length > 0 && (
-                                  <>
-                                    <SidebarMenuItem>
-                                      <div className="px-2 py-1.5">
-                                        <span className="text-xs font-medium text-muted-foreground">Projects</span>
-                                      </div>
-                                    </SidebarMenuItem>
-                            {projects.map((project) => {
-                              const isProjectExpanded = expandedProjects.has(project.id);
-                                      const projectBoards = project.boards || [];
-                              return (
-                                <SidebarMenuItem key={project.id}>
-                                  <Collapsible
-                                    open={isProjectExpanded}
-                                    onOpenChange={() => toggleProject(project.id)}
-                                  >
-                                    <CollapsibleTrigger asChild>
-                                      <SidebarMenuButton
-                                        className={cn(
-                                          "h-8 w-full justify-between",
-                                          isActive(`/dashboard/projects/${project.id}`) && "bg-accent"
-                                        )}
-                                      >
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                          <FolderKanban className="h-3.5 w-3.5 flex-shrink-0" />
-                                          <span className="truncate text-xs">{project.name}</span>
-                                        </div>
-                                        {isProjectExpanded ? (
-                                          <ChevronDown className="h-3 w-3 flex-shrink-0" />
-                                        ) : (
-                                          <ChevronRight className="h-3 w-3 flex-shrink-0" />
-                                        )}
-                                      </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                      <SidebarMenu className="ml-4 mt-1">
-                                                {projectBoards.length > 0 ? (
-                                                  projectBoards.map((board) => (
-                                                    <SidebarMenuItem key={board.id}>
-                                          <SidebarMenuButton
-                                            asChild
-                                            className={cn(
-                                              "h-7",
-                                                          pathname === `/dashboard/boards/${board.id}` && "bg-accent"
-                                            )}
-                                          >
-                                                        <Link href={`/dashboard/boards/${board.id}`}>
-                                                          <Kanban className="h-3 w-3" />
-                                                          <span className="text-xs truncate">{board.title}</span>
-                                            </Link>
-                                          </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                                  ))
-                                                ) : (
-                                                  <SidebarMenuItem>
-                                                    <div className="px-2 py-1">
-                                                      <span className="text-xs text-muted-foreground">No boards</span>
-                                                    </div>
-                                                  </SidebarMenuItem>
-                                                )}
-                                      </SidebarMenu>
-                                    </CollapsibleContent>
-                                  </Collapsible>
-                                </SidebarMenuItem>
-                              );
-                            })}
-                                  </>
-                                )}
-
-                            {/* Create Project Button */}
+                            {/* Boards */}
                             <SidebarMenuItem>
                               <SidebarMenuButton
-                                className="h-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => {
-                                  // TODO: Open create project modal
-                                  console.log("Create project for workspace:", workspace.id);
-                                }}
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/boards`) && "bg-accent"
+                                )}
                               >
-                                <Plus className="h-3.5 w-3.5" />
-                                <span className="text-xs">New Project</span>
+                                <Link href={`/dashboard/workspaces/${workspace.id}/boards`}>
+                                  <Kanban className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Boards</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+                            {/* Team */}
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/team`) && "bg-accent"
+                                )}
+                              >
+                                <Link href={`/dashboard/workspaces/${workspace.id}/team`}>
+                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Team</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+                            {/* Members */}
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/members`) && "bg-accent"
+                                )}
+                              >
+                                <Link href={`/dashboard/workspaces/${workspace.id}/members`}>
+                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Members</span>
+                                </Link>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
                           </SidebarMenu>
@@ -577,8 +473,6 @@ export function DashboardSidebar() {
               <SidebarMenu>
                 {workspacesData.shared.map((workspace) => {
                   const isExpanded = expandedWorkspaces.has(workspace.id);
-                  const directBoards = workspace.boards || [];
-                  const projects = workspace.projects || [];
 
                   return (
                     <Collapsible
@@ -595,7 +489,7 @@ export function DashboardSidebar() {
                             )}
                           >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <Users className="h-4 w-4 flex-shrink-0" />
+                              <UsersRound className="h-4 w-4 flex-shrink-0" />
                               <span className="truncate">{workspace.name}</span>
                             </div>
                             {isExpanded ? (
@@ -607,97 +501,69 @@ export function DashboardSidebar() {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <SidebarMenu className="ml-6 mt-1">
-                            {/* Direct Boards (not in projects) */}
-                            {directBoards.length > 0 && (
-                              <>
-                                {directBoards.map((board) => (
-                                  <SidebarMenuItem key={board.id}>
-                    <SidebarMenuButton
-                      asChild
-                      className={cn(
-                                        "h-8",
-                                        pathname === `/dashboard/boards/${board.id}` && "bg-accent"
-                      )}
-                    >
-                                      <Link href={`/dashboard/boards/${board.id}`}>
-                                        <Kanban className="h-3.5 w-3.5" />
-                                        <span className="text-xs truncate">{board.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-                              </>
-                            )}
+                            {/* Projects */}
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/projects`) && "bg-accent"
+                                )}
+                              >
+                                <Link href={`/dashboard/workspaces/${workspace.id}/projects`}>
+                                  <FolderKanban className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Projects</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
 
-                            {/* Projects Section */}
-                            {projects.length > 0 && (
-                              <>
-                                <SidebarMenuItem>
-                                  <div className="px-2 py-1.5">
-                                    <span className="text-xs font-medium text-muted-foreground">Projects</span>
-                                  </div>
-                                </SidebarMenuItem>
-                                {projects.map((project) => {
-                                  const isProjectExpanded = expandedProjects.has(project.id);
-                                  const projectBoards = project.boards || [];
-                                  return (
-                                    <SidebarMenuItem key={project.id}>
-                                      <Collapsible
-                                        open={isProjectExpanded}
-                                        onOpenChange={() => toggleProject(project.id)}
-                                      >
-                                        <CollapsibleTrigger asChild>
-                                          <SidebarMenuButton
-                                            className={cn(
-                                              "h-8 w-full justify-between",
-                                              isActive(`/dashboard/projects/${project.id}`) && "bg-accent"
-                                            )}
-                                          >
-                                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                                              <FolderKanban className="h-3.5 w-3.5 flex-shrink-0" />
-                                              <span className="truncate text-xs">{project.name}</span>
-                                            </div>
-                                            {isProjectExpanded ? (
-                                              <ChevronDown className="h-3 w-3 flex-shrink-0" />
-                                            ) : (
-                                              <ChevronRight className="h-3 w-3 flex-shrink-0" />
-                                            )}
-                                          </SidebarMenuButton>
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent>
-                                          <SidebarMenu className="ml-4 mt-1">
-                                            {projectBoards.length > 0 ? (
-                                              projectBoards.map((board) => (
-                                                <SidebarMenuItem key={board.id}>
-                                                  <SidebarMenuButton
-                                                    asChild
-                                                    className={cn(
-                                                      "h-7",
-                                                      pathname === `/dashboard/boards/${board.id}` && "bg-accent"
-                                                    )}
-                                                  >
-                                                    <Link href={`/dashboard/boards/${board.id}`}>
-                                                      <Kanban className="h-3 w-3" />
-                                                      <span className="text-xs truncate">{board.title}</span>
-                                                    </Link>
-                                                  </SidebarMenuButton>
-                                                </SidebarMenuItem>
-                                              ))
-                                            ) : (
-                                              <SidebarMenuItem>
-                                                <div className="px-2 py-1">
-                                                  <span className="text-xs text-muted-foreground">No boards</span>
-                                                </div>
-                                              </SidebarMenuItem>
-                                            )}
-                                          </SidebarMenu>
-                                        </CollapsibleContent>
-                                      </Collapsible>
-                                    </SidebarMenuItem>
-                                  );
-                                })}
-                              </>
-                            )}
+                            {/* Boards */}
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/boards`) && "bg-accent"
+                                )}
+                              >
+                                <Link href={`/dashboard/workspaces/${workspace.id}/boards`}>
+                                  <Kanban className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Boards</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+                            {/* Team */}
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/team`) && "bg-accent"
+                                )}
+                              >
+                                <Link href={`/dashboard/workspaces/${workspace.id}/team`}>
+                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Team</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+                            {/* Members */}
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                className={cn(
+                                  "h-8",
+                                  isActive(`/dashboard/workspaces/${workspace.id}/members`) && "bg-accent"
+                                )}
+                              >
+                                <Link href={`/dashboard/workspaces/${workspace.id}/members`}>
+                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <span className="text-xs">Members</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
                           </SidebarMenu>
                         </CollapsibleContent>
                       </SidebarMenuItem>
@@ -708,6 +574,25 @@ export function DashboardSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        {/* Storage Grouping - Placeholder */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Storage</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  disabled
+                  className="opacity-50 cursor-not-allowed"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span className="text-xs">Files & Attachments</span>
+                  <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         {isLoading && (
           <SidebarGroup>

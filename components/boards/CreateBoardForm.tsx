@@ -20,9 +20,10 @@ type CreateBoardFormData = z.infer<typeof createBoardSchema>;
 
 interface CreateBoardFormProps {
   onSuccess?: () => void;
+  workspaceId?: string;
 }
 
-export function CreateBoardForm({ onSuccess }: CreateBoardFormProps) {
+export function CreateBoardForm({ onSuccess, workspaceId }: CreateBoardFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
@@ -41,7 +42,7 @@ export function CreateBoardForm({ onSuccess }: CreateBoardFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, workspaceId }),
       });
 
       if (!response.ok) {
