@@ -194,6 +194,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user is an admin of the organization
+      // At this point, dbOrganizationId should never be null due to earlier checks
+      if (!dbOrganizationId) {
+        return NextResponse.json(
+          { error: "Invalid organization" },
+          { status: 400 }
+        );
+      }
+
       const orgMember = await db.organizationMember.findUnique({
         where: {
           organizationId_userId: {
