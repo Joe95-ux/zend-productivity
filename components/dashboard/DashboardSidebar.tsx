@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutDashboard, Folder, FolderKanban, Building2, Users, ChevronRight, ChevronDown, Clock, Kanban, Home } from "lucide-react";
 import { ConditionalOrganizationSwitcher } from "@/components/organizations/ConditionalOrganizationSwitcher";
-import { useOrganizationList, useOrganization } from "@clerk/nextjs";
+import { useOrganization } from "@clerk/nextjs";
 import { CreateWorkspaceForm } from "@/components/workspaces/CreateWorkspaceForm";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -185,18 +185,12 @@ export function DashboardSidebar() {
     return pathname === path || pathname.startsWith(path + "/");
   };
 
-  // Check if user has organizations to conditionally show header
-  const { userMemberships, isLoaded: orgsLoaded } = useOrganizationList();
-  const hasOrgs = orgsLoaded && (userMemberships?.data?.length || 0) > 0;
-
   return (
     <Sidebar>
-      {/* Only show header if user has organizations */}
-      {hasOrgs && (
+      {/* Organization switcher - always show so users can create organizations */}
       <SidebarHeader className="border-b px-4 py-3">
-          <ConditionalOrganizationSwitcher />
+        <ConditionalOrganizationSwitcher />
       </SidebarHeader>
-      )}
 
       <SidebarContent>
         {/* Quick Actions */}

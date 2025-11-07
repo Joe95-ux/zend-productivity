@@ -30,7 +30,7 @@ export function OrganizationProfile() {
   const { userMemberships, isLoaded: orgListLoaded, setActive } = useOrganizationList();
 
   // Fetch organization details from our API
-  const { data: orgData, isLoading } = useQuery<OrganizationData[]>({
+  const { data: orgData } = useQuery<OrganizationData[]>({
     queryKey: ["organizations"],
     queryFn: async () => {
       const response = await fetch("/api/organizations");
@@ -54,21 +54,30 @@ export function OrganizationProfile() {
   }
 
   if (!organization) {
+    const hasOrganizations = userMemberships?.data && userMemberships.data.length > 0;
+    
     return (
       <Card>
         <CardHeader>
           <CardTitle>No Organization Selected</CardTitle>
           <CardDescription>
-            Select an organization from the switcher in the navbar to view its profile.
+            {hasOrganizations 
+              ? "Select an organization from the switcher in the navbar to view its profile."
+              : "Create an organization to collaborate with your team on shared workspaces and boards."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Organizations allow teams to collaborate on shared workspaces and boards.
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Organizations allow teams to collaborate on shared workspaces and boards. 
+            You can create one using the organization switcher in the sidebar or navbar, 
+            or continue using your personal account.
           </p>
-          <Button asChild>
-            <Link href="/dashboard">Go to Dashboard</Link>
-          </Button>
+          
+          {hasOrganizations && (
+            <Button variant="outline" asChild className="w-full">
+              <Link href="/dashboard">Go to Dashboard</Link>
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
@@ -159,7 +168,7 @@ export function OrganizationProfile() {
             <Separator />
             <div>
               <p className="text-sm font-medium text-muted-foreground">Organization ID</p>
-              <p className="text-sm mt-1 font-mono text-xs">{organization.id}</p>
+              <p className="text-sm mt-1 font-mono">{organization.id}</p>
             </div>
             {currentOrg?.slug && (
               <>

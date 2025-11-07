@@ -40,7 +40,7 @@ function BoardContent({ boardId, onAddList }: { boardId: string; onAddList: () =
   if (isLoading || !orderedData) {
     return (
       <div className="w-full h-full">
-        <div className="flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto pb-4 px-[18px] lg:px-4">
+        <div className="h-full flex gap-2 min-[320px]:gap-3 sm:gap-4 overflow-x-auto pb-4 px-[18px] lg:px-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="w-64 min-[320px]:w-72 sm:w-80 flex-shrink-0">
               <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">

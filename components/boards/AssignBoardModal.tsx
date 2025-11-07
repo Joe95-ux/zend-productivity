@@ -40,8 +40,8 @@ interface Workspace {
 }
 
 export function AssignBoardModal({ boardId, isOpen, onClose }: AssignBoardModalProps) {
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>(undefined);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const queryClient = useQueryClient();
 
   // Fetch workspaces
@@ -73,8 +73,8 @@ export function AssignBoardModal({ boardId, isOpen, onClose }: AssignBoardModalP
   // Update values when board data loads or modal opens
   useEffect(() => {
     if (boardData && isOpen) {
-      setSelectedWorkspaceId(boardData.workspaceId || "");
-      setSelectedProjectId(boardData.projectId || "");
+      setSelectedWorkspaceId(boardData.workspaceId || undefined);
+      setSelectedProjectId(boardData.projectId || undefined);
     }
   }, [boardData, isOpen]);
 
@@ -84,8 +84,8 @@ export function AssignBoardModal({ boardId, isOpen, onClose }: AssignBoardModalP
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          workspaceId: selectedWorkspaceId || null,
-          projectId: selectedProjectId || null,
+          workspaceId: selectedWorkspaceId === "none" ? null : selectedWorkspaceId || null,
+          projectId: selectedProjectId === "none" ? null : selectedProjectId || null,
         }),
       });
 
@@ -114,7 +114,9 @@ export function AssignBoardModal({ boardId, isOpen, onClose }: AssignBoardModalP
     ...(workspacesData?.shared || []),
   ];
 
-  const selectedWorkspace = allWorkspaces.find((w) => w.id === selectedWorkspaceId);
+  const selectedWorkspace = selectedWorkspaceId && selectedWorkspaceId !== "none" 
+    ? allWorkspaces.find((w) => w.id === selectedWorkspaceId)
+    : null;
   const availableProjects = selectedWorkspace?.projects || [];
 
   const handleAssign = () => {
@@ -122,8 +124,8 @@ export function AssignBoardModal({ boardId, isOpen, onClose }: AssignBoardModalP
   };
 
   const handleUnassign = () => {
-    setSelectedWorkspaceId("");
-    setSelectedProjectId("");
+    setSelectedWorkspaceId(undefined);
+    setSelectedProjectId(undefined);
     assignMutation.mutate();
   };
 
@@ -141,17 +143,21 @@ export function AssignBoardModal({ boardId, isOpen, onClose }: AssignBoardModalP
           <div className="space-y-2">
             <Label htmlFor="workspace">Workspace (Optional)</Label>
             <Select
-              value={selectedWorkspaceId}
+              value={selectedWorkspaceId || "none"}
               onValueChange={(value) => {
-                setSelectedWorkspaceId(value);
-                setSelectedProjectId(""); // Reset project when workspace changes
+                if (value === "none") {
+                  setSelectedWorkspaceId(undefined);
+                } else {
+                  setSelectedWorkspaceId(value);
+                }
+                setSelectedProjectId(undefined); // Reset project when workspace changes
               }}
             >
               <SelectTrigger id="workspace">
                 <SelectValue placeholder="Select a workspace or leave unassigned" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None (Personal Board)</SelectItem>
+                <SelectItem value="none">None (Personal Board)</SelectItem>
                 {allWorkspaces.map((workspace) => (
                   <SelectItem key={workspace.id} value={workspace.id}>
                     <div className="flex items-center gap-2">
@@ -169,18 +175,24 @@ export function AssignBoardModal({ boardId, isOpen, onClose }: AssignBoardModalP
             </Select>
           </div>
 
-          {selectedWorkspaceId && availableProjects.length > 0 && (
+          {selectedWorkspace && availableProjects.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="project">Project (Optional)</Label>
               <Select
-                value={selectedProjectId}
-                onValueChange={setSelectedProjectId}
+                value={selectedProjectId || "none"}
+                onValueChange={(value) => {
+                  if (value === "none") {
+                    setSelectedProjectId(undefined);
+                  } else {
+                    setSelectedProjectId(value);
+                  }
+                }}
               >
                 <SelectTrigger id="project">
                   <SelectValue placeholder="Select a project or leave in workspace" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None (Direct in Workspace)</SelectItem>
+                  <SelectItem value="none">None (Direct in Workspace)</SelectItem>
                   {availableProjects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       <div className="flex items-center gap-2">
@@ -195,7 +207,7 @@ export function AssignBoardModal({ boardId, isOpen, onClose }: AssignBoardModalP
           )}
 
           <div className="flex justify-end gap-2 pt-4">
-            {(selectedWorkspaceId || boardData?.workspaceId) && (
+            {((selectedWorkspaceId && selectedWorkspaceId !== "none") || boardData?.workspaceId) && (
               <Button variant="outline" onClick={handleUnassign}>
                 Unassign
               </Button>

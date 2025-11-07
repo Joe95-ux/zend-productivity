@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search, UsersRound, Folder } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Star, Share2, Users, Info, Eye, EyeOff, Printer, Download, Settings, Palette, Crown, Activity, Copy, Mail, Trash2, X, Tag, Edit, Plus, Search, UsersRound, Folder, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import { BoardFilter } from "./BoardFilter";
 import { cn } from "@/lib/utils";
 import { ShareBoardModal } from "./ShareBoardModal";
 import { AssignBoardModal } from "./AssignBoardModal";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { WifiOff } from "lucide-react";
 import { ConditionalOrganizationSwitcher } from "@/components/organizations/ConditionalOrganizationSwitcher";
 
@@ -102,6 +103,33 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isAboutBoardOpen, setIsAboutBoardOpen] = useState(false);
+  const [isEditingBoardDescription, setIsEditingBoardDescription] = useState(false);
+  const [editBoardDescription, setEditBoardDescription] = useState(boardDescription || "");
+  
+  // Fetch board admins (owner + members with admin role)
+  const { data: boardAdmins } = useQuery<Array<{
+    id: string;
+    user: {
+      id: string;
+      name?: string;
+      email: string;
+      avatarUrl?: string;
+      clerkId?: string;
+    };
+    role: "admin" | "member";
+  }>>({
+    queryKey: ["boardAdmins", boardId],
+    queryFn: async () => {
+      const response = await fetch(`/api/boards/${boardId}/members`);
+      if (!response.ok) return [];
+      const members = await response.json();
+      // Filter to only admins (owner is always admin, plus members with admin role)
+      return members.filter((m: { role: string }) => m.role === "admin");
+    },
+    enabled: isAboutBoardOpen,
+  });
+  
   const dndContext = useDndContextOptional();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -300,6 +328,47 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
     setIsCreatingLabel(false);
     setLabelSearchQuery("");
   };
+
+  const handleAboutBoardBack = () => {
+    setIsAboutBoardOpen(false);
+    setIsMenuOpen(true);
+  };
+
+  const handleAboutBoardClose = () => {
+    setIsAboutBoardOpen(false);
+    setIsMenuOpen(false);
+  };
+
+  // Update board description mutation
+  const updateBoardDescriptionMutation = useMutation({
+    mutationFn: async (description: string) => {
+      const response = await fetch(`/api/boards/${boardId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description }),
+      });
+      if (!response.ok) throw new Error("Failed to update board description");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      setIsEditingBoardDescription(false);
+      toast.success("Description updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update description");
+      setEditBoardDescription(boardDescription || "");
+    },
+  });
+
+  const handleSaveBoardDescription = () => {
+    updateBoardDescriptionMutation.mutate(editBoardDescription);
+  };
+
+  // Update editBoardDescription when boardDescription changes
+  useEffect(() => {
+    setEditBoardDescription(boardDescription || "");
+  }, [boardDescription]);
 
   // Comment mutations (updateCommentMutation kept for future use but currently not used)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -805,34 +874,19 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
                     <div className="p-[14px] space-y-2">
                     {/* About this board */}
                     <div className="space-y-0">
-                      <div className="flex items-center gap-3">
+                      <div 
+                        className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-2 rounded-md transition-colors"
+                        onClick={() => {
+                          setIsAboutBoardOpen(true);
+                          setIsMenuOpen(false);
+                        }}
+                      >
                         <Info className="h-4 w-4 text-slate-400" />
                         <span className="text-sm font-normal">About this board</span>
                       </div>
-                      {isEditingDescription ? (
-                        <Textarea
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          onBlur={handleEditDescription}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleEditDescription();
-                            } else if (e.key === "Escape") {
-                              setEditDescription(boardDescription || "");
-                              setIsEditingDescription(false);
-                            }
-                          }}
-                          className="text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-slate-100 dark:focus:bg-slate-700 focus:border-blue-400 transition-all duration-300 ease-out resize-none"
-                          placeholder="Add a description..."
-                          autoFocus
-                        />
-                      ) : (
-                        <div 
-                          className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded transition-all duration-300 ease-out min-h-[40px] flex items-center"
-                          onClick={() => setIsEditingDescription(true)}
-                        >
-                          {boardDescription || "Add a description..."}
+                      {!boardDescription && (
+                        <div className="px-2 pb-2">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Add a description to your board</p>
                         </div>
                       )}
                     </div>
@@ -975,6 +1029,149 @@ export function BoardHeader({ boardId, boardTitle, boardDescription, membersCoun
           </div>
         </div>
       </div>
+
+      {/* About Board Dropdown */}
+      <DropdownMenu open={isAboutBoardOpen} onOpenChange={setIsAboutBoardOpen}>
+        <DropdownMenuTrigger asChild>
+          <div />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent 
+          side="bottom" 
+          align="end" 
+          sideOffset={isMobile ? -14 : 4} 
+          alignOffset={-10}
+          className="w-full sm:w-95 h-auto max-h-[calc(100vh-10rem)] p-0 flex flex-col dark:bg-[#0D1117] rounded-lg"
+        >
+          <div className="p-[14px] pb-0 flex-shrink-0 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAboutBoardBack}
+                className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <HoverHint label="Back to menu" side="bottom">
+                  <ArrowLeft className="h-4 w-4" />
+                </HoverHint>
+              </Button>
+              <h3 className="text-[17px] font-bold">About this board</h3>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAboutBoardClose}
+              className="h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              <HoverHint label="Close" side="bottom">
+                <X className="h-4 w-4" />
+              </HoverHint>
+            </Button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
+            <div className="p-[14px] space-y-4">
+              {/* Board Admins Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-slate-400" />
+                  <h4 className="text-sm font-semibold">Board admins</h4>
+                </div>
+                {boardAdmins && boardAdmins.length > 0 ? (
+                  <div className="space-y-2">
+                    {boardAdmins.map((admin) => (
+                      <div key={admin.id} className="flex items-center gap-3">
+                        <ConditionalUserProfile user={admin.user} size="md" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                            {admin.user.name || admin.user.email}
+                          </p>
+                          {admin.user.name && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {admin.user.email}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No admins found</p>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Description Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-slate-400" />
+                    <h4 className="text-sm font-semibold">Description</h4>
+                  </div>
+                  {!isEditingBoardDescription && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingBoardDescription(true);
+                        setEditBoardDescription(boardDescription || "");
+                      }}
+                      className="h-7 px-2 text-xs"
+                    >
+                      <Edit className="h-3.5 w-3.5 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+                
+                {isEditingBoardDescription ? (
+                  <div className="space-y-2">
+                    <RichTextEditor
+                      content={editBoardDescription}
+                      onChange={setEditBoardDescription}
+                      placeholder="Add a description to let your teammates know what this board is used for."
+                      minHeight="6rem"
+                      maxHeight="15rem"
+                      showToolbar={true}
+                      className="border-2 border-slate-300 dark:border-slate-600 focus-within:border-slate-500 dark:focus-within:border-slate-400"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsEditingBoardDescription(false);
+                          setEditBoardDescription(boardDescription || "");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveBoardDescription}
+                        disabled={updateBoardDescriptionMutation.isPending}
+                      >
+                        {updateBoardDescriptionMutation.isPending ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-3 rounded transition-all duration-300 ease-out min-h-[60px]"
+                    onClick={() => {
+                      setIsEditingBoardDescription(true);
+                      setEditBoardDescription(boardDescription || "");
+                    }}
+                    dangerouslySetInnerHTML={{
+                      __html: boardDescription || "<span class='text-slate-400'>Add a description to let your teammates know what this board is used for.</span>"
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Activity Dropdown */}
       <DropdownMenu open={isActivityOpen} onOpenChange={setIsActivityOpen}>

@@ -1,32 +1,14 @@
 "use client";
 
 import { useOrganizationList, OrganizationSwitcher } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
 
 /**
- * Conditionally renders OrganizationSwitcher only if user has organizations
- * This prevents showing an empty switcher for users without organizations
+ * Renders OrganizationSwitcher with creation mode enabled
+ * Users can create organizations directly from Clerk's UI
+ * The webhook will automatically sync new organizations to our database
  */
 export function ConditionalOrganizationSwitcher() {
-  const { userMemberships, isLoaded } = useOrganizationList();
-  const [hasOrganizations, setHasOrganizations] = useState(false);
-
-  useEffect(() => {
-    if (isLoaded) {
-      // Check if user has any organizations
-      // userMemberships includes all orgs the user belongs to
-      const orgs = userMemberships?.data || [];
-      const hasOrgs = orgs.length > 0;
-      setHasOrganizations(hasOrgs);
-      
-      // Debug logging
-      if (hasOrgs) {
-        console.log("Organizations found:", orgs.map((m) => m.organization.name));
-      } else {
-        console.log("No organizations found in Clerk");
-      }
-    }
-  }, [isLoaded, userMemberships]);
+  const { isLoaded } = useOrganizationList();
 
   if (!isLoaded) {
     return (
@@ -36,14 +18,12 @@ export function ConditionalOrganizationSwitcher() {
     );
   }
 
-  if (!hasOrganizations) {
-    return null;
-  }
-
   return (
     <div className="w-full">
       <OrganizationSwitcher
         hidePersonal
+        createOrganizationMode="modal"
+        organizationProfileMode="modal"
         appearance={{
           elements: {
             organizationSwitcherTrigger: "w-full px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors flex items-center justify-between",
