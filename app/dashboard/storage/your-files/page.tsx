@@ -507,7 +507,7 @@ export default function YourFilesPage() {
         ) : (
           <>
             {viewMode === "grid" ? (
-              <div className="sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3">
                 {data.files.map((file) => {
                   const Icon = getFileIcon(file);
                   const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
@@ -593,17 +593,10 @@ export default function YourFilesPage() {
                             title={fileName}
                             sandbox="allow-same-origin"
                           />
-                        ) : isDocument(file) && getDocumentPreviewUrl(file) ? (
-                          <iframe
-                            src={getDocumentPreviewUrl(file) || ''}
-                            className="w-full h-full border-0 pointer-events-none"
-                            title={fileName}
-                            sandbox="allow-same-origin allow-scripts"
-                          />
                         ) : null}
                         <div className={cn(
                           "absolute inset-0 flex items-center justify-center bg-muted",
-                          (thumbnailUrl || getPDFPreviewUrl(file) || (isDocument(file) && getDocumentPreviewUrl(file))) ? "hidden" : ""
+                          (thumbnailUrl || getPDFPreviewUrl(file)) ? "hidden" : ""
                         )}>
                           <Icon className="h-8 w-8 text-muted-foreground" />
                         </div>

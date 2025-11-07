@@ -158,21 +158,22 @@ export function FilePreviewSheet({ file, open, onOpenChange }: FilePreviewSheetP
                   />
                 </div>
               ) : isPDF && file.url ? (
-                <div className="flex items-center justify-center min-h-[400px] max-h-[600px] border rounded-lg overflow-hidden">
+                <div className="w-full min-h-[400px] max-h-[600px] border rounded-lg overflow-hidden bg-muted/20">
                   <iframe
                     src={file.url}
-                    className="w-full h-full border-0"
+                    className="w-full h-full min-h-[400px] border-0"
                     title={file.filename || "PDF"}
                     sandbox="allow-same-origin"
                   />
                 </div>
               ) : isDocument() && getDocumentPreviewUrl() ? (
-                <div className="flex items-center justify-center min-h-[400px] max-h-[600px] border rounded-lg overflow-hidden">
+                <div className="w-full min-h-[400px] max-h-[600px] border rounded-lg overflow-hidden bg-muted/20">
                   <iframe
                     src={getDocumentPreviewUrl() || ''}
-                    className="w-full h-full border-0"
+                    className="w-full h-full min-h-[400px] border-0"
                     title={file.filename || "Document"}
-                    sandbox="allow-same-origin allow-scripts"
+                    sandbox="allow-same-origin allow-scripts allow-popups"
+                    allow="fullscreen"
                   />
                 </div>
               ) : (
