@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get personal workspaces
+    // Get personal workspaces (owned by user)
     const personalWorkspaces = await db.workspace.findMany({
       where: { ownerId: user.id },
       include: {
@@ -89,9 +89,74 @@ export async function GET() {
       (membership) => membership.organization.workspaces
     );
 
+    // Also include workspaces with organizationId where user is a workspace member
+    // This handles cases where workspace was created during onboarding before org membership was synced
+    const userOrgWorkspaceMemberships = await db.workspaceMember.findMany({
+      where: {
+        userId: user.id,
+        workspace: {
+          organizationId: { not: null },
+          // Exclude workspaces already in orgWorkspaces
+          id: { notIn: orgWorkspaces.map(w => w.id) }
+        }
+      },
+      include: {
+        workspace: {
+          include: {
+            organization: {
+              select: {
+                id: true,
+                name: true,
+                slug: true
+              }
+            },
+            projects: {
+              include: {
+                boards: {
+                  select: { id: true, title: true }
+                }
+              },
+              orderBy: { createdAt: "desc" }
+            },
+            boards: {
+              where: { projectId: null },
+              select: { id: true, title: true }
+            },
+            members: {
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true, avatarUrl: true }
+                }
+              }
+            },
+            _count: {
+              select: {
+                projects: true,
+                boards: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Merge user workspace memberships into orgWorkspaces
+    const allOrgWorkspaces = [
+      ...orgWorkspaces,
+      ...userOrgWorkspaceMemberships.map(wm => wm.workspace)
+    ];
+
     // Get workspaces where user is a member (shared personal workspaces)
+    // Exclude workspaces that are already in personal or organization workspaces
+    const personalWorkspaceIds = new Set(personalWorkspaces.map(w => w.id));
+    const orgWorkspaceIds = new Set(allOrgWorkspaces.map(w => w.id));
     const sharedWorkspaces = await db.workspaceMember.findMany({
-      where: { userId: user.id },
+      where: { 
+        userId: user.id,
+        workspaceId: { 
+          notIn: [...personalWorkspaceIds, ...orgWorkspaceIds]
+        }
+      },
       include: {
         workspace: {
           include: {
@@ -130,7 +195,7 @@ export async function GET() {
 
     return NextResponse.json({
       personal: personalWorkspaces,
-      organization: orgWorkspaces,
+      organization: allOrgWorkspaces,
       shared: sharedWorkspaces.map((wm) => wm.workspace)
     });
   } catch (error) {
@@ -245,7 +310,15 @@ export async function POST(request: NextRequest) {
         icon: icon || null,
         ownerId: dbOrganizationId ? null : user.id,
         organizationId: dbOrganizationId || null,
-        status: "active"
+        status: "active",
+        // Always add the creator as a workspace member (admin role)
+        // This ensures they can see the workspace even if organization membership isn't synced yet
+        members: {
+          create: {
+            userId: user.id,
+            role: "admin"
+          }
+        }
       },
       include: {
         owner: dbOrganizationId ? undefined : {

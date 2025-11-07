@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { UsersRound, Calendar, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -126,7 +126,7 @@ export function BoardCard({ board }: BoardCardProps) {
         <CardContent className="pt-0">
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="w-4 h-4" />
+              <UsersRound className="w-4 h-4" />
               <span>{board.members.length + 1} members</span>
             </div>
             

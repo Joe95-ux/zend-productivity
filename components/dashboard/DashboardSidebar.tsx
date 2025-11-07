@@ -17,7 +17,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, Folder, FolderKanban, Building2, UsersRound, ChevronRight, ChevronDown, Clock, Kanban, Home, Inbox, AlertCircle, FileText } from "lucide-react";
+import { Plus, Folder, FolderKanban, Building2, UsersRound, ChevronRight, ChevronDown, Clock, Kanban, Home, Inbox, AlertCircle, FileText, HardDrive, Paperclip } from "lucide-react";
 import { ConditionalOrganizationSwitcher } from "@/components/organizations/ConditionalOrganizationSwitcher";
 import { useOrganization } from "@clerk/nextjs";
 import { CreateWorkspaceForm } from "@/components/workspaces/CreateWorkspaceForm";
@@ -83,6 +83,7 @@ export function DashboardSidebar() {
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [createProjectWorkspaceId, setCreateProjectWorkspaceId] = useState<string | null>(null);
+  const [isStorageExpanded, setIsStorageExpanded] = useState(false);
   const { organization } = useOrganization();
 
   // Load recent boards from localStorage
@@ -210,7 +211,10 @@ export function DashboardSidebar() {
         {/* Recent Boards */}
         {recentBoards.length > 0 && allBoards && (
           <SidebarGroup>
-            <SidebarGroupLabel>Recent</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sm font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Recent
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {recentBoards.slice(0, 5).map((boardId) => {
@@ -575,21 +579,78 @@ export function DashboardSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Storage Grouping - Placeholder */}
+        {/* Storage Grouping */}
         <SidebarGroup>
-          <SidebarGroupLabel>Storage</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-semibold flex items-center gap-2">
+            <HardDrive className="h-4 w-4" />
+            Storage
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  disabled
-                  className="opacity-50 cursor-not-allowed"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  <span className="text-xs">Files & Attachments</span>
-                  <span className="ml-auto text-xs text-muted-foreground">Soon</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <Collapsible
+                open={isStorageExpanded}
+                onOpenChange={setIsStorageExpanded}
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton className="w-full justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        <span>Files & Attachments</span>
+                      </div>
+                      {isStorageExpanded ? (
+                        <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                      )}
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenu className="ml-6 mt-1">
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          className={cn(
+                            "h-8",
+                            pathname === "/dashboard/storage/your-files" && "bg-accent"
+                          )}
+                        >
+                          <Link href="/dashboard/storage/your-files">
+                            <FileText className="h-3.5 w-3.5" />
+                            <span className="text-xs">Your files</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          disabled
+                          className="h-8 opacity-50 cursor-not-allowed"
+                        >
+                          <Link href="#">
+                            <FileText className="h-3.5 w-3.5" />
+                            <span className="text-xs">All files</span>
+                            <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          disabled
+                          className="h-8 opacity-50 cursor-not-allowed"
+                        >
+                          <Link href="#">
+                            <Paperclip className="h-3.5 w-3.5" />
+                            <span className="text-xs">Attachments</span>
+                            <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
