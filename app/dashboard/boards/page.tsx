@@ -125,7 +125,7 @@ export default function AllBoardsPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="py-6">
               <CardHeader>
@@ -148,7 +148,7 @@ export default function AllBoardsPage() {
                 <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
                 <h2 className="text-xl font-semibold">Starred Boards</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {starredBoards.map((board) => (
                   <BoardCard key={board.id} board={board} />
                 ))}
@@ -164,7 +164,7 @@ export default function AllBoardsPage() {
                 <Clock className="h-5 w-5 text-muted-foreground" />
                 <h2 className="text-xl font-semibold">Recently Viewed</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {recentBoardsList.map((board) => (
                   <BoardCard key={board.id} board={board} />
                 ))}
@@ -180,7 +180,7 @@ export default function AllBoardsPage() {
                 <h2 className="text-xl font-semibold">All Boards</h2>
                 <span className="text-sm text-muted-foreground">({allOtherBoards.length})</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {allOtherBoards.map((board) => (
                   <BoardCard key={board.id} board={board} />
                 ))}

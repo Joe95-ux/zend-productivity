@@ -158,11 +158,46 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate organization access if provided
+    let dbOrganizationId: string | null = null;
     if (organizationId) {
+      // Check if organizationId is a Clerk ID (starts with "org_")
+      // or our database ObjectID
+      let organization;
+      if (organizationId.startsWith("org_")) {
+        // It's a Clerk organization ID, find our database organization
+        organization = await db.organization.findUnique({
+          where: { clerkOrgId: organizationId }
+        });
+        
+        if (!organization) {
+          return NextResponse.json(
+            { error: "Organization not found. Please wait a moment and try again." },
+            { status: 404 }
+          );
+        }
+        
+        dbOrganizationId = organization.id;
+      } else {
+        // Assume it's already our database ObjectID
+        organization = await db.organization.findUnique({
+          where: { id: organizationId }
+        });
+        
+        if (!organization) {
+          return NextResponse.json(
+            { error: "Organization not found" },
+            { status: 404 }
+          );
+        }
+        
+        dbOrganizationId = organizationId;
+      }
+
+      // Check if user is an admin of the organization
       const orgMember = await db.organizationMember.findUnique({
         where: {
           organizationId_userId: {
-            organizationId,
+            organizationId: dbOrganizationId,
             userId: user.id
           }
         }
@@ -183,8 +218,8 @@ export async function POST(request: NextRequest) {
 
     while (true) {
       const existing = await db.workspace.findFirst({
-        where: organizationId
-          ? { organizationId, slug }
+        where: dbOrganizationId
+          ? { organizationId: dbOrganizationId, slug }
           : { ownerId: user.id, slug }
       });
 
@@ -200,15 +235,15 @@ export async function POST(request: NextRequest) {
         slug,
         color: color || null,
         icon: icon || null,
-        ownerId: organizationId ? null : user.id,
-        organizationId: organizationId || null,
+        ownerId: dbOrganizationId ? null : user.id,
+        organizationId: dbOrganizationId || null,
         status: "active"
       },
       include: {
-        owner: organizationId ? undefined : {
+        owner: dbOrganizationId ? undefined : {
           select: { id: true, name: true, email: true, avatarUrl: true }
         },
-        organization: organizationId ? {
+        organization: dbOrganizationId ? {
           select: { id: true, name: true, slug: true }
         } : undefined,
         projects: true,

@@ -149,7 +149,7 @@ export default function DashboardPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="py-6">
               <CardHeader>
@@ -224,7 +224,7 @@ export default function DashboardPage() {
                   </Link>
                 </Button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {starredBoards.map((board) => (
                   <BoardCard key={board.id} board={board} />
                 ))}
@@ -248,7 +248,7 @@ export default function DashboardPage() {
                   </Link>
                 </Button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {recentBoardsList.map((board) => (
                   <BoardCard key={board.id} board={board} />
                 ))}

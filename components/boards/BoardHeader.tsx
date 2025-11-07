@@ -972,7 +972,11 @@ export function BoardHeader({
                   </div>
 
                   {/* Organization Switcher - only shows if user has organizations */}
-                  <div className="px-[14px] py-2 border-b border-slate-200 dark:border-slate-700">
+                  <div 
+                    className="px-[14px] py-2 border-b border-slate-200 dark:border-slate-700"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
                     <ConditionalOrganizationSwitcher />
                   </div>
 
