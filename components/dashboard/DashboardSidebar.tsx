@@ -111,13 +111,20 @@ export function DashboardSidebar() {
     }
   }, [pathname]);
 
-  const { data: workspacesData, isLoading } = useQuery<WorkspacesResponse>({
+  const { data: workspacesData, isLoading, error } = useQuery<WorkspacesResponse>({
     queryKey: ["workspaces"],
     queryFn: async () => {
       const response = await fetch("/api/workspaces");
-      if (!response.ok) throw new Error("Failed to fetch workspaces");
-      return response.json();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to fetch workspaces" }));
+        throw new Error(errorData.error || "Failed to fetch workspaces");
+      }
+      const data = await response.json();
+      console.log("Workspaces data:", data);
+      return data;
     },
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch all boards for recent boards display
@@ -207,40 +214,6 @@ export function DashboardSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Recent Boards */}
-        {recentBoards.length > 0 && allBoards && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-sm font-semibold flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Recent
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {recentBoards.slice(0, 5).map((boardId) => {
-                  const board = allBoards.find((b: { id: string }) => b.id === boardId);
-                  if (!board) return null;
-                  return (
-                    <SidebarMenuItem key={boardId}>
-                      <SidebarMenuButton
-                        asChild
-                        className={cn(
-                          "h-8",
-                          pathname === `/dashboard/boards/${boardId}` && "bg-accent"
-                        )}
-                      >
-                        <Link href={`/dashboard/boards/${boardId}`}>
-                          <Clock className="h-3.5 w-3.5" />
-                          <span className="text-xs truncate">{board.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {/* Personal Workspaces */}
         {workspacesData?.personal && workspacesData.personal.length > 0 && (
@@ -594,9 +567,9 @@ export function DashboardSidebar() {
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton className="w-full justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span>Files & Attachments</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">Files & Attachments</span>
                       </div>
                       {isStorageExpanded ? (
                         <ChevronDown className="h-4 w-4 flex-shrink-0" />
@@ -615,36 +588,30 @@ export function DashboardSidebar() {
                             pathname === "/dashboard/storage/your-files" && "bg-accent"
                           )}
                         >
-                          <Link href="/dashboard/storage/your-files">
-                            <FileText className="h-3.5 w-3.5" />
-                            <span className="text-xs">Your files</span>
+                          <Link href="/dashboard/storage/your-files" className="flex items-center gap-2 min-w-0">
+                            <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="text-xs truncate">Your files</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
                         <SidebarMenuButton
-                          asChild
                           disabled
                           className="h-8 opacity-50 cursor-not-allowed"
                         >
-                          <Link href="#">
-                            <FileText className="h-3.5 w-3.5" />
-                            <span className="text-xs">All files</span>
-                            <span className="ml-auto text-xs text-muted-foreground">Soon</span>
-                          </Link>
+                          <Folder className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="text-xs truncate flex-1 min-w-0">All files</span>
+                          <span className="text-xs text-muted-foreground flex-shrink-0 ml-auto">Soon</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
                         <SidebarMenuButton
-                          asChild
                           disabled
                           className="h-8 opacity-50 cursor-not-allowed"
                         >
-                          <Link href="#">
-                            <Paperclip className="h-3.5 w-3.5" />
-                            <span className="text-xs">Attachments</span>
-                            <span className="ml-auto text-xs text-muted-foreground">Soon</span>
-                          </Link>
+                          <Paperclip className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="text-xs truncate flex-1 min-w-0">Attachments</span>
+                          <span className="text-xs text-muted-foreground flex-shrink-0 ml-auto">Soon</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     </SidebarMenu>
@@ -655,11 +622,67 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Recent Boards */}
+        {recentBoards.length > 0 && allBoards && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sm font-semibold">
+              Recent
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {recentBoards.slice(0, 5).map((boardId) => {
+                  const board = allBoards.find((b: { id: string }) => b.id === boardId);
+                  if (!board) return null;
+                  return (
+                    <SidebarMenuItem key={boardId}>
+                      <SidebarMenuButton
+                        asChild
+                        className={cn(
+                          "h-8",
+                          pathname === `/dashboard/boards/${boardId}` && "bg-accent"
+                        )}
+                      >
+                        <Link href={`/dashboard/boards/${boardId}`} className="flex items-center gap-2 min-w-0">
+                          <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="text-xs truncate">{board.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {isLoading && (
           <SidebarGroup>
             <SidebarGroupContent>
               <div className="px-4 py-2 text-sm text-muted-foreground">
                 Loading workspaces...
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {error && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="px-4 py-2 text-sm text-destructive">
+                Error loading workspaces: {error instanceof Error ? error.message : "Unknown error"}
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {!isLoading && !error && workspacesData && 
+         (!workspacesData.personal || workspacesData.personal.length === 0) &&
+         (!workspacesData.organization || workspacesData.organization.length === 0) &&
+         (!workspacesData.shared || workspacesData.shared.length === 0) && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="px-4 py-2 text-sm text-muted-foreground">
+                No workspaces yet. Create one to get started.
               </div>
             </SidebarGroupContent>
           </SidebarGroup>

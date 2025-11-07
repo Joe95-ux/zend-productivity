@@ -57,8 +57,10 @@ export function CreateWorkspaceForm({ onSuccess, organizationId }: CreateWorkspa
 
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+    onSuccess: async () => {
+      // Invalidate and refetch workspaces
+      await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      await queryClient.refetchQueries({ queryKey: ["workspaces"] });
       toast.success("Workspace created successfully!");
       form.reset();
       onSuccess?.();

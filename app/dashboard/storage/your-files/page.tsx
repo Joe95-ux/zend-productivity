@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Image, Search, Loader2, Upload } from "lucide-react";
+import { FileText, Image, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FilePreviewSheet } from "@/components/storage/FilePreviewSheet";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { fileToBase64, validateFile } from "@/lib/file-utils";
+import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
+import { extractFilename } from "@/lib/file-utils";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface FileItem {
   id: string;
@@ -46,23 +48,31 @@ export default function YourFilesPage() {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const queryClient = useQueryClient();
 
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
+      setCurrentPage(1); // Reset to first page on search
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Reset page when type changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [type]);
+
   const { data, isLoading } = useQuery<FilesResponse>({
-    queryKey: ["your-files", debouncedSearch, type],
+    queryKey: ["your-files", debouncedSearch, type, currentPage],
     queryFn: async () => {
       const params = new URLSearchParams({
         search: debouncedSearch,
-        type: type
+        type: type,
+        page: currentPage.toString(),
+        limit: "24" // Smaller page size for better UX
       });
       const response = await fetch(`/api/storage/your-files?${params}`);
       if (!response.ok) throw new Error("Failed to fetch files");
@@ -73,64 +83,33 @@ export default function YourFilesPage() {
   const getFileIcon = (file: FileItem) => {
     const fileType = file.type?.toLowerCase() || "";
     const filename = file.filename?.toLowerCase() || "";
+    const url = file.url?.toLowerCase() || "";
     
-    if (fileType.startsWith("image/") || 
-        filename.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) {
+    // Check if it's an image by type, filename, or URL pattern
+    const isImage = fileType.startsWith("image/") || 
+        filename.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ||
+        url.startsWith('data:image/') ||
+        /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url);
+    
+    if (isImage) {
       return Image;
     }
     return FileText;
   };
 
-  const getFileTypeLabel = (file: FileItem) => {
-    const fileType = file.type?.toLowerCase() || "";
-    const filename = file.filename?.toLowerCase() || "";
+  const getThumbnailUrl = (url: string, type?: string) => {
+    // Check if it's an image by MIME type or by URL pattern
+    const isImage = type?.startsWith('image/') || 
+                   url.startsWith('data:image/') || 
+                   (url.startsWith('http://') || url.startsWith('https://')) && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url);
     
-    if (fileType.startsWith("image/") || 
-        filename.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) {
-      return "Image";
+    if (isImage) {
+      // For base64 images, return as is
+      if (url.startsWith('data:')) return url;
+      // For external images, return the URL
+      if (url.startsWith('http://') || url.startsWith('https://')) return url;
     }
-    if (fileType.startsWith("application/pdf") || filename.endsWith(".pdf")) {
-      return "PDF";
-    }
-    if (fileType.includes("word") || filename.match(/\.(doc|docx)$/)) {
-      return "Word";
-    }
-    if (fileType.includes("excel") || filename.match(/\.(xls|xlsx)$/)) {
-      return "Excel";
-    }
-    if (fileType.includes("powerpoint") || filename.match(/\.(ppt|pptx)$/)) {
-      return "PowerPoint";
-    }
-    return "File";
-  };
-
-  const formatFileSize = (url: string) => {
-    // For base64, estimate size
-    if (url.startsWith("data:")) {
-      const base64Length = url.split(",")[1]?.length || 0;
-      const sizeInBytes = (base64Length * 3) / 4;
-      if (sizeInBytes < 1024) return `${Math.round(sizeInBytes)} B`;
-      if (sizeInBytes < 1024 * 1024) return `${(sizeInBytes / 1024).toFixed(1)} KB`;
-      return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
-    }
-    return "—";
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const validation = validateFile(file, "*/*", 2); // 2MB max
-    if (!validation.valid) {
-      toast.error(validation.error);
-      return;
-    }
-
-    handleFileUpload(file);
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    return null;
   };
 
   const handleFileUpload = async (file: File) => {
@@ -138,6 +117,7 @@ export default function YourFilesPage() {
     const loadingToastId = toast.loading(`Uploading "${file.name}"...`);
 
     try {
+      const { fileToBase64 } = await import("@/lib/file-utils");
       const result = await fileToBase64(file);
 
       const response = await fetch("/api/storage/your-files/upload", {
@@ -171,6 +151,44 @@ export default function YourFilesPage() {
     }
   };
 
+  const handleUrlUpload = async (url: string, displayName?: string) => {
+    setIsUploading(true);
+    const loadingToastId = toast.loading("Adding URL attachment...");
+
+    try {
+      const response = await fetch("/api/storage/your-files/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: url,
+          type: 'url',
+          filename: displayName || extractFilename(url),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add URL attachment");
+      }
+
+      toast.dismiss(loadingToastId);
+      toast.success(`URL attachment added successfully!`);
+
+      // Refresh the files list
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["your-files"] });
+      }, 100);
+    } catch (error) {
+      console.error("Error adding URL attachment:", error);
+      toast.dismiss(loadingToastId);
+      toast.error(error instanceof Error ? error.message : "Failed to add URL attachment");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header with Search and Tabs */}
@@ -184,61 +202,63 @@ export default function YourFilesPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileSelect}
-                className="hidden"
-                accept="*/*"
+              <AttachmentUpload
+                onFileUpload={handleFileUpload}
+                onUrlUpload={handleUrlUpload}
+                isUploading={isUploading}
+                acceptedTypes="*/*"
+                maxSize={2}
+                variant="button"
               />
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                size="sm"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload File
-                  </>
-                )}
-              </Button>
             </div>
           </div>
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search files..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+          {/* Search and Tabs Row */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
+            {/* Tabs */}
+            <Tabs value={type} onValueChange={(v) => setType(v as typeof type)}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="images">Images</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="other">Other</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-          {/* Tabs */}
-          <Tabs value={type} onValueChange={(v) => setType(v as typeof type)}>
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="images">Images</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
-              <TabsTrigger value="other">Other</TabsTrigger>
-            </TabsList>
-          </Tabs>
+            {/* Search */}
+            <div className="relative w-full sm:w-auto sm:min-w-[300px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search files..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 w-full"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Files Grid */}
       <div className="flex-1 overflow-auto p-6">
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
+            {Array.from({ length: 24 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-lg border bg-card overflow-hidden flex flex-col"
+              >
+                {/* File Preview/Thumbnail Skeleton */}
+                <div className="aspect-square bg-muted">
+                  <Skeleton className="w-full h-full rounded-none" />
+                </div>
+                {/* File Info Skeleton */}
+                <div className="p-2 flex-1 flex flex-col min-w-0">
+                  <Skeleton className="h-3 w-3/4 mb-1" />
+                  <Skeleton className="h-2.5 w-1/2" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : !data?.files || data.files.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -249,50 +269,115 @@ export default function YourFilesPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {data.files.map((file) => {
-              const Icon = getFileIcon(file);
-              const isImage = file.type?.startsWith("image/") || 
-                file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
+              {data.files.map((file) => {
+                const Icon = getFileIcon(file);
+                const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
+                const fileName = file.filename || extractFilename(file.url);
 
-              return (
-                <div
-                  key={file.id}
-                  onClick={() => setSelectedFile(file)}
-                  className={cn(
-                    "group relative rounded-lg border bg-card hover:bg-accent transition-colors cursor-pointer overflow-hidden",
-                    "flex flex-col"
-                  )}
-                >
-                  {/* File Preview/Thumbnail */}
-                  <div className="aspect-square bg-muted flex items-center justify-center relative overflow-hidden">
-                    {isImage && file.url ? (
-                      <img
-                        src={file.url}
-                        alt={file.filename || "Image"}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                    ) : (
-                      <Icon className="h-12 w-12 text-muted-foreground" />
+                return (
+                  <div
+                    key={file.id}
+                    onClick={() => setSelectedFile(file)}
+                    className={cn(
+                      "group relative rounded-lg border bg-card hover:bg-accent transition-colors cursor-pointer overflow-hidden",
+                      "flex flex-col"
                     )}
-                  </div>
+                  >
+                    {/* File Preview/Thumbnail */}
+                    <div className="aspect-square bg-muted flex items-center justify-center relative overflow-hidden">
+                      {thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={fileName}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          onError={(e) => {
+                            // Fallback to icon if image fails to load
+                            e.currentTarget.style.display = 'none';
+                            const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (iconContainer) {
+                              iconContainer.classList.remove('hidden');
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div className={cn(
+                        "absolute inset-0 flex items-center justify-center",
+                        thumbnailUrl ? "hidden" : ""
+                      )}>
+                        <Icon className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    </div>
 
-                  {/* File Info */}
-                  <div className="p-3 flex-1 flex flex-col">
-                    <p className="text-sm font-medium truncate mb-1">
-                      {file.filename || "Untitled"}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {file.card.list.board.title} • {file.card.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
-                    </p>
+                    {/* File Info */}
+                    <div className="p-2 flex-1 flex flex-col min-w-0">
+                      <p className="text-xs font-medium truncate mb-0.5" title={fileName}>
+                        {fileName}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
+                      </p>
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            {data.totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t">
+                <div className="text-sm text-muted-foreground text-center sm:text-left">
+                  Showing {((currentPage - 1) * 24) + 1} to {Math.min(currentPage * 24, data.total)} of {data.total} files
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    <span className="hidden sm:inline">Previous</span>
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (data.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= data.totalPages - 2) {
+                        pageNum = data.totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(data.totalPages, prev + 1))}
+                    disabled={currentPage === data.totalPages}
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight className="h-4 w-4 sm:ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

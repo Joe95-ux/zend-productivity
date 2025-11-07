@@ -35,15 +35,21 @@ interface FilePreviewSheetProps {
 }
 
 export function FilePreviewSheet({ file, open, onOpenChange }: FilePreviewSheetProps) {
+  const url = file.url?.toLowerCase() || "";
   const isImage = file.type?.startsWith("image/") || 
-    file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+    file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ||
+    url.startsWith('data:image/') ||
+    ((url.startsWith('http://') || url.startsWith('https://')) && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(file.url));
 
   const getFileIcon = () => {
     const fileType = file.type?.toLowerCase() || "";
     const filename = file.filename?.toLowerCase() || "";
+    const urlLower = file.url?.toLowerCase() || "";
     
     if (fileType.startsWith("image/") || 
-        filename.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) {
+        filename.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ||
+        urlLower.startsWith('data:image/') ||
+        ((urlLower.startsWith('http://') || urlLower.startsWith('https://')) && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(file.url))) {
       return Image;
     }
     return FileText;
@@ -104,83 +110,95 @@ export function FilePreviewSheet({ file, open, onOpenChange }: FilePreviewSheetP
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="truncate">{file.filename || "Untitled File"}</SheetTitle>
-        </SheetHeader>
+      <SheetContent side="right" className="w-full sm:w-[400px] md:w-[480px] overflow-y-auto p-0">
+        <div className="flex flex-col h-full">
+          <SheetHeader className="px-6 pt-6 pb-4 border-b">
+            <SheetTitle className="truncate text-lg">{file.filename || "Untitled File"}</SheetTitle>
+          </SheetHeader>
 
-        <div className="flex flex-col h-full mt-6">
-          {/* File Preview */}
-          <div className="flex-1 min-h-0 mb-6">
-            <div className="rounded-lg border bg-muted/50 p-4 h-full flex items-center justify-center">
-              {isImage && file.url ? (
-                <img
-                  src={file.url}
-                  alt={file.filename || "Image"}
-                  className="max-w-full max-h-[60vh] object-contain rounded"
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-4">
-                  <FileIcon className="h-24 w-24 text-muted-foreground" />
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            {/* File Preview */}
+            <div className="mb-6">
+              <div className="rounded-lg border bg-muted/50 p-6 flex items-center justify-center min-h-[200px] max-h-[400px]">
+                {isImage && file.url ? (
+                  <img
+                    src={file.url}
+                    alt={file.filename || "Image"}
+                    className="max-w-full max-h-full object-contain rounded"
+                    onError={(e) => {
+                      // Fallback to icon if image fails to load
+                      e.currentTarget.style.display = 'none';
+                      const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (iconContainer) {
+                        iconContainer.style.display = 'flex';
+                      }
+                    }}
+                  />
+                ) : null}
+                <div className={cn(
+                  "flex flex-col items-center gap-4",
+                  isImage && file.url ? "hidden" : ""
+                )}>
+                  <FileIcon className="h-16 w-16 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">{getFileTypeLabel()}</p>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 mb-6">
-            <Button onClick={handleDownload} variant="outline" className="flex-1">
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
-            <Button onClick={handleOpenInNewTab} variant="outline" className="flex-1">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open
-            </Button>
-          </div>
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 mb-6">
+              <Button onClick={handleDownload} variant="outline" className="flex-1">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+              <Button onClick={handleOpenInNewTab} variant="outline" className="flex-1">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open
+              </Button>
+            </div>
 
-          <Separator className="mb-6" />
+            <Separator className="mb-6" />
 
-          {/* File Details */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold">Details</h3>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Type</span>
-                <Badge variant="secondary">{getFileTypeLabel()}</Badge>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Size</span>
-                <span className="text-sm">{formatFileSize()}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Uploaded
-                </span>
-                <span className="text-sm">
-                  {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
-                </span>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Folder className="h-4 w-4" />
-                  <span>Location</span>
+            {/* File Details */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold">Details</h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Type</span>
+                  <Badge variant="secondary">{getFileTypeLabel()}</Badge>
                 </div>
-                <div className="pl-6 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <File className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm font-medium">{file.card.list.board.title}</span>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Size</span>
+                  <span className="text-sm font-medium">{formatFileSize()}</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Uploaded
+                  </span>
+                  <span className="text-sm font-medium">
+                    {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
+                  </span>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Folder className="h-4 w-4" />
+                    <span>Location</span>
                   </div>
-                  <div className="pl-4">
-                    <span className="text-sm text-muted-foreground">→ {file.card.title}</span>
+                  <div className="pl-6 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <File className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-sm font-medium">{file.card.list.board.title}</span>
+                    </div>
+                    <div className="pl-4">
+                      <span className="text-sm text-muted-foreground">→ {file.card.title}</span>
+                    </div>
                   </div>
                 </div>
               </div>
