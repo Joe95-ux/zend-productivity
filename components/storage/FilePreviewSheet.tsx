@@ -40,6 +40,29 @@ export function FilePreviewSheet({ file, open, onOpenChange }: FilePreviewSheetP
     url.startsWith('data:image/') ||
     ((url.startsWith('http://') || url.startsWith('https://')) && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(file.url));
 
+  const isPDF = file.type?.startsWith("application/pdf") || 
+    file.filename?.match(/\.pdf$/i);
+
+  const isDocument = () => {
+    const fileType = file.type?.toLowerCase() || "";
+    const filename = file.filename?.toLowerCase() || "";
+    return (
+      fileType.includes("word") || filename.match(/\.(doc|docx)$/i) ||
+      fileType.includes("excel") || filename.match(/\.(xls|xlsx)$/i) ||
+      fileType.includes("powerpoint") || filename.match(/\.(ppt|pptx)$/i) ||
+      fileType.startsWith("text/") || filename.match(/\.txt$/i)
+    );
+  };
+
+  const getDocumentPreviewUrl = () => {
+    // For external URLs, use Google Docs Viewer
+    if (file.url.startsWith('http://') || file.url.startsWith('https://')) {
+      return `https://docs.google.com/viewer?url=${encodeURIComponent(file.url)}&embedded=true`;
+    }
+    // For base64, we can't use Google Docs Viewer, so return null
+    return null;
+  };
+
   const getFileIcon = () => {
     const fileType = file.type?.toLowerCase() || "";
     const filename = file.filename?.toLowerCase() || "";
@@ -132,6 +155,24 @@ export function FilePreviewSheet({ file, open, onOpenChange }: FilePreviewSheetP
                         iconContainer.style.display = 'flex';
                       }
                     }}
+                  />
+                </div>
+              ) : isPDF && file.url ? (
+                <div className="flex items-center justify-center min-h-[400px] max-h-[600px] border rounded-lg overflow-hidden">
+                  <iframe
+                    src={file.url}
+                    className="w-full h-full border-0"
+                    title={file.filename || "PDF"}
+                    sandbox="allow-same-origin"
+                  />
+                </div>
+              ) : isDocument() && getDocumentPreviewUrl() ? (
+                <div className="flex items-center justify-center min-h-[400px] max-h-[600px] border rounded-lg overflow-hidden">
+                  <iframe
+                    src={getDocumentPreviewUrl() || ''}
+                    className="w-full h-full border-0"
+                    title={file.filename || "Document"}
+                    sandbox="allow-same-origin allow-scripts"
                   />
                 </div>
               ) : (

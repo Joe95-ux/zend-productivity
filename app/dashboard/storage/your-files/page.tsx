@@ -263,6 +263,40 @@ export default function YourFilesPage() {
     return "File";
   };
 
+  const isPDF = (file: FileItem) => {
+    const fileType = file.type?.toLowerCase() || "";
+    const filename = file.filename?.toLowerCase() || "";
+    return fileType.startsWith("application/pdf") || filename.match(/\.pdf$/i);
+  };
+
+  const isDocument = (file: FileItem) => {
+    const fileType = file.type?.toLowerCase() || "";
+    const filename = file.filename?.toLowerCase() || "";
+    return (
+      fileType.includes("word") || filename.match(/\.(doc|docx)$/i) ||
+      fileType.includes("excel") || filename.match(/\.(xls|xlsx)$/i) ||
+      fileType.includes("powerpoint") || filename.match(/\.(ppt|pptx)$/i) ||
+      fileType.startsWith("text/") || filename.match(/\.txt$/i)
+    );
+  };
+
+  const getDocumentPreviewUrl = (file: FileItem) => {
+    // For external URLs, use Google Docs Viewer
+    if (file.url.startsWith('http://') || file.url.startsWith('https://')) {
+      return `https://docs.google.com/viewer?url=${encodeURIComponent(file.url)}&embedded=true`;
+    }
+    // For base64, we can't use Google Docs Viewer, so return null
+    return null;
+  };
+
+  const getPDFPreviewUrl = (file: FileItem) => {
+    // PDFs can be displayed directly in iframe (both base64 and external URLs)
+    if (isPDF(file)) {
+      return file.url;
+    }
+    return null;
+  };
+
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
     const loadingToastId = toast.loading(`Uploading "${file.name}"...`);
@@ -473,7 +507,7 @@ export default function YourFilesPage() {
         ) : (
           <>
             {viewMode === "grid" ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
+              <div className="sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3">
                 {data.files.map((file) => {
                   const Icon = getFileIcon(file);
                   const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
@@ -552,10 +586,24 @@ export default function YourFilesPage() {
                               }
                             }}
                           />
+                        ) : getPDFPreviewUrl(file) ? (
+                          <iframe
+                            src={getPDFPreviewUrl(file) || ''}
+                            className="w-full h-full border-0 pointer-events-none"
+                            title={fileName}
+                            sandbox="allow-same-origin"
+                          />
+                        ) : isDocument(file) && getDocumentPreviewUrl(file) ? (
+                          <iframe
+                            src={getDocumentPreviewUrl(file) || ''}
+                            className="w-full h-full border-0 pointer-events-none"
+                            title={fileName}
+                            sandbox="allow-same-origin allow-scripts"
+                          />
                         ) : null}
                         <div className={cn(
-                          "absolute inset-0 flex items-center justify-center",
-                          thumbnailUrl ? "hidden" : ""
+                          "absolute inset-0 flex items-center justify-center bg-muted",
+                          (thumbnailUrl || getPDFPreviewUrl(file) || (isDocument(file) && getDocumentPreviewUrl(file))) ? "hidden" : ""
                         )}>
                           <Icon className="h-8 w-8 text-muted-foreground" />
                         </div>
@@ -578,28 +626,24 @@ export default function YourFilesPage() {
                 })}
               </div>
             ) : (
-              <div className="space-y-2">
-                {data.files.map((file) => {
-                  const Icon = getFileIcon(file);
-                  const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
-                  const fileName = file.filename || extractFilename(file.url);
-                  const isFavorite = favoriteStatuses[file.id] || false;
-                  const fileTypeBadge = getFileTypeBadge(file);
-                  const location = `${file.card.list.board.title} / ${file.card.list.title}`;
+              <>
+                {/* Mobile Layout - Keep existing design */}
+                <div className="space-y-2 md:hidden">
+                  {data.files.map((file) => {
+                    const Icon = getFileIcon(file);
+                    const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
+                    const fileName = file.filename || extractFilename(file.url);
+                    const isFavorite = favoriteStatuses[file.id] || false;
 
-                  return (
-                    <div
-                      key={file.id}
-                      className={cn(
-                        "group relative rounded-lg border bg-card hover:bg-accent transition-colors",
-                        "flex items-center gap-4 p-4",
-                        // Mobile: simple layout, Desktop: table-like layout
-                        "md:px-6 md:py-3"
-                      )}
-                      onClick={() => setSelectedFile(file)}
-                    >
-                      {/* Mobile Layout - Keep existing design */}
-                      <div className="flex items-center gap-4 flex-1 md:hidden">
+                    return (
+                      <div
+                        key={file.id}
+                        className={cn(
+                          "group relative rounded-lg border bg-card hover:bg-accent transition-colors",
+                          "flex items-center gap-4 p-4"
+                        )}
+                        onClick={() => setSelectedFile(file)}
+                      >
                         {/* Favorite and Menu Icons - Mobile */}
                         <div className="absolute top-2 left-2 z-10">
                           <Button
@@ -681,115 +725,166 @@ export default function YourFilesPage() {
                           </p>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
 
-                      {/* Desktop Layout - Table-like design */}
-                      <div className="hidden md:flex items-center gap-4 w-full">
-                        {/* Thumbnail/Icon Column */}
-                        <div
-                          className="w-12 h-12 bg-muted rounded flex items-center justify-center relative overflow-hidden flex-shrink-0 cursor-pointer"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {thumbnailUrl ? (
-                            <img
-                              src={thumbnailUrl}
-                              alt={fileName}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
-                                if (iconContainer) {
-                                  iconContainer.classList.remove('hidden');
-                                }
-                              }}
-                            />
-                          ) : null}
-                          <div className={cn(
-                            "absolute inset-0 flex items-center justify-center",
-                            thumbnailUrl ? "hidden" : ""
-                          )}>
-                            <Icon className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                        </div>
+                {/* Desktop Layout - Table */}
+                <div className="hidden md:block border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-muted/50 border-b">
+                      <tr>
+                        <th className="text-left p-3 text-xs font-semibold text-muted-foreground w-16">Preview</th>
+                        <th className="text-left p-3 text-xs font-semibold text-muted-foreground">Name</th>
+                        <th className="text-left p-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell w-24">Type</th>
+                        <th className="text-left p-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">Location</th>
+                        <th className="text-right p-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell w-32">Date</th>
+                        <th className="text-right p-3 text-xs font-semibold text-muted-foreground w-20">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.files.map((file) => {
+                        const Icon = getFileIcon(file);
+                        const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
+                        const fileName = file.filename || extractFilename(file.url);
+                        const isFavorite = favoriteStatuses[file.id] || false;
+                        const fileTypeBadge = getFileTypeBadge(file);
+                        const location = `${file.card.list.board.title} / ${file.card.list.title}`;
+                        const pdfPreviewUrl = getPDFPreviewUrl(file);
+                        const docPreviewUrl = isDocument(file) ? getDocumentPreviewUrl(file) : null;
 
-                        {/* Filename Column */}
-                        <div className="flex-1 min-w-0 cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold truncate" title={fileName}>
-                              {fileName}
-                            </p>
-                            {isFavorite && (
-                              <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 flex-shrink-0" />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* File Type Column */}
-                        <div className="hidden lg:block w-24 flex-shrink-0">
-                          <span className="text-xs text-muted-foreground px-2 py-1 rounded bg-muted/50">
-                            {fileTypeBadge}
-                          </span>
-                        </div>
-
-                        {/* Location Column */}
-                        <div className="hidden xl:block flex-1 min-w-0 max-w-xs">
-                          <p className="text-xs text-muted-foreground truncate" title={location}>
-                            {location}
-                          </p>
-                        </div>
-
-                        {/* Date Column */}
-                        <div className="hidden lg:block w-32 flex-shrink-0 text-right">
-                          <p className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
-                          </p>
-                        </div>
-
-                        {/* Actions Column */}
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => handleFavoriteClick(e, file)}
+                        return (
+                          <tr
+                            key={file.id}
+                            className="group border-b hover:bg-accent transition-colors cursor-pointer"
+                            onClick={() => setSelectedFile(file)}
                           >
-                            <Star
-                              className={cn(
-                                "h-4 w-4",
-                                isFavorite ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"
-                              )}
-                            />
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            {/* Preview Column */}
+                            <td className="p-3">
+                              <div
+                                className="w-12 h-12 bg-muted rounded flex items-center justify-center relative overflow-hidden"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={(e) => handleEditClick(e, file)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => handleDeleteClick(e, file)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                                {thumbnailUrl ? (
+                                  <img
+                                    src={thumbnailUrl}
+                                    alt={fileName}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      const iconContainer = e.currentTarget.nextElementSibling as HTMLElement;
+                                      if (iconContainer) {
+                                        iconContainer.classList.remove('hidden');
+                                      }
+                                    }}
+                                  />
+                                ) : pdfPreviewUrl ? (
+                                  <iframe
+                                    src={pdfPreviewUrl}
+                                    className="w-full h-full border-0 pointer-events-none"
+                                    title={fileName}
+                                    sandbox="allow-same-origin"
+                                  />
+                                ) : docPreviewUrl ? (
+                                  <iframe
+                                    src={docPreviewUrl}
+                                    className="w-full h-full border-0 pointer-events-none"
+                                    title={fileName}
+                                    sandbox="allow-same-origin allow-scripts"
+                                  />
+                                ) : null}
+                                <div className={cn(
+                                  "absolute inset-0 flex items-center justify-center bg-muted",
+                                  (thumbnailUrl || pdfPreviewUrl || docPreviewUrl) ? "hidden" : ""
+                                )}>
+                                  <Icon className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Name Column */}
+                            <td className="p-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <p className="text-sm font-semibold truncate" title={fileName}>
+                                  {fileName}
+                                </p>
+                                {isFavorite && (
+                                  <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 flex-shrink-0" />
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Type Column */}
+                            <td className="p-3 hidden lg:table-cell">
+                              <span className="text-xs text-muted-foreground px-2 py-1 rounded bg-muted/50">
+                                {fileTypeBadge}
+                              </span>
+                            </td>
+
+                            {/* Location Column */}
+                            <td className="p-3 hidden xl:table-cell">
+                              <p className="text-xs text-muted-foreground truncate" title={location}>
+                                {location}
+                              </p>
+                            </td>
+
+                            {/* Date Column */}
+                            <td className="p-3 hidden lg:table-cell text-right">
+                              <p className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
+                              </p>
+                            </td>
+
+                            {/* Actions Column */}
+                            <td className="p-3">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => handleFavoriteClick(e, file)}
+                                >
+                                  <Star
+                                    className={cn(
+                                      "h-4 w-4",
+                                      isFavorite ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"
+                                    )}
+                                  />
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={(e) => handleEditClick(e, file)}>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={(e) => handleDeleteClick(e, file)}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
 
             {/* Edit File Dialog */}
