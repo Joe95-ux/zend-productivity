@@ -107,6 +107,13 @@ export async function GET() {
           include: {
             workspaces: {
               include: {
+                organization: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true
+                  }
+                },
                 projects: {
                   include: {
                     boards: {
@@ -140,9 +147,19 @@ export async function GET() {
       }
     });
 
-    const orgWorkspaces = orgMemberships.flatMap(
-      (membership) => membership.organization.workspaces
-    );
+    // Map workspaces and ensure they have the organization relation
+    const orgWorkspaces = orgMemberships.flatMap((membership) => {
+      const org = membership.organization;
+      return org.workspaces.map((workspace) => ({
+        ...workspace,
+        // Ensure organization relation is set (it should already be, but make sure)
+        organization: workspace.organization || {
+          id: org.id,
+          name: org.name,
+          slug: org.slug
+        }
+      }));
+    });
 
     // Also include workspaces with organizationId where user is a workspace member
     // This handles cases where workspace was created during onboarding before org membership was synced

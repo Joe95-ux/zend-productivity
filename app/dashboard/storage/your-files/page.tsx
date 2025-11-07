@@ -281,11 +281,27 @@ export default function YourFilesPage() {
   };
 
   const getDocumentPreviewUrl = (file: FileItem) => {
-    // For external URLs, use Google Docs Viewer
+    const fileType = file.type?.toLowerCase() || "";
+    const filename = file.filename?.toLowerCase() || "";
+    
+    // For external URLs
     if (file.url.startsWith('http://') || file.url.startsWith('https://')) {
-      return `https://docs.google.com/viewer?url=${encodeURIComponent(file.url)}&embedded=true`;
+      // Use Microsoft Office Online viewer for Office documents
+      if (fileType.includes("word") || filename.match(/\.(doc|docx)$/i)) {
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`;
+      }
+      if (fileType.includes("excel") || filename.match(/\.(xls|xlsx)$/i)) {
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`;
+      }
+      if (fileType.includes("powerpoint") || filename.match(/\.(ppt|pptx)$/i)) {
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`;
+      }
+      // For text files, use Google Docs Viewer
+      if (fileType.startsWith("text/") || filename.match(/\.txt$/i)) {
+        return `https://docs.google.com/viewer?url=${encodeURIComponent(file.url)}&embedded=true`;
+      }
     }
-    // For base64, we can't use Google Docs Viewer, so return null
+    // For base64, we can't use external viewers, so return null
     return null;
   };
 
@@ -378,7 +394,7 @@ export default function YourFilesPage() {
     <div className="flex flex-col h-full">
       {/* Header with Search and Tabs */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex flex-col gap-4 p-6">
+        <div className="flex flex-col gap-4 md:px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold">Your Files</h1>
@@ -476,7 +492,7 @@ export default function YourFilesPage() {
       </div>
 
       {/* Files Grid */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto md:px-6 py-6">
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3">
             {Array.from({ length: 24 }).map((_, i) => (
@@ -744,7 +760,6 @@ export default function YourFilesPage() {
                         const fileTypeBadge = getFileTypeBadge(file);
                         const location = `${file.card.list.board.title} / ${file.card.list.title}`;
                         const pdfPreviewUrl = getPDFPreviewUrl(file);
-                        const docPreviewUrl = isDocument(file) ? getDocumentPreviewUrl(file) : null;
 
                         return (
                           <tr
@@ -778,17 +793,10 @@ export default function YourFilesPage() {
                                     title={fileName}
                                     sandbox="allow-same-origin"
                                   />
-                                ) : docPreviewUrl ? (
-                                  <iframe
-                                    src={docPreviewUrl}
-                                    className="w-full h-full border-0 pointer-events-none"
-                                    title={fileName}
-                                    sandbox="allow-same-origin allow-scripts"
-                                  />
                                 ) : null}
                                 <div className={cn(
                                   "absolute inset-0 flex items-center justify-center bg-muted",
-                                  (thumbnailUrl || pdfPreviewUrl || docPreviewUrl) ? "hidden" : ""
+                                  (thumbnailUrl || pdfPreviewUrl) ? "hidden" : ""
                                 )}>
                                   <Icon className="h-5 w-5 text-muted-foreground" />
                                 </div>

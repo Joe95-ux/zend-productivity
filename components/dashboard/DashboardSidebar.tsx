@@ -138,7 +138,11 @@ export function DashboardSidebar() {
 
   // Group organization workspaces by organization
   const organizationGroups = workspacesData?.organization.reduce((acc, workspace) => {
-    if (!workspace.organization) return acc; // Skip workspaces without organization
+    // Skip workspaces without organization
+    if (!workspace.organization) {
+      console.warn("Workspace without organization:", workspace);
+      return acc;
+    }
     
     const orgId = workspace.organization.id;
     if (!acc[orgId]) {
@@ -150,6 +154,14 @@ export function DashboardSidebar() {
     acc[orgId].workspaces.push(workspace);
     return acc;
   }, {} as Record<string, { organization: { id: string; name: string; slug: string }; workspaces: Workspace[] }>) || {};
+
+  // Debug: Log organization groups
+  useEffect(() => {
+    if (workspacesData?.organization) {
+      console.log("Organization workspaces:", workspacesData.organization);
+      console.log("Organization groups:", organizationGroups);
+    }
+  }, [workspacesData, organizationGroups]);
 
   const toggleWorkspace = (workspaceId: string) => {
     setExpandedWorkspaces((prev) => {
