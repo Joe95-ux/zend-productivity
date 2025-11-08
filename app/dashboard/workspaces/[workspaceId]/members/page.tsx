@@ -231,7 +231,14 @@ export default function WorkspaceMembersPage() {
                 >
                   <td className="p-3">
                     <div className="flex items-center gap-3">
-                      <ConditionalUserProfile user={member.user} size="sm" />
+                      <ConditionalUserProfile 
+                        user={{
+                          name: member.user.name ?? undefined,
+                          email: member.user.email,
+                          avatarUrl: member.user.avatarUrl ?? undefined,
+                        }} 
+                        size="sm" 
+                      />
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">
                           {member.user.name || member.user.email}
