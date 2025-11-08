@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Image, Search, ChevronLeft, ChevronRight, Grid3x3, List, Star, MoreHorizontal, Edit, Trash2, Filter } from "lucide-react";
+import { FileText, Image, Search, ChevronLeft, ChevronRight, LayoutGrid, List, Star, MoreHorizontal, Edit, Trash2, X, ListFilter } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FilePreviewSheet } from "@/components/storage/FilePreviewSheet";
+import { ConditionalUserProfile } from "@/components/ConditionalUserProfile";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { AttachmentUpload } from "@/components/ui/AttachmentUpload";
@@ -37,6 +38,12 @@ interface FileItem {
       board: {
         id: string;
         title: string;
+        owner: {
+          id: string;
+          name: string | null;
+          email: string;
+          avatarUrl: string | null;
+        };
       };
     };
   };
@@ -365,57 +372,29 @@ export default function YourFilesPage() {
             </div>
           </div>
 
-          {/* Search, Sort, and View Controls Row */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
-            {/* Tabs - Left */}
-            <Tabs value={type} onValueChange={(v) => setType(v as typeof type)}>
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="images">Images</TabsTrigger>
-                <TabsTrigger value="documents">Documents</TabsTrigger>
-                <TabsTrigger value="other">Other</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* Search, Sort, and View Controls - Right */}
-            <div className="flex items-center gap-2 ml-auto">
-              {/* Search with Sort */}
-              <div className="relative">
+          {/* Filters Row - Mobile: Search/Display on top, Tabs/Filter below */}
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
+            {/* Mobile: Search and Display on top, full width */}
+            <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto order-2 md:order-3">
+              {/* Search Bar */}
+              <div className="relative flex-1 md:flex-initial">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search files..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 pr-10 w-[200px] sm:w-[250px]"
+                  className="pl-9 pr-9 w-full md:w-[200px] lg:w-[250px]"
                 />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/80"
-                    >
-                      <Filter className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => setSortBy("newest")}>
-                      Newest {sortBy === "newest" && "✓"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("oldest")}>
-                      Oldest {sortBy === "oldest" && "✓"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("filetype")}>
-                      File Type {sortBy === "filetype" && "✓"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("filesize")}>
-                      File Size {sortBy === "filesize" && "✓"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("favorites")}>
-                      Favorites {sortBy === "favorites" && "✓"}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {search && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted/80"
+                    onClick={() => setSearch("")}
+                  >
+                    <X className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                )}
               </div>
 
               {/* View Mode Toggle */}
@@ -426,7 +405,7 @@ export default function YourFilesPage() {
                   className="h-8 w-8 p-0"
                   onClick={() => setViewMode("grid")}
                 >
-                  <Grid3x3 className="h-4 w-4" />
+                  <LayoutGrid className="h-4 w-4" />
                 </Button>
                 <Button
                   variant={viewMode === "list" ? "default" : "ghost"}
@@ -437,6 +416,63 @@ export default function YourFilesPage() {
                   <List className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
+
+            {/* Desktop: Tabs and Filter on right, Mobile: Below search */}
+            <div className="flex items-center gap-3 w-full md:w-auto order-1 md:order-2">
+              {/* Tabs */}
+              <Tabs value={type} onValueChange={(v) => setType(v as typeof type)}>
+                <TabsList>
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="images">Images</TabsTrigger>
+                  <TabsTrigger value="documents">Documents</TabsTrigger>
+                  <TabsTrigger value="other">Other</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {/* Filter Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <ListFilter className="h-4 w-4" />
+                    <span className="hidden sm:inline">Filter</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setSortBy("newest")}>
+                    Newest {sortBy === "newest" && "✓"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("oldest")}>
+                    Oldest {sortBy === "oldest" && "✓"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("filetype")}>
+                    File Type {sortBy === "filetype" && "✓"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("filesize")}>
+                    File Size {sortBy === "filesize" && "✓"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("favorites")}>
+                    Favorites {sortBy === "favorites" && "✓"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Clear Filters Button - Show when filters are active */}
+              {(search || type !== "all" || sortBy !== "newest") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setSearch("");
+                    setType("all");
+                    setSortBy("newest");
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                  <span className="hidden sm:inline">Clear</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -691,6 +727,7 @@ export default function YourFilesPage() {
                         <th className="text-left p-3 text-xs font-semibold text-muted-foreground">Name</th>
                         <th className="text-left p-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell w-24">Type</th>
                         <th className="text-left p-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">Location</th>
+                        <th className="text-left p-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">Uploaded by</th>
                         <th className="text-right p-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell w-32">Date</th>
                         <th className="text-right p-3 text-xs font-semibold text-muted-foreground w-20">Actions</th>
                       </tr>
@@ -763,6 +800,23 @@ export default function YourFilesPage() {
                               <p className="text-xs text-muted-foreground truncate" title={location}>
                                 {location}
                               </p>
+                            </td>
+
+                            {/* Uploaded by Column */}
+                            <td className="p-3 hidden xl:table-cell">
+                              <div className="flex items-center gap-2">
+                                <ConditionalUserProfile
+                                  user={{
+                                    name: file.card.list.board.owner.name ?? undefined,
+                                    email: file.card.list.board.owner.email,
+                                    avatarUrl: file.card.list.board.owner.avatarUrl ?? undefined,
+                                  }}
+                                  size="sm"
+                                />
+                                <span className="text-xs text-muted-foreground truncate">
+                                  {file.card.list.board.owner.name || file.card.list.board.owner.email}
+                                </span>
+                              </div>
                             </td>
 
                             {/* Date Column */}

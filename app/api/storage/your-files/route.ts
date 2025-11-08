@@ -190,7 +190,15 @@ export async function GET(request: NextRequest) {
                   board: {
                     select: {
                       id: true,
-                      title: true
+                      title: true,
+                      owner: {
+                        select: {
+                          id: true,
+                          name: true,
+                          email: true,
+                          avatarUrl: true
+                        }
+                      }
                     }
                   }
                 }
