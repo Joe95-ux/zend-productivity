@@ -263,55 +263,6 @@ export default function YourFilesPage() {
     return "File";
   };
 
-  const isPDF = (file: FileItem) => {
-    const fileType = file.type?.toLowerCase() || "";
-    const filename = file.filename?.toLowerCase() || "";
-    return fileType.startsWith("application/pdf") || filename.match(/\.pdf$/i);
-  };
-
-  const isDocument = (file: FileItem) => {
-    const fileType = file.type?.toLowerCase() || "";
-    const filename = file.filename?.toLowerCase() || "";
-    return (
-      fileType.includes("word") || filename.match(/\.(doc|docx)$/i) ||
-      fileType.includes("excel") || filename.match(/\.(xls|xlsx)$/i) ||
-      fileType.includes("powerpoint") || filename.match(/\.(ppt|pptx)$/i) ||
-      fileType.startsWith("text/") || filename.match(/\.txt$/i)
-    );
-  };
-
-  const getDocumentPreviewUrl = (file: FileItem) => {
-    const fileType = file.type?.toLowerCase() || "";
-    const filename = file.filename?.toLowerCase() || "";
-    
-    // For external URLs
-    if (file.url.startsWith('http://') || file.url.startsWith('https://')) {
-      // Use Microsoft Office Online viewer for Office documents
-      if (fileType.includes("word") || filename.match(/\.(doc|docx)$/i)) {
-        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`;
-      }
-      if (fileType.includes("excel") || filename.match(/\.(xls|xlsx)$/i)) {
-        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`;
-      }
-      if (fileType.includes("powerpoint") || filename.match(/\.(ppt|pptx)$/i)) {
-        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`;
-      }
-      // For text files, use Google Docs Viewer
-      if (fileType.startsWith("text/") || filename.match(/\.txt$/i)) {
-        return `https://docs.google.com/viewer?url=${encodeURIComponent(file.url)}&embedded=true`;
-      }
-    }
-    // For base64, we can't use external viewers, so return null
-    return null;
-  };
-
-  const getPDFPreviewUrl = (file: FileItem) => {
-    // PDFs can be displayed directly in iframe (both base64 and external URLs)
-    if (isPDF(file)) {
-      return file.url;
-    }
-    return null;
-  };
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
@@ -494,7 +445,7 @@ export default function YourFilesPage() {
       {/* Files Grid */}
       <div className="flex-1 overflow-auto md:px-6 py-6">
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
             {Array.from({ length: 24 }).map((_, i) => (
               <div
                 key={i}
@@ -523,7 +474,7 @@ export default function YourFilesPage() {
         ) : (
           <>
             {viewMode === "grid" ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
                 {data.files.map((file) => {
                   const Icon = getFileIcon(file);
                   const thumbnailUrl = getThumbnailUrl(file.url, file.type || undefined);
@@ -602,17 +553,10 @@ export default function YourFilesPage() {
                               }
                             }}
                           />
-                        ) : getPDFPreviewUrl(file) ? (
-                          <iframe
-                            src={getPDFPreviewUrl(file) || ''}
-                            className="w-full h-full border-0 pointer-events-none"
-                            title={fileName}
-                            sandbox="allow-same-origin"
-                          />
                         ) : null}
                         <div className={cn(
                           "absolute inset-0 flex items-center justify-center bg-muted",
-                          (thumbnailUrl || getPDFPreviewUrl(file)) ? "hidden" : ""
+                          thumbnailUrl ? "hidden" : ""
                         )}>
                           <Icon className="h-8 w-8 text-muted-foreground" />
                         </div>
@@ -759,7 +703,6 @@ export default function YourFilesPage() {
                         const isFavorite = favoriteStatuses[file.id] || false;
                         const fileTypeBadge = getFileTypeBadge(file);
                         const location = `${file.card.list.board.title} / ${file.card.list.title}`;
-                        const pdfPreviewUrl = getPDFPreviewUrl(file);
 
                         return (
                           <tr
@@ -786,17 +729,10 @@ export default function YourFilesPage() {
                                       }
                                     }}
                                   />
-                                ) : pdfPreviewUrl ? (
-                                  <iframe
-                                    src={pdfPreviewUrl}
-                                    className="w-full h-full border-0 pointer-events-none"
-                                    title={fileName}
-                                    sandbox="allow-same-origin"
-                                  />
                                 ) : null}
                                 <div className={cn(
                                   "absolute inset-0 flex items-center justify-center bg-muted",
-                                  (thumbnailUrl || pdfPreviewUrl) ? "hidden" : ""
+                                  thumbnailUrl ? "hidden" : ""
                                 )}>
                                   <Icon className="h-5 w-5 text-muted-foreground" />
                                 </div>

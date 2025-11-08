@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, Folder, FolderKanban, Building2, UsersRound, ChevronRight, ChevronDown, Clock, Kanban, Home, Inbox, AlertCircle, FileText, HardDrive, Paperclip } from "lucide-react";
+import { Plus, Folder, FolderKanban, Building2, UsersRound, ChevronRight, ChevronDown, Clock, Kanban, Home, Inbox, AlertCircle, FileText, HardDrive, Paperclip, Sparkles } from "lucide-react";
 import { ConditionalOrganizationSwitcher } from "@/components/organizations/ConditionalOrganizationSwitcher";
 import { CreateWorkspaceForm } from "@/components/workspaces/CreateWorkspaceForm";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
@@ -75,6 +75,53 @@ interface WorkspacesResponse {
   shared: Workspace[];
 }
 
+interface TeamBoard {
+  id: string;
+  title: string;
+  description?: string;
+  updatedAt: string;
+}
+
+interface TeamProject {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  boards: TeamBoard[];
+  _count: {
+    boards: number;
+  };
+}
+
+interface TeamWorkspace {
+  id: string;
+  name: string;
+  slug: string;
+  projects: TeamProject[];
+  boards: TeamBoard[];
+  _count: {
+    projects: number;
+    boards: number;
+  };
+}
+
+interface Team {
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    logoUrl?: string;
+    _count: {
+      members: number;
+      workspaces: number;
+    };
+  };
+  role: string;
+  workspaces: TeamWorkspace[];
+}
+
 export function DashboardSidebar() {
   const pathname = usePathname();
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set());
@@ -83,6 +130,9 @@ export function DashboardSidebar() {
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [createProjectWorkspaceId, setCreateProjectWorkspaceId] = useState<string | null>(null);
   const [isStorageExpanded, setIsStorageExpanded] = useState(false);
+  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
+  const [expandedTeamWorkspaces, setExpandedTeamWorkspaces] = useState<Set<string>>(new Set());
+  const [expandedTeamProjects, setExpandedTeamProjects] = useState<Set<string>>(new Set());
   // Removed unused organization variable
 
   // Load recent boards from localStorage
@@ -136,24 +186,48 @@ export function DashboardSidebar() {
     },
   });
 
+  // Fetch teams (organizations with projects and boards)
+  const { data: teamsData } = useQuery({
+    queryKey: ["teams"],
+    queryFn: async () => {
+      const response = await fetch("/api/organizations/teams");
+      if (!response.ok) throw new Error("Failed to fetch teams");
+      return response.json();
+    },
+  });
+
+  // Check if user has premium subscription
+  const { data: subscriptionData } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: async () => {
+      const response = await fetch("/api/user/subscription");
+      if (!response.ok) return { plan: "FREE" };
+      return response.json();
+    },
+  });
+
+  const isPremium = subscriptionData?.plan && subscriptionData.plan !== "FREE";
+
   // Group organization workspaces by organization
-  const organizationGroups = workspacesData?.organization.reduce((acc, workspace) => {
-    // Skip workspaces without organization
-    if (!workspace.organization) {
-      console.warn("Workspace without organization:", workspace);
+  const organizationGroups = useMemo(() => {
+    return workspacesData?.organization.reduce((acc, workspace) => {
+      // Skip workspaces without organization
+      if (!workspace.organization) {
+        console.warn("Workspace without organization:", workspace);
+        return acc;
+      }
+      
+      const orgId = workspace.organization.id;
+      if (!acc[orgId]) {
+        acc[orgId] = {
+          organization: workspace.organization,
+          workspaces: [],
+        };
+      }
+      acc[orgId].workspaces.push(workspace);
       return acc;
-    }
-    
-    const orgId = workspace.organization.id;
-    if (!acc[orgId]) {
-      acc[orgId] = {
-        organization: workspace.organization,
-        workspaces: [],
-      };
-    }
-    acc[orgId].workspaces.push(workspace);
-    return acc;
-  }, {} as Record<string, { organization: { id: string; name: string; slug: string }; workspaces: Workspace[] }>) || {};
+    }, {} as Record<string, { organization: { id: string; name: string; slug: string }; workspaces: Workspace[] }>) || {};
+  }, [workspacesData?.organization]);
 
   // Debug: Log organization groups
   useEffect(() => {
@@ -170,6 +244,42 @@ export function DashboardSidebar() {
         next.delete(workspaceId);
       } else {
         next.add(workspaceId);
+      }
+      return next;
+    });
+  };
+
+  const toggleTeam = (teamId: string) => {
+    setExpandedTeams((prev) => {
+      const next = new Set(prev);
+      if (next.has(teamId)) {
+        next.delete(teamId);
+      } else {
+        next.add(teamId);
+      }
+      return next;
+    });
+  };
+
+  const toggleTeamWorkspace = (workspaceId: string) => {
+    setExpandedTeamWorkspaces((prev) => {
+      const next = new Set(prev);
+      if (next.has(workspaceId)) {
+        next.delete(workspaceId);
+      } else {
+        next.add(workspaceId);
+      }
+      return next;
+    });
+  };
+
+  const toggleTeamProject = (projectId: string) => {
+    setExpandedTeamProjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+      } else {
+        next.add(projectId);
       }
       return next;
     });
@@ -261,7 +371,7 @@ export function DashboardSidebar() {
                           </SidebarMenuButton>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <SidebarMenu className="ml-6 mt-1">
+                          <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
                             {/* Projects */}
                             <SidebarMenuItem>
                               <SidebarMenuButton
@@ -272,7 +382,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/projects`}>
-                                  <FolderKanban className="h-3.5 w-3.5" />
+                                  <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Projects</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -288,7 +398,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/boards`}>
-                                  <Kanban className="h-3.5 w-3.5" />
+                                  <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Boards</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -304,7 +414,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/team`}>
-                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Team</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -320,7 +430,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/members`}>
-                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Members</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -336,7 +446,164 @@ export function DashboardSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Organization Workspaces - Grouped by Organization */}
+        {/* Your Teams - Organizations with Projects and Boards */}
+        {teamsData && teamsData.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center gap-2">
+              <UsersRound className="h-3.5 w-3.5" />
+              Your Teams
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {teamsData.map((team: Team) => {
+                  const isExpanded = expandedTeams.has(team.organization.id);
+
+                  return (
+                    <Collapsible
+                      key={team.organization.id}
+                      open={isExpanded}
+                      onOpenChange={() => toggleTeam(team.organization.id)}
+                    >
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            className={cn(
+                              "w-full justify-between",
+                              isActive(`/dashboard/organizations/${team.organization.id}`) && "bg-accent"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Building2 className="h-4 w-4 flex-shrink-0" />
+                              <span className="truncate">{team.organization.name}</span>
+                            </div>
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                            )}
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
+                            {team.workspaces.map((workspace: TeamWorkspace) => {
+                              const isWorkspaceExpanded = expandedTeamWorkspaces.has(workspace.id);
+
+                              return (
+                                <Collapsible
+                                  key={workspace.id}
+                                  open={isWorkspaceExpanded}
+                                  onOpenChange={() => toggleTeamWorkspace(workspace.id)}
+                                >
+                                  <SidebarMenuItem>
+                                    <CollapsibleTrigger asChild>
+                                      <SidebarMenuButton
+                                        className={cn(
+                                          "w-full justify-between h-8",
+                                          isActive(`/dashboard/workspaces/${workspace.id}`) && "bg-accent"
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                          <Folder className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                          <span className="text-xs truncate">{workspace.name}</span>
+                                        </div>
+                                        {isWorkspaceExpanded ? (
+                                          <ChevronDown className="h-3 w-3 flex-shrink-0" />
+                                        ) : (
+                                          <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                                        )}
+                                      </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                      <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
+                                        {/* Projects */}
+                                        {workspace.projects.map((project: TeamProject) => {
+                                          const isProjectExpanded = expandedTeamProjects.has(project.id);
+
+                                          return (
+                                            <Collapsible
+                                              key={project.id}
+                                              open={isProjectExpanded}
+                                              onOpenChange={() => toggleTeamProject(project.id)}
+                                            >
+                                              <SidebarMenuItem>
+                                                <CollapsibleTrigger asChild>
+                                                  <SidebarMenuButton
+                                                    className={cn(
+                                                      "w-full justify-between h-8",
+                                                      isActive(`/dashboard/projects/${project.id}`) && "bg-accent"
+                                                    )}
+                                                  >
+                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                      <FolderKanban className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                                      <span className="text-xs truncate">{project.name}</span>
+                                                    </div>
+                                                    {isProjectExpanded ? (
+                                                      <ChevronDown className="h-3 w-3 flex-shrink-0" />
+                                                    ) : (
+                                                      <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                                                    )}
+                                                  </SidebarMenuButton>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                  <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
+                                                    {project.boards.map((board: TeamBoard) => (
+                                                      <SidebarMenuItem key={board.id}>
+                                                        <SidebarMenuButton
+                                                          asChild
+                                                          className={cn(
+                                                            "h-8",
+                                                            isActive(`/dashboard/boards/${board.id}`) && "bg-accent"
+                                                          )}
+                                                        >
+                                                          <Link href={`/dashboard/boards/${board.id}`}>
+                                                            <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
+                                                            <span className="text-xs truncate">{board.title}</span>
+                                                          </Link>
+                                                        </SidebarMenuButton>
+                                                      </SidebarMenuItem>
+                                                    ))}
+                                                  </SidebarMenu>
+                                                </CollapsibleContent>
+                                              </SidebarMenuItem>
+                                            </Collapsible>
+                                          );
+                                        })}
+
+                                        {/* Direct Boards */}
+                                        {workspace.boards.map((board: TeamBoard) => (
+                                          <SidebarMenuItem key={board.id}>
+                                            <SidebarMenuButton
+                                              asChild
+                                              className={cn(
+                                                "h-8",
+                                                isActive(`/dashboard/boards/${board.id}`) && "bg-accent"
+                                              )}
+                                            >
+                                              <Link href={`/dashboard/boards/${board.id}`}>
+                                                <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
+                                                <span className="text-xs truncate">{board.title}</span>
+                                              </Link>
+                                            </SidebarMenuButton>
+                                          </SidebarMenuItem>
+                                        ))}
+                                      </SidebarMenu>
+                                    </CollapsibleContent>
+                                  </SidebarMenuItem>
+                                </Collapsible>
+                              );
+                            })}
+                          </SidebarMenu>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Workspaces - Grouped by Organization */}
         {Object.keys(organizationGroups).length > 0 && (
           <>
             {Object.values(organizationGroups).map((group) => (
@@ -376,7 +643,7 @@ export function DashboardSidebar() {
                           </SidebarMenuButton>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <SidebarMenu className="ml-6 mt-1">
+                          <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
                             {/* Projects */}
                             <SidebarMenuItem>
                               <SidebarMenuButton
@@ -387,7 +654,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/projects`}>
-                                  <FolderKanban className="h-3.5 w-3.5" />
+                                  <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Projects</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -403,7 +670,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/boards`}>
-                                  <Kanban className="h-3.5 w-3.5" />
+                                  <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Boards</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -419,7 +686,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/team`}>
-                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Team</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -435,7 +702,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/members`}>
-                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Members</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -488,7 +755,7 @@ export function DashboardSidebar() {
                           </SidebarMenuButton>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <SidebarMenu className="ml-6 mt-1">
+                          <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
                             {/* Projects */}
                             <SidebarMenuItem>
                               <SidebarMenuButton
@@ -499,7 +766,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/projects`}>
-                                  <FolderKanban className="h-3.5 w-3.5" />
+                                  <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Projects</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -515,7 +782,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/boards`}>
-                                  <Kanban className="h-3.5 w-3.5" />
+                                  <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Boards</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -531,7 +798,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/team`}>
-                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Team</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -547,7 +814,7 @@ export function DashboardSidebar() {
                                 )}
                               >
                                 <Link href={`/dashboard/workspaces/${workspace.id}/members`}>
-                                  <UsersRound className="h-3.5 w-3.5" />
+                                  <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs">Members</span>
                                 </Link>
                               </SidebarMenuButton>
@@ -600,7 +867,7 @@ export function DashboardSidebar() {
                           )}
                         >
                           <Link href="/dashboard/storage/your-files" className="flex items-center gap-2 min-w-0">
-                            <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                            <FileText className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                             <span className="text-xs truncate">Your files</span>
                           </Link>
                         </SidebarMenuButton>
@@ -610,7 +877,7 @@ export function DashboardSidebar() {
                           disabled
                           className="h-8 opacity-50 cursor-not-allowed"
                         >
-                          <Folder className="h-3.5 w-3.5 flex-shrink-0" />
+                          <Folder className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                           <span className="text-xs truncate flex-1 min-w-0">All files</span>
                           <span className="text-xs text-muted-foreground flex-shrink-0 ml-auto">Soon</span>
                         </SidebarMenuButton>
@@ -620,7 +887,7 @@ export function DashboardSidebar() {
                           disabled
                           className="h-8 opacity-50 cursor-not-allowed"
                         >
-                          <Paperclip className="h-3.5 w-3.5 flex-shrink-0" />
+                          <Paperclip className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                           <span className="text-xs truncate flex-1 min-w-0">Attachments</span>
                           <span className="text-xs text-muted-foreground flex-shrink-0 ml-auto">Soon</span>
                         </SidebarMenuButton>
@@ -701,13 +968,26 @@ export function DashboardSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t px-4 py-3">
-        <Button
-          className="w-full"
-          onClick={() => setIsCreateWorkspaceOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          <span>New Workspace</span>
-        </Button>
+        {!isPremium ? (
+          <Button
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+            onClick={() => {
+              // TODO: Navigate to pricing/upgrade page when implemented
+              window.location.href = "/pricing";
+            }}
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            <span>Upgrade to Pro</span>
+          </Button>
+        ) : (
+          <Button
+            className="w-full"
+            onClick={() => setIsCreateWorkspaceOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            <span>New Workspace</span>
+          </Button>
+        )}
       </SidebarFooter>
 
       {/* Create Workspace Dialog */}

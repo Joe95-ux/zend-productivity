@@ -295,6 +295,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check premium status for personal workspaces (not organization workspaces)
+    // Free users can only have one personal workspace
+    if (!organizationId) {
+      // Check user's subscription
+      const subscription = await db.subscription.findUnique({
+        where: { userId: user.id },
+      });
+
+      const isPremium = subscription && subscription.plan !== "FREE";
+
+      if (!isPremium) {
+        // Check if user already has a personal workspace
+        const existingPersonalWorkspace = await db.workspace.findFirst({
+          where: {
+            ownerId: user.id,
+            organizationId: null,
+          },
+        });
+
+        if (existingPersonalWorkspace) {
+          return NextResponse.json(
+            {
+              error: "Multiple workspaces are a premium feature. Upgrade to Pro to create more workspaces.",
+              requiresUpgrade: true,
+            },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     // Validate organization access if provided
     let dbOrganizationId: string | null = null;
     if (organizationId) {

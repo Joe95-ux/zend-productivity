@@ -40,70 +40,6 @@ export function FilePreviewSheet({ file, open, onOpenChange }: FilePreviewSheetP
     url.startsWith('data:image/') ||
     ((url.startsWith('http://') || url.startsWith('https://')) && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(file.url));
 
-  const isPDF = file.type?.startsWith("application/pdf") || 
-    file.filename?.match(/\.pdf$/i);
-
-  const isDocument = () => {
-    const fileType = file.type?.toLowerCase() || "";
-    const filename = file.filename?.toLowerCase() || "";
-    return (
-      fileType.includes("word") || filename.match(/\.(doc|docx)$/i) ||
-      fileType.includes("excel") || filename.match(/\.(xls|xlsx)$/i) ||
-      fileType.includes("powerpoint") || filename.match(/\.(ppt|pptx)$/i) ||
-      fileType.startsWith("text/") || filename.match(/\.txt$/i)
-    );
-  };
-
-  const getDocumentPreviewUrl = () => {
-    const fileType = file.type?.toLowerCase() || "";
-    const filename = file.filename?.toLowerCase() || "";
-    
-    // For external URLs
-    if (file.url.startsWith('http://') || file.url.startsWith('https://')) {
-      // Use Microsoft Office Online viewer for Office documents
-      if (fileType.includes("word") || filename.match(/\.(doc|docx)$/i)) {
-        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`;
-      }
-      if (fileType.includes("excel") || filename.match(/\.(xls|xlsx)$/i)) {
-        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`;
-      }
-      if (fileType.includes("powerpoint") || filename.match(/\.(ppt|pptx)$/i)) {
-        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.url)}`;
-      }
-      // For text files, use Google Docs Viewer
-      if (fileType.startsWith("text/") || filename.match(/\.txt$/i)) {
-        return `https://docs.google.com/viewer?url=${encodeURIComponent(file.url)}&embedded=true`;
-      }
-    }
-    // For base64 text files, try to display directly
-    if (file.url.startsWith('data:text/')) {
-      try {
-        // Extract base64 content and decode
-        const base64Content = file.url.split(',')[1];
-        if (base64Content) {
-          return null; // We'll handle this differently
-        }
-      } catch {
-        // Fall through to return null
-      }
-    }
-    return null;
-  };
-
-  const getTextFileContent = () => {
-    // For base64 text files, decode and return content
-    if (file.url.startsWith('data:text/')) {
-      try {
-        const base64Content = file.url.split(',')[1];
-        if (base64Content) {
-          return atob(base64Content);
-        }
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  };
 
   const getFileIcon = () => {
     const fileType = file.type?.toLowerCase() || "";
@@ -198,31 +134,6 @@ export function FilePreviewSheet({ file, open, onOpenChange }: FilePreviewSheetP
                       }
                     }}
                   />
-                </div>
-              ) : isPDF && file.url ? (
-                <div className="w-full min-h-[400px] max-h-[600px] border rounded-lg overflow-hidden bg-muted/20">
-                  <iframe
-                    src={file.url}
-                    className="w-full h-full min-h-[400px] border-0"
-                    title={file.filename || "PDF"}
-                    sandbox="allow-same-origin"
-                  />
-                </div>
-              ) : isDocument() && getDocumentPreviewUrl() ? (
-                <div className="w-full min-h-[400px] max-h-[600px] border rounded-lg overflow-hidden bg-muted/20">
-                  <iframe
-                    src={getDocumentPreviewUrl() || ''}
-                    className="w-full h-full min-h-[400px] border-0"
-                    title={file.filename || "Document"}
-                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                    allow="fullscreen"
-                  />
-                </div>
-              ) : isDocument() && getTextFileContent() ? (
-                <div className="w-full min-h-[200px] max-h-[400px] border rounded-lg overflow-auto bg-background p-4">
-                  <pre className="text-sm whitespace-pre-wrap font-mono">
-                    {getTextFileContent()}
-                  </pre>
                 </div>
               ) : (
                 <div className="rounded-lg border bg-muted/50 p-6 flex items-center justify-center min-h-[200px] max-h-[400px]">
