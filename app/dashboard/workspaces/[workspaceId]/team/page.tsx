@@ -147,6 +147,9 @@ export default function WorkspaceTeamPage() {
           <h1 className="text-3xl font-bold tracking-tight">Team</h1>
           <p className="text-muted-foreground">
             {data.organization.name} • {data.organization._count.members} members
+            {data.organization.description && (
+              <span className="ml-2">• {data.organization.description}</span>
+            )}
           </p>
         </div>
       </div>
@@ -181,30 +184,6 @@ export default function WorkspaceTeamPage() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
-
-      {/* Organization Info Card */}
-      <div className="border rounded-lg p-6 bg-card">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-            <Building2 className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold mb-1">{data.organization.name}</h2>
-            {data.organization.description && (
-              <p className="text-sm text-muted-foreground mb-2">
-                {data.organization.description}
-              </p>
-            )}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <UsersRound className="h-4 w-4" />
-                {data.organization._count.members} members
-              </span>
-              <span>{data.organization._count.workspaces} workspaces</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Members Table */}

@@ -446,175 +446,13 @@ export function DashboardSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Your Teams - Organizations with Projects and Boards */}
-        {teamsData && teamsData.length > 0 && (
+        {/* Workspaces - All organization workspaces in one group */}
+        {workspacesData?.organization && workspacesData.organization.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center gap-2">
-              <UsersRound className="h-3.5 w-3.5" />
-              Your Teams
-            </SidebarGroupLabel>
+            <SidebarGroupLabel>Workspaces</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {teamsData.map((team: Team) => {
-                  const isExpanded = expandedTeams.has(team.organization.id);
-
-                  return (
-                    <Collapsible
-                      key={team.organization.id}
-                      open={isExpanded}
-                      onOpenChange={() => toggleTeam(team.organization.id)}
-                    >
-                      <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton
-                            className={cn(
-                              "w-full justify-between",
-                              isActive(`/dashboard/organizations/${team.organization.id}`) && "bg-accent"
-                            )}
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <Building2 className="h-4 w-4 flex-shrink-0" />
-                              <span className="truncate">{team.organization.name}</span>
-                            </div>
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4 flex-shrink-0" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                            )}
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
-                            {team.workspaces.map((workspace: TeamWorkspace) => {
-                              const isWorkspaceExpanded = expandedTeamWorkspaces.has(workspace.id);
-
-                              return (
-                                <Collapsible
-                                  key={workspace.id}
-                                  open={isWorkspaceExpanded}
-                                  onOpenChange={() => toggleTeamWorkspace(workspace.id)}
-                                >
-                                  <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                      <SidebarMenuButton
-                                        className={cn(
-                                          "w-full justify-between h-8",
-                                          isActive(`/dashboard/workspaces/${workspace.id}`) && "bg-accent"
-                                        )}
-                                      >
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                          <Folder className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                          <span className="text-xs truncate">{workspace.name}</span>
-                                        </div>
-                                        {isWorkspaceExpanded ? (
-                                          <ChevronDown className="h-3 w-3 flex-shrink-0" />
-                                        ) : (
-                                          <ChevronRight className="h-3 w-3 flex-shrink-0" />
-                                        )}
-                                      </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                      <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
-                                        {/* Projects */}
-                                        {workspace.projects.map((project: TeamProject) => {
-                                          const isProjectExpanded = expandedTeamProjects.has(project.id);
-
-                                          return (
-                                            <Collapsible
-                                              key={project.id}
-                                              open={isProjectExpanded}
-                                              onOpenChange={() => toggleTeamProject(project.id)}
-                                            >
-                                              <SidebarMenuItem>
-                                                <CollapsibleTrigger asChild>
-                                                  <SidebarMenuButton
-                                                    className={cn(
-                                                      "w-full justify-between h-8",
-                                                      isActive(`/dashboard/projects/${project.id}`) && "bg-accent"
-                                                    )}
-                                                  >
-                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                      <FolderKanban className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                                      <span className="text-xs truncate">{project.name}</span>
-                                                    </div>
-                                                    {isProjectExpanded ? (
-                                                      <ChevronDown className="h-3 w-3 flex-shrink-0" />
-                                                    ) : (
-                                                      <ChevronRight className="h-3 w-3 flex-shrink-0" />
-                                                    )}
-                                                  </SidebarMenuButton>
-                                                </CollapsibleTrigger>
-                                                <CollapsibleContent>
-                                                  <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
-                                                    {project.boards.map((board: TeamBoard) => (
-                                                      <SidebarMenuItem key={board.id}>
-                                                        <SidebarMenuButton
-                                                          asChild
-                                                          className={cn(
-                                                            "h-8",
-                                                            isActive(`/dashboard/boards/${board.id}`) && "bg-accent"
-                                                          )}
-                                                        >
-                                                          <Link href={`/dashboard/boards/${board.id}`}>
-                                                            <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
-                                                            <span className="text-xs truncate">{board.title}</span>
-                                                          </Link>
-                                                        </SidebarMenuButton>
-                                                      </SidebarMenuItem>
-                                                    ))}
-                                                  </SidebarMenu>
-                                                </CollapsibleContent>
-                                              </SidebarMenuItem>
-                                            </Collapsible>
-                                          );
-                                        })}
-
-                                        {/* Direct Boards */}
-                                        {workspace.boards.map((board: TeamBoard) => (
-                                          <SidebarMenuItem key={board.id}>
-                                            <SidebarMenuButton
-                                              asChild
-                                              className={cn(
-                                                "h-8",
-                                                isActive(`/dashboard/boards/${board.id}`) && "bg-accent"
-                                              )}
-                                            >
-                                              <Link href={`/dashboard/boards/${board.id}`}>
-                                                <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
-                                                <span className="text-xs truncate">{board.title}</span>
-                                              </Link>
-                                            </SidebarMenuButton>
-                                          </SidebarMenuItem>
-                                        ))}
-                                      </SidebarMenu>
-                                    </CollapsibleContent>
-                                  </SidebarMenuItem>
-                                </Collapsible>
-                              );
-                            })}
-                          </SidebarMenu>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
-                    </Collapsible>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Workspaces - Grouped by Organization */}
-        {Object.keys(organizationGroups).length > 0 && (
-          <>
-            {Object.values(organizationGroups).map((group) => (
-              <SidebarGroup key={group.organization.id}>
-                <SidebarGroupLabel className="flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5" />
-                  {group.organization.name}
-                </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                    {group.workspaces.map((workspace) => {
+                {workspacesData.organization.map((workspace) => {
                   const isExpanded = expandedWorkspaces.has(workspace.id);
 
                   return (
@@ -716,8 +554,227 @@ export function DashboardSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-            ))}
-          </>
+        )}
+
+        {/* Your Teams - Organizations with Projects and Boards */}
+        {teamsData && teamsData.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center gap-2">
+              <UsersRound className="h-3.5 w-3.5" />
+              Your Teams
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {teamsData.map((team: Team) => {
+                  const isExpanded = expandedTeams.has(team.organization.id);
+
+                  return (
+                    <Collapsible
+                      key={team.organization.id}
+                      open={isExpanded}
+                      onOpenChange={() => toggleTeam(team.organization.id)}
+                    >
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            className={cn(
+                              "w-full justify-between",
+                              isActive(`/dashboard/organizations/${team.organization.id}`) && "bg-accent"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Building2 className="h-4 w-4 flex-shrink-0" />
+                              <span className="truncate">{team.organization.name}</span>
+                            </div>
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                            )}
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
+                            {team.workspaces.map((workspace: TeamWorkspace) => {
+                              const isWorkspaceExpanded = expandedTeamWorkspaces.has(workspace.id);
+
+                              return (
+                                <Collapsible
+                                  key={workspace.id}
+                                  open={isWorkspaceExpanded}
+                                  onOpenChange={() => toggleTeamWorkspace(workspace.id)}
+                                >
+                                  <SidebarMenuItem>
+                                    <CollapsibleTrigger asChild>
+                                      <SidebarMenuButton
+                                        className={cn(
+                                          "w-full justify-between h-8",
+                                          isActive(`/dashboard/workspaces/${workspace.id}`) && "bg-accent"
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                          <Folder className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                          <span className="text-xs truncate">{workspace.name}</span>
+                                        </div>
+                                        {isWorkspaceExpanded ? (
+                                          <ChevronDown className="h-3 w-3 flex-shrink-0" />
+                                        ) : (
+                                          <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                                        )}
+                                      </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                      <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
+                                        {/* Projects Link */}
+                                        <SidebarMenuItem>
+                                          <SidebarMenuButton
+                                            asChild
+                                            className={cn(
+                                              "h-8",
+                                              isActive(`/dashboard/workspaces/${workspace.id}/projects`) && "bg-accent"
+                                            )}
+                                          >
+                                            <Link href={`/dashboard/workspaces/${workspace.id}/projects`}>
+                                              <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
+                                              <span className="text-xs">Projects</span>
+                                            </Link>
+                                          </SidebarMenuButton>
+                                        </SidebarMenuItem>
+
+                                        {/* Boards Link */}
+                                        <SidebarMenuItem>
+                                          <SidebarMenuButton
+                                            asChild
+                                            className={cn(
+                                              "h-8",
+                                              isActive(`/dashboard/workspaces/${workspace.id}/boards`) && "bg-accent"
+                                            )}
+                                          >
+                                            <Link href={`/dashboard/workspaces/${workspace.id}/boards`}>
+                                              <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
+                                              <span className="text-xs">Boards</span>
+                                            </Link>
+                                          </SidebarMenuButton>
+                                        </SidebarMenuItem>
+
+                                        {/* Team Link */}
+                                        <SidebarMenuItem>
+                                          <SidebarMenuButton
+                                            asChild
+                                            className={cn(
+                                              "h-8",
+                                              isActive(`/dashboard/workspaces/${workspace.id}/team`) && "bg-accent"
+                                            )}
+                                          >
+                                            <Link href={`/dashboard/workspaces/${workspace.id}/team`}>
+                                              <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
+                                              <span className="text-xs">Team</span>
+                                            </Link>
+                                          </SidebarMenuButton>
+                                        </SidebarMenuItem>
+
+                                        {/* Members Link */}
+                                        <SidebarMenuItem>
+                                          <SidebarMenuButton
+                                            asChild
+                                            className={cn(
+                                              "h-8",
+                                              isActive(`/dashboard/workspaces/${workspace.id}/members`) && "bg-accent"
+                                            )}
+                                          >
+                                            <Link href={`/dashboard/workspaces/${workspace.id}/members`}>
+                                              <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
+                                              <span className="text-xs">Members</span>
+                                            </Link>
+                                          </SidebarMenuButton>
+                                        </SidebarMenuItem>
+
+                                        {/* Projects with Boards */}
+                                        {workspace.projects.map((project: TeamProject) => {
+                                          const isProjectExpanded = expandedTeamProjects.has(project.id);
+
+                                          return (
+                                            <Collapsible
+                                              key={project.id}
+                                              open={isProjectExpanded}
+                                              onOpenChange={() => toggleTeamProject(project.id)}
+                                            >
+                                              <SidebarMenuItem>
+                                                <CollapsibleTrigger asChild>
+                                                  <SidebarMenuButton
+                                                    className={cn(
+                                                      "w-full justify-between h-8",
+                                                      isActive(`/dashboard/projects/${project.id}`) && "bg-accent"
+                                                    )}
+                                                  >
+                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                      <FolderKanban className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                                      <span className="text-xs truncate">{project.name}</span>
+                                                    </div>
+                                                    {isProjectExpanded ? (
+                                                      <ChevronDown className="h-3 w-3 flex-shrink-0" />
+                                                    ) : (
+                                                      <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                                                    )}
+                                                  </SidebarMenuButton>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                  <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
+                                                    {project.boards.map((board: TeamBoard) => (
+                                                      <SidebarMenuItem key={board.id}>
+                                                        <SidebarMenuButton
+                                                          asChild
+                                                          className={cn(
+                                                            "h-8",
+                                                            isActive(`/dashboard/boards/${board.id}`) && "bg-accent"
+                                                          )}
+                                                        >
+                                                          <Link href={`/dashboard/boards/${board.id}`}>
+                                                            <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
+                                                            <span className="text-xs truncate">{board.title}</span>
+                                                          </Link>
+                                                        </SidebarMenuButton>
+                                                      </SidebarMenuItem>
+                                                    ))}
+                                                  </SidebarMenu>
+                                                </CollapsibleContent>
+                                              </SidebarMenuItem>
+                                            </Collapsible>
+                                          );
+                                        })}
+
+                                        {/* Direct Boards */}
+                                        {workspace.boards.map((board: TeamBoard) => (
+                                          <SidebarMenuItem key={board.id}>
+                                            <SidebarMenuButton
+                                              asChild
+                                              className={cn(
+                                                "h-8",
+                                                isActive(`/dashboard/boards/${board.id}`) && "bg-accent"
+                                              )}
+                                            >
+                                              <Link href={`/dashboard/boards/${board.id}`}>
+                                                <Kanban className="h-3.5 w-3.5 text-muted-foreground" />
+                                                <span className="text-xs truncate">{board.title}</span>
+                                              </Link>
+                                            </SidebarMenuButton>
+                                          </SidebarMenuItem>
+                                        ))}
+                                      </SidebarMenu>
+                                    </CollapsibleContent>
+                                  </SidebarMenuItem>
+                                </Collapsible>
+                              );
+                            })}
+                          </SidebarMenu>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
         {/* Shared Workspaces */}
@@ -857,7 +914,7 @@ export function DashboardSidebar() {
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <SidebarMenu className="ml-6 mt-1">
+                    <SidebarMenu className="ml-3 pl-3 border-l w-auto mt-1">
                       <SidebarMenuItem>
                         <SidebarMenuButton
                           asChild
