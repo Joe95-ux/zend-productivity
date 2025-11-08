@@ -74,21 +74,23 @@ export async function GET(
     }
 
     // Format members: include owner as admin
-    const ownerMember = {
+    const ownerMember = workspace.owner ? {
       id: `owner-${workspace.ownerId}`,
       user: workspace.owner,
       role: "admin" as const,
       createdAt: workspace.createdAt,
-    };
+    } : null;
 
     const allMembers = [
-      ownerMember,
-      ...workspace.members.map((m) => ({
-        id: m.id,
-        user: m.user,
-        role: m.role as "admin" | "member",
-        createdAt: m.createdAt,
-      })),
+      ...(ownerMember ? [ownerMember] : []),
+      ...workspace.members
+        .filter((m) => m.user !== null)
+        .map((m) => ({
+          id: m.id,
+          user: m.user!,
+          role: m.role as "admin" | "member",
+          createdAt: m.createdAt,
+        })),
     ];
 
     // Apply filters
@@ -99,8 +101,8 @@ export async function GET(
       const searchLower = search.toLowerCase();
       filteredMembers = filteredMembers.filter(
         (m) =>
-          m.user.name?.toLowerCase().includes(searchLower) ||
-          m.user.email.toLowerCase().includes(searchLower)
+          m.user?.name?.toLowerCase().includes(searchLower) ||
+          m.user?.email.toLowerCase().includes(searchLower)
       );
     }
 
@@ -113,7 +115,9 @@ export async function GET(
     filteredMembers.sort((a, b) => {
       switch (sortBy) {
         case "name":
-          return (a.user.name || a.user.email).localeCompare(b.user.name || b.user.email);
+          const aName = a.user?.name || a.user?.email || "";
+          const bName = b.user?.name || b.user?.email || "";
+          return aName.localeCompare(bName);
         case "role":
           return a.role.localeCompare(b.role);
         case "joined":
