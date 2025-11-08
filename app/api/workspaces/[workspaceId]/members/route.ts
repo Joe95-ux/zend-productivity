@@ -31,6 +31,13 @@ export async function GET(
             avatarUrl: true,
           },
         },
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         members: {
           include: {
             user: {
